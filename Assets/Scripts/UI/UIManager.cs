@@ -57,6 +57,7 @@ namespace VesperTwilightCourier
         public Button gameOverTitleButton;
 
         private Coroutine bannerRoutine;
+        private Coroutine shardPopRoutine;
         private bool syncingAudioUi;
 
         private void Awake()
@@ -202,10 +203,45 @@ namespace VesperTwilightCourier
 
         public void UpdateShards(int collected, int total)
         {
-            if (shardCounterText != null)
+            if (shardCounterText == null)
             {
-                shardCounterText.text = $"MEMORY SHARDS: {collected} / {total}";
+                return;
             }
+
+            shardCounterText.text = $"MEMORY SHARDS: {collected} / {total}";
+
+            if (Application.isPlaying && collected > 0 && gameObject.activeInHierarchy)
+            {
+                if (shardPopRoutine != null)
+                {
+                    StopCoroutine(shardPopRoutine);
+                }
+                shardPopRoutine = StartCoroutine(PopShardCounterRoutine());
+            }
+        }
+
+        private IEnumerator PopShardCounterRoutine()
+        {
+            Transform rt = shardCounterText.transform;
+            rt.localScale = Vector3.one;
+            const float halfDuration = 0.09f;
+
+            for (float t = 0f; t < halfDuration; t += Time.unscaledDeltaTime)
+            {
+                float s = Mathf.Lerp(1.0f, 1.22f, t / halfDuration);
+                rt.localScale = new Vector3(s, s, 1f);
+                yield return null;
+            }
+
+            for (float t = 0f; t < halfDuration; t += Time.unscaledDeltaTime)
+            {
+                float s = Mathf.Lerp(1.22f, 1.0f, t / halfDuration);
+                rt.localScale = new Vector3(s, s, 1f);
+                yield return null;
+            }
+
+            rt.localScale = Vector3.one;
+            shardPopRoutine = null;
         }
 
         public void UpdateTimer(float seconds)

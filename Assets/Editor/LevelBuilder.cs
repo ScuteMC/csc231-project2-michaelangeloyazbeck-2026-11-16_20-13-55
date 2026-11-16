@@ -29,7 +29,7 @@ public static class LevelBuilder
     private class BuiltAssets
     {
         public Sprite vesperIdle, vesperRun1, vesperRun2, vesperJump, vesperFall, vesperGlide, vesperHurt;
-        public Sprite tileRooftop, hazardSpikes, enemySentinel, collectibleShard, propCheckpoint, propGoalBeacon;
+        public Sprite tileRooftop, tileRooftopBody, hazardSpikes, enemySentinel, collectibleShard, propCheckpoint, propGoalBeacon;
         public Sprite bgFarSky, bgMidCity, bgNearSilhouettes;
         public Sprite uiWhiteSprite, uiHeartSprite, softParticleSprite;
         public Material particleMaterial;
@@ -49,7 +49,7 @@ public static class LevelBuilder
 
         BuiltAssets assets = LoadAndCreateAssets();
         BuildLevelOneScene(assets);
-        RenderVerificationScreenshots();
+        RenderVerificationScreenshots(assets);
         BuildWindowsPlayer();
 
         Debug.Log("[LevelBuilder] BuildAll completed successfully.");
@@ -65,7 +65,7 @@ public static class LevelBuilder
 
         BuiltAssets assets = LoadAndCreateAssets();
         BuildLevelOneScene(assets);
-        RenderVerificationScreenshots();
+        RenderVerificationScreenshots(assets);
     }
 
     private static void EnsureDirectories()
@@ -155,6 +155,7 @@ public static class LevelBuilder
         ConfigureSingleSprite($"{SpriteFolder}/Vesper_Hurt.png", 128f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
 
         ConfigureSingleSprite($"{SpriteFolder}/Tile_Rooftop.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Tile_Rooftop_Body.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/Hazard_Spikes.png", 128f, new Vector2(0.5f, 0.0f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/Enemy_Sentinel.png", 160f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
         ConfigureSingleSprite($"{SpriteFolder}/Collectible_Shard.png", 180f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
@@ -172,7 +173,7 @@ public static class LevelBuilder
 
     private static void ConfigureSingleSprite(string assetPath, float ppu, Vector2 pivot, TextureWrapMode wrapMode, SpriteMeshType meshType)
     {
-        AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+        AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
         TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
         if (importer == null)
         {
@@ -212,6 +213,7 @@ public static class LevelBuilder
         a.vesperHurt = LoadSprite($"{SpriteFolder}/Vesper_Hurt.png");
 
         a.tileRooftop = LoadSprite($"{SpriteFolder}/Tile_Rooftop.png");
+        a.tileRooftopBody = LoadSprite($"{SpriteFolder}/Tile_Rooftop_Body.png");
         a.hazardSpikes = LoadSprite($"{SpriteFolder}/Hazard_Spikes.png");
         a.enemySentinel = LoadSprite($"{SpriteFolder}/Enemy_Sentinel.png");
         a.collectibleShard = LoadSprite($"{SpriteFolder}/Collectible_Shard.png");
@@ -519,7 +521,7 @@ public static class LevelBuilder
         BuildLevelGeometryAndProps(a);
 
         // 7. Complete UI Canvas (Title, HUD, Pause, Win, Game Over) + EventSystem
-        BuildUiCanvas(a, gm);
+        BuildUiCanvas(a, gm, cam);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -562,16 +564,17 @@ public static class LevelBuilder
 
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = particleMat;
-        renderer.sortingOrder = -5;
+        renderer.sortingOrder = -2;
+        ConfigureParticleFade(ps, 0.72f, true);
     }
 
     private static void CreateParallaxRig(BuiltAssets a)
     {
         GameObject bgRoot = new GameObject("ParallaxBackgrounds");
 
-        CreateParallaxLayer("BG_FarSky", a.bgFarSky, bgRoot.transform, 0.86f, 0.72f, 5.8f, -30, 2.25f, new Color(1f, 1f, 1f, 1f));
-        CreateParallaxLayer("BG_MidCity", a.bgMidCity, bgRoot.transform, 0.58f, 0.48f, 1.8f, -20, 1.55f, new Color(0.92f, 0.92f, 1f, 0.95f));
-        CreateParallaxLayer("BG_NearSilhouettes", a.bgNearSilhouettes, bgRoot.transform, 0.32f, 0.28f, 0.6f, -10, 1.45f, new Color(0.88f, 0.88f, 1f, 0.95f));
+        CreateParallaxLayer("BG_FarSky", a.bgFarSky, bgRoot.transform, 0.86f, 0.72f, 1.0f, -30, 2.25f, new Color(1f, 1f, 1f, 1f));
+        CreateParallaxLayer("BG_MidCity", a.bgMidCity, bgRoot.transform, 0.58f, 0.48f, 3.2f, -20, 1.65f, new Color(0.92f, 0.92f, 1f, 0.96f));
+        CreateParallaxLayer("BG_NearSilhouettes", a.bgNearSilhouettes, bgRoot.transform, 0.32f, 0.28f, 1.4f, -10, 1.45f, new Color(0.95f, 0.94f, 1f, 0.98f));
     }
 
     private static void CreateParallaxLayer(
@@ -650,6 +653,9 @@ public static class LevelBuilder
             "GlideTrailParticles", playerGo.transform, new Vector3(0f, 0.9f, 0f),
             a.particleMaterial, new Color(0.32f, 0.88f, 1f, 0.8f), new Color(0.55f, 0.35f, 0.95f, 0.75f), 4
         );
+        var glideMain = pc.glideTrailParticles.main;
+        glideMain.playOnAwake = false;
+        pc.glideTrailParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         ph.hurtBurstParticles = CreateOneShotBurstParticles(
             "HurtBurstParticles", playerGo.transform, new Vector3(0f, 0.9f, 0f),
             a.particleMaterial, new Color(1f, 0.28f, 0.4f, 0.95f), 18, 0.16f, 0.32f, 5.2f, 180f, 12
@@ -666,13 +672,13 @@ public static class LevelBuilder
         // ZONE 1: Courtyard of Whispers (x = -2 .. 52)
         // Introduces Movement, Jumping, Shards, and Shadow-Cloak Glide safely
         // ============================================================
-        CreatePlatform("Roof_1A_Start", -2f, 14f, 0f, 6f, a.tileRooftop, levelRoot.transform);
-        CreatePlatform("Roof_1B_Step", 16f, 22f, 1.4f, 6f, a.tileRooftop, levelRoot.transform);
-        CreatePlatform("Roof_1C_Launch", 24f, 30f, 3.0f, 6f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_1A_Start", -2f, 14f, 0f, 6f, a, levelRoot.transform);
+        CreatePlatform("Roof_1B_Step", 16f, 22f, 1.4f, 6f, a, levelRoot.transform);
+        CreatePlatform("Roof_1C_Launch", 24f, 30f, 3.0f, 6f, a, levelRoot.transform);
         // Safe glide catch floor below the first glide gap so players learn risk-free
-        CreatePlatform("Roof_1_SafetyFloor", 28f, 43f, -1.5f, 4f, a.tileRooftop, levelRoot.transform);
-        CreatePlatform("Roof_1_SafetyStep", 39f, 43f, 0.0f, 1.5f, a.tileRooftop, levelRoot.transform);
-        CreatePlatform("Roof_1D_Landing", 40f, 56f, 1.2f, 6f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_1_SafetyFloor", 28f, 43f, -1.5f, 4f, a, levelRoot.transform);
+        CreatePlatform("Roof_1_SafetyStep", 39f, 43f, 0.0f, 2.0f, a, levelRoot.transform);
+        CreatePlatform("Roof_1D_Landing", 40f, 56f, 1.2f, 6f, a, levelRoot.transform);
 
         CreateTutorialTrigger("Tut_1_Controls", new Vector2(3.5f, 1.5f), new Vector2(4f, 4f),
             "COURTYARD OF WHISPERS: Move with A/D or Arrows, Jump with SPACE or W!", levelRoot.transform);
@@ -698,19 +704,19 @@ public static class LevelBuilder
 
         // Safe Updraft intro: low floor still underneath Roof_2B
         CreateUpdraft("Updraft_1_Intro", new Vector2(53.5f, 1.2f), 3.4f, 8.2f, 9.5f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_2A_Under", 54f, 62f, 1.2f, 4f, a.tileRooftop, levelRoot.transform);
-        CreatePlatform("Roof_2B_Upper", 57f, 73f, 5.4f, 2f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_2A_Under", 54f, 62f, 1.2f, 4f, a, levelRoot.transform);
+        CreatePlatform("Roof_2B_Upper", 57f, 73f, 5.4f, 2f, a, levelRoot.transform);
 
         CreateTutorialTrigger("Tut_4_Spikes", new Vector2(59.5f, 7.0f), new Vector2(3.5f, 4f),
             "HAZARD ALERT: Leap cleanly over Electrified Roof Spikes!", levelRoot.transform);
         CreateSpikes("Spikes_2_Intro", new Vector2(65.5f, 5.4f), 2.0f, a.hazardSpikes, levelRoot.transform);
 
         // Gap to Roof 2C with spikes + updraft challenge
-        CreatePlatform("Roof_2C_Mid", 76.5f, 88.5f, 3.2f, 6f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_2C_Mid", 76.5f, 88.5f, 3.2f, 6f, a, levelRoot.transform);
         CreateSpikes("Spikes_2C", new Vector2(82.0f, 3.2f), 2.2f, a.hazardSpikes, levelRoot.transform);
 
         CreateUpdraft("Updraft_2_Chasm", new Vector2(91.0f, 1.5f), 4.0f, 8.8f, 10.2f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_2D_High", 94.5f, 120f, 6.0f, 6f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_2D_High", 94.5f, 120f, 6.0f, 6f, a, levelRoot.transform);
         CreateSpikes("Spikes_2D", new Vector2(99.5f, 6.0f), 2.0f, a.hazardSpikes, levelRoot.transform);
 
         // Shards 8..14
@@ -734,18 +740,18 @@ public static class LevelBuilder
         CreateSentinel("Sentinel_1_Intro", new Vector2(114f, 6.95f), -3.2f, 3.2f, 2.2f, a, levelRoot.transform);
 
         // Sky Bridge with spikes + Sentinel
-        CreatePlatform("Roof_3A_Foundry", 123.5f, 136.5f, 4.6f, 6f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_3A_Foundry", 123.5f, 136.5f, 4.6f, 6f, a, levelRoot.transform);
         CreateSpikes("Spikes_3A", new Vector2(126.5f, 4.6f), 1.8f, a.hazardSpikes, levelRoot.transform);
         CreateSentinel("Sentinel_2_Foundry", new Vector2(132.5f, 5.55f), -2.5f, 2.5f, 2.7f, a, levelRoot.transform);
 
         // Dual route: Upper bonus shard skybridge via Updraft_3 OR lower combat roof
         CreateUpdraft("Updraft_3_Split", new Vector2(138.0f, 2.0f), 2.8f, 8.0f, 9.5f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_3B_Lower", 139.5f, 149.0f, 2.0f, 6f, a.tileRooftop, levelRoot.transform);
-        CreatePlatform("Roof_3B_High", 140.5f, 148.0f, 6.6f, 1.5f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_3B_Lower", 139.5f, 149.0f, 2.0f, 6f, a, levelRoot.transform);
+        CreatePlatform("Roof_3B_High", 140.5f, 148.0f, 6.6f, 2.0f, a, levelRoot.transform);
         CreateSentinel("Sentinel_3_Low", new Vector2(144.2f, 2.95f), -2.8f, 2.8f, 2.6f, a, levelRoot.transform);
 
         // Twin Spike Gauntlet leading to Zone 4 Checkpoint
-        CreatePlatform("Roof_3C_Gauntlet", 151.5f, 164.5f, 3.5f, 6f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_3C_Gauntlet", 151.5f, 164.5f, 3.5f, 6f, a, levelRoot.transform);
         CreateSpikes("Spikes_3B", new Vector2(154.5f, 3.5f), 1.8f, a.hazardSpikes, levelRoot.transform);
         CreateSpikes("Spikes_3C", new Vector2(159.0f, 3.5f), 1.8f, a.hazardSpikes, levelRoot.transform);
 
@@ -765,16 +771,16 @@ public static class LevelBuilder
         CreateTutorialTrigger("Tut_6_Final", new Vector2(163.0f, 5.0f), new Vector2(3.5f, 4f),
             "TWILIGHT SANCTUM ASCENT: Combine Updrafts, Glides, and Stomps to reach the Beacon!", levelRoot.transform);
 
-        CreatePlatform("Roof_4A_Bastion", 167.0f, 176.5f, 4.6f, 6f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_4A_Bastion", 167.0f, 176.5f, 4.6f, 6f, a, levelRoot.transform);
         CreateSentinel("Sentinel_4_Bastion", new Vector2(171.8f, 5.55f), -2.8f, 2.8f, 2.9f, a, levelRoot.transform);
 
         // Dual Updraft Chasm
         CreateUpdraft("Updraft_4_AscentA", new Vector2(179.5f, 2.5f), 3.6f, 9.0f, 10.2f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_4B_Perch", 182.5f, 188.0f, 7.2f, 1.8f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_4B_Perch", 182.5f, 188.0f, 7.2f, 2.0f, a, levelRoot.transform);
         CreateUpdraft("Updraft_5_AscentB", new Vector2(190.5f, 4.5f), 3.6f, 9.5f, 10.5f, a.particleMaterial, levelRoot.transform);
 
         // Final Sanctum Terrace & Beacon
-        CreatePlatform("Roof_4C_Sanctum", 193.5f, 212.0f, 9.0f, 8f, a.tileRooftop, levelRoot.transform);
+        CreatePlatform("Roof_4C_Sanctum", 193.5f, 212.0f, 9.0f, 8f, a, levelRoot.transform);
         CreateSentinel("Sentinel_5_Guard", new Vector2(197.5f, 9.95f), -2.5f, 2.5f, 3.0f, a, levelRoot.transform);
         CreateSpikes("Spikes_4_Final", new Vector2(201.5f, 9.0f), 1.8f, a.hazardSpikes, levelRoot.transform);
 
@@ -793,25 +799,46 @@ public static class LevelBuilder
         CreateAbyssKillzone(new Vector2(105f, -10.5f), new Vector2(240f, 8f), levelRoot.transform);
     }
 
-    private static void CreatePlatform(string name, float startX, float endX, float topY, float height, Sprite tileSprite, Transform parent)
+    private static void CreatePlatform(string name, float startX, float endX, float topY, float height, BuiltAssets a, Transform parent)
     {
+        float finalHeight = Mathf.Max(2.0f, height);
         float width = endX - startX;
         float centerX = (startX + endX) * 0.5f;
-        float centerY = topY - height * 0.5f;
+        float centerY = topY - finalHeight * 0.5f;
 
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         go.transform.position = new Vector3(centerX, centerY, 0f);
 
-        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = tileSprite;
-        sr.drawMode = SpriteDrawMode.Tiled;
-        sr.tileMode = SpriteTileMode.Continuous;
-        sr.size = new Vector2(width, height);
-        sr.sortingOrder = 0;
-
         BoxCollider2D col = go.AddComponent<BoxCollider2D>();
-        col.size = new Vector2(width, height);
+        col.size = new Vector2(width, finalHeight);
+
+        const float capHeight = 2.0f;
+        GameObject capGo = new GameObject("RooftopCap");
+        capGo.transform.SetParent(go.transform, false);
+        capGo.transform.localPosition = new Vector3(0f, finalHeight * 0.5f - capHeight * 0.5f, 0f);
+
+        SpriteRenderer capSr = capGo.AddComponent<SpriteRenderer>();
+        capSr.sprite = a.tileRooftop;
+        capSr.drawMode = SpriteDrawMode.Tiled;
+        capSr.tileMode = SpriteTileMode.Continuous;
+        capSr.size = new Vector2(width, capHeight);
+        capSr.sortingOrder = 0;
+
+        float bodyHeight = finalHeight - capHeight;
+        if (bodyHeight > 0.05f)
+        {
+            GameObject bodyGo = new GameObject("StoneBody");
+            bodyGo.transform.SetParent(go.transform, false);
+            bodyGo.transform.localPosition = new Vector3(0f, -capHeight * 0.5f, 0f);
+
+            SpriteRenderer bodySr = bodyGo.AddComponent<SpriteRenderer>();
+            bodySr.sprite = a.tileRooftopBody;
+            bodySr.drawMode = SpriteDrawMode.Tiled;
+            bodySr.tileMode = SpriteTileMode.Continuous;
+            bodySr.size = new Vector2(width, bodyHeight);
+            bodySr.sortingOrder = 0;
+        }
     }
 
     private static void CreateSpikes(string name, Vector2 baseCenter, float width, Sprite spikeSprite, Transform parent)
@@ -939,17 +966,17 @@ public static class LevelBuilder
         var main = ps.main;
         main.loop = true;
         main.playOnAwake = true;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(height / 7.5f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(6.5f, 8.8f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.16f, 0.36f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(height / 7.2f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(6.8f, 9.2f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.44f);
         main.startColor = new ParticleSystem.MinMaxGradient(
-            new Color(0.35f, 0.95f, 1f, 0.75f),
-            new Color(0.68f, 0.96f, 1f, 0.55f)
+            new Color(0.38f, 0.96f, 1f, 0.85f),
+            new Color(0.75f, 0.98f, 1f, 0.65f)
         );
-        main.maxParticles = 60;
+        main.maxParticles = 70;
 
         var emission = ps.emission;
-        emission.rateOverTime = 24f;
+        emission.rateOverTime = 28f;
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
@@ -958,6 +985,7 @@ public static class LevelBuilder
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = particleMat;
         renderer.sortingOrder = 1;
+        ConfigureParticleFade(ps, 0.85f, true);
     }
 
     private static void CreateTutorialTrigger(string name, Vector2 center, Vector2 size, string message, Transform parent)
@@ -1069,6 +1097,7 @@ public static class LevelBuilder
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = mat;
         renderer.sortingOrder = sortingOrder;
+        ConfigureParticleFade(ps, 1.0f, true);
 
         return ps;
     }
@@ -1092,12 +1121,12 @@ public static class LevelBuilder
         main.playOnAwake = true;
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.65f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 1.4f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.14f, 0.30f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.16f, 0.34f);
         main.startColor = new ParticleSystem.MinMaxGradient(colorA, colorB);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.rateOverTime = 24f;
+        emission.rateOverTime = 26f;
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Circle;
@@ -1106,17 +1135,54 @@ public static class LevelBuilder
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = mat;
         renderer.sortingOrder = sortingOrder;
+        ConfigureParticleFade(ps, 0.9f, true);
 
         return ps;
     }
 
-    private static void BuildUiCanvas(BuiltAssets a, GameManager gm)
+    private static void ConfigureParticleFade(ParticleSystem ps, float peakAlpha, bool shrinkToZero)
+    {
+        var colLife = ps.colorOverLifetime;
+        colLife.enabled = true;
+        Gradient g = new Gradient();
+        g.SetKeys(
+            new[]
+            {
+                new GradientColorKey(Color.white, 0f),
+                new GradientColorKey(Color.white, 1f)
+            },
+            new[]
+            {
+                new GradientAlphaKey(0f, 0f),
+                new GradientAlphaKey(peakAlpha, 0.14f),
+                new GradientAlphaKey(peakAlpha * 0.8f, 0.6f),
+                new GradientAlphaKey(0f, 1f)
+            }
+        );
+        colLife.color = new ParticleSystem.MinMaxGradient(g);
+
+        if (shrinkToZero)
+        {
+            var sizeLife = ps.sizeOverLifetime;
+            sizeLife.enabled = true;
+            AnimationCurve curve = new AnimationCurve(
+                new Keyframe(0f, 0.7f),
+                new Keyframe(0.25f, 1.0f),
+                new Keyframe(1f, 0f)
+            );
+            sizeLife.size = new ParticleSystem.MinMaxCurve(1f, curve);
+        }
+    }
+
+    private static void BuildUiCanvas(BuiltAssets a, GameManager gm, Camera cam)
     {
         Font uiFont = ResolveUiFont();
 
         GameObject canvasGo = new GameObject("GameCanvas");
         Canvas canvas = canvasGo.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = cam;
+        canvas.planeDistance = 1.0f;
         canvas.sortingOrder = 50;
 
         CanvasScaler scaler = canvasGo.AddComponent<CanvasScaler>();
@@ -1136,17 +1202,17 @@ public static class LevelBuilder
         esGo.AddComponent<StandaloneInputModule>();
 #endif
 
-        // 1. TITLE SCREEN PANEL
-        GameObject titlePanel = CreateFullScreenPanel("TitlePanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.05f, 0.06f, 0.15f, 0.88f));
+        // 1. TITLE SCREEN PANEL (semi-transparent twilight scrim so live rooftop sky & Vesper remain visible behind UI)
+        GameObject titlePanel = CreateFullScreenPanel("TitlePanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.05f, 0.06f, 0.15f, 0.72f));
         uiMgr.titlePanel = titlePanel;
 
         CreateText("TitleLogo", titlePanel.transform, uiFont, "VESPER: TWILIGHT COURIER", 52, FontStyle.Bold,
             new Color(0.42f, 0.94f, 1f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 165f), new Vector2(960f, 80f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 195f), new Vector2(960f, 80f));
 
         CreateText("TitleSubtitle", titlePanel.transform, uiFont, "LEVEL 1  -  NOCTIS REACH ROOFTOPS", 24, FontStyle.Bold,
             new Color(1f, 0.86f, 0.42f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 108f), new Vector2(820f, 44f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 138f), new Vector2(820f, 44f));
 
         CreateText("TitlePitch", titlePanel.transform, uiFont,
             "As Vesper, a shadow-stitcher courier of the twilight district, cross the skylines\n" +
@@ -1154,16 +1220,16 @@ public static class LevelBuilder
             "Move: A/D or Arrows   |   Jump: SPACE / W   |   Shadow-Cloak Glide: Hold SPACE or SHIFT\n" +
             "Stomp Clockwork Sentinels from above   |   Pause: ESC / P",
             20, FontStyle.Normal, new Color(0.90f, 0.93f, 1f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 5f), new Vector2(980f, 150f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 38f), new Vector2(980f, 150f));
 
         Button startBtn = CreateButton("StartRunButton", titlePanel.transform, a.uiWhiteSprite, uiFont,
-            "START RUN", new Vector2(0f, -120f), new Vector2(280f, 62f),
+            "START RUN", new Vector2(0f, -95f), new Vector2(280f, 62f),
             new Color(0.16f, 0.62f, 0.82f, 1f), Color.white);
         uiMgr.startRunButton = startBtn;
         UnityEventTools.AddPersistentListener(startBtn.onClick, gm.StartGame);
 
         Button titleQuitBtn = CreateButton("TitleQuitButton", titlePanel.transform, a.uiWhiteSprite, uiFont,
-            "QUIT", new Vector2(0f, -200f), new Vector2(220f, 50f),
+            "QUIT", new Vector2(0f, -175f), new Vector2(220f, 50f),
             new Color(0.24f, 0.22f, 0.36f, 1f), new Color(0.9f, 0.9f, 1f, 1f));
         uiMgr.titleQuitButton = titleQuitBtn;
         UnityEventTools.AddPersistentListener(titleQuitBtn.onClick, gm.QuitGame);
@@ -1239,14 +1305,14 @@ public static class LevelBuilder
         RectTransform badgeRt = badgeGo.GetComponent<RectTransform>();
         badgeRt.anchorMin = new Vector2(0f, 0f);
         badgeRt.anchorMax = new Vector2(0f, 0f);
-        badgeRt.anchoredPosition = new Vector2(155f, 38f);
-        badgeRt.sizeDelta = new Vector2(265f, 38f);
+        badgeRt.anchoredPosition = new Vector2(132f, 38f);
+        badgeRt.sizeDelta = new Vector2(232f, 38f);
         uiMgr.glideBadgeBackground = badgeImg;
 
-        uiMgr.glideBadgeText = CreateText("GlideBadgeText", badgeGo.transform, uiFont, "CLOAK: READY", 18, FontStyle.Bold,
-            Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(250f, 34f));
+        uiMgr.glideBadgeText = CreateText("GlideBadgeText", badgeGo.transform, uiFont, "CLOAK: READY", 17, FontStyle.Bold,
+            Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 34f));
 
-        // Center-bottom Tutorial / Checkpoint Banner
+        // Center-bottom Tutorial / Checkpoint Banner (positioned with clean margin right of GlideStatusBadge)
         GameObject bannerGo = new GameObject("BannerContainer");
         bannerGo.transform.SetParent(hudPanel.transform, false);
         Image bannerImg = bannerGo.AddComponent<Image>();
@@ -1256,12 +1322,12 @@ public static class LevelBuilder
         RectTransform bannerRt = bannerGo.GetComponent<RectTransform>();
         bannerRt.anchorMin = new Vector2(0.5f, 0f);
         bannerRt.anchorMax = new Vector2(0.5f, 0f);
-        bannerRt.anchoredPosition = new Vector2(0f, 48f);
-        bannerRt.sizeDelta = new Vector2(740f, 54f);
+        bannerRt.anchoredPosition = new Vector2(45f, 42f);
+        bannerRt.sizeDelta = new Vector2(700f, 52f);
         uiMgr.bannerContainer = bannerGo;
-        uiMgr.bannerText = CreateText("BannerText", bannerGo.transform, uiFont, "", 19, FontStyle.Bold,
+        uiMgr.bannerText = CreateText("BannerText", bannerGo.transform, uiFont, "", 18, FontStyle.Bold,
             new Color(0.95f, 0.96f, 1f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(710f, 48f));
+            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(676f, 46f));
         bannerGo.SetActive(false);
 
         // 3. PAUSE PANEL
@@ -1548,7 +1614,7 @@ public static class LevelBuilder
         return slider;
     }
 
-    public static void RenderVerificationScreenshots()
+    private static void RenderVerificationScreenshots(BuiltAssets assets)
     {
         Camera cam = Camera.main;
         if (cam == null)
@@ -1557,12 +1623,157 @@ public static class LevelBuilder
             return;
         }
 
-        // Disable overlay TitlePanel temporarily so screenshots show actual 2D level art clearly
-        GameObject titlePanel = GameObject.Find("TitlePanel");
-        bool wasTitleActive = titlePanel != null && titlePanel.activeSelf;
-        if (titlePanel != null) titlePanel.SetActive(false);
+        UIManager uiMgr = UnityEngine.Object.FindFirstObjectByType<UIManager>();
+        PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
+        SpriteRenderer playerSr = player != null ? player.GetComponent<SpriteRenderer>() : null;
+        Vector3 origPlayerPos = player != null ? player.transform.position : Vector3.zero;
+        Sprite origPlayerSprite = playerSr != null ? playerSr.sprite : null;
 
-        Vector3 originalPos = cam.transform.position;
+        ParallaxLayer[] parallaxLayers = UnityEngine.Object.FindObjectsByType<ParallaxLayer>(FindObjectsSortMode.None);
+        Vector3[] origLayerPos = new Vector3[parallaxLayers.Length];
+        for (int i = 0; i < parallaxLayers.Length; i++)
+        {
+            origLayerPos[i] = parallaxLayers[i].transform.position;
+        }
+
+        Vector3 baseCamPos = cam.transform.position;
+
+        // 1. Capture Title Screen over live Zone 1 backdrop
+        if (uiMgr != null)
+        {
+            uiMgr.ShowOnlyPanel(GameState.Title);
+        }
+        CaptureCameraView(cam, new Vector3(8f, 2.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/title_screen.png");
+
+        // 2. Capture Zone 1 Gameplay + HUD + Tutorial Banner
+        if (uiMgr != null)
+        {
+            uiMgr.ShowOnlyPanel(GameState.Playing);
+            if (uiMgr.bannerContainer != null && uiMgr.bannerText != null)
+            {
+                uiMgr.bannerText.text = "COURTYARD OF WHISPERS: Move with A/D or Arrows, Jump with SPACE or W!";
+                uiMgr.bannerContainer.SetActive(true);
+            }
+            uiMgr.UpdateShards(2, 25);
+        }
+        CaptureCameraView(cam, new Vector3(8f, 2.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/gameplay_preview.png");
+
+        // 3. Capture Signature Shadow-Cloak Glide + Active Particles + HUD Glide Badge
+        if (player != null && playerSr != null && assets != null)
+        {
+            player.transform.position = new Vector3(33.2f, 4.1f, 0f);
+            playerSr.sprite = assets.vesperGlide;
+            if (player.glideTrailParticles != null)
+            {
+                player.glideTrailParticles.Play();
+                player.glideTrailParticles.Simulate(0.45f, true, true);
+            }
+            if (uiMgr != null)
+            {
+                uiMgr.UpdateGlideStatus(true, true);
+                if (uiMgr.bannerText != null)
+                {
+                    uiMgr.bannerText.text = "SIGNATURE MOVE: Hold SPACE or SHIFT in mid-air to open your Shadow-Cloak Glide!";
+                }
+            }
+        }
+        CaptureCameraView(cam, new Vector3(34f, 3.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/glide_and_particles_preview.png");
+
+        // Restore player position/sprite cleanly
+        if (player != null && playerSr != null)
+        {
+            player.transform.position = origPlayerPos;
+            playerSr.sprite = origPlayerSprite;
+            if (player.glideTrailParticles != null)
+            {
+                player.glideTrailParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+        }
+
+        // 4. Capture Zone 2 with lit Checkpoint flame particles, Updraft wind streams, and clean electric spikes
+        if (uiMgr != null && uiMgr.bannerContainer != null)
+        {
+            uiMgr.UpdateGlideStatus(false, false);
+            uiMgr.UpdateShards(9, 25);
+            uiMgr.bannerText.text = "UPDRAFT CHIMNEYS: Glide inside cyan wind columns to soar to high rooftops!";
+        }
+        Checkpoint cp1 = null;
+        foreach (Checkpoint cp in UnityEngine.Object.FindObjectsByType<Checkpoint>(FindObjectsSortMode.None))
+        {
+            if (cp.checkpointIndex == 1)
+            {
+                cp1 = cp;
+                break;
+            }
+        }
+        if (cp1 != null && cp1.lanternRenderer != null)
+        {
+            cp1.lanternRenderer.color = cp1.litTint;
+            if (cp1.idleFlameParticles != null)
+            {
+                cp1.idleFlameParticles.Simulate(0.8f, true, true);
+            }
+        }
+        CaptureCameraView(cam, new Vector3(53.5f, 4.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone2_updraft_preview.png");
+
+        if (cp1 != null && cp1.lanternRenderer != null)
+        {
+            cp1.lanternRenderer.color = cp1.unlitTint;
+            if (cp1.idleFlameParticles != null)
+            {
+                cp1.idleFlameParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+        }
+
+        // 5. Capture Zone 3 Clockwork Sentinel & 3-layer skyline depth
+        if (uiMgr != null)
+        {
+            uiMgr.UpdateShards(15, 25);
+            if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
+        }
+        CaptureCameraView(cam, new Vector3(114f, 7.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone3_sentinel_preview.png");
+
+        // 6. Capture Zone 4 Sanctum Beacon Goal
+        if (uiMgr != null)
+        {
+            uiMgr.UpdateShards(25, 25);
+        }
+        CaptureCameraView(cam, new Vector3(201f, 10.5f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/level_goal_preview.png");
+
+        // Restore Camera, Parallax, and Initial Title UI state cleanly
+        cam.transform.position = baseCamPos;
+        for (int i = 0; i < parallaxLayers.Length; i++)
+        {
+            parallaxLayers[i].transform.position = origLayerPos[i];
+        }
+        if (uiMgr != null)
+        {
+            uiMgr.UpdateShards(0, 25);
+            uiMgr.ShowOnlyPanel(GameState.Title);
+            if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
+        }
+    }
+
+    private static void CaptureCameraView(
+        Camera cam,
+        Vector3 camPos,
+        Vector3 baseCamPos,
+        ParallaxLayer[] parallaxLayers,
+        Vector3[] baseLayerPos,
+        string outputPath)
+    {
+        cam.transform.position = camPos;
+
+        Vector3 camDelta = camPos - baseCamPos;
+        for (int i = 0; i < parallaxLayers.Length; i++)
+        {
+            ParallaxLayer p = parallaxLayers[i];
+            parallaxLayers[i].transform.position = new Vector3(
+                baseLayerPos[i].x + camDelta.x * p.parallaxFactorX,
+                baseLayerPos[i].y + camDelta.y * p.parallaxFactorY,
+                baseLayerPos[i].z
+            );
+        }
 
         ParticleSystem[] systems = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None);
         foreach (ParticleSystem ps in systems)
@@ -1573,18 +1784,6 @@ public static class LevelBuilder
             }
         }
 
-        CaptureCameraView(cam, new Vector3(8f, 2.2f, -10f), "Screenshots/gameplay_preview.png");
-        CaptureCameraView(cam, new Vector3(53.5f, 4.2f, -10f), "Screenshots/zone2_updraft_preview.png");
-        CaptureCameraView(cam, new Vector3(114f, 7.2f, -10f), "Screenshots/zone3_sentinel_preview.png");
-        CaptureCameraView(cam, new Vector3(201f, 10.5f, -10f), "Screenshots/level_goal_preview.png");
-
-        cam.transform.position = originalPos;
-        if (titlePanel != null) titlePanel.SetActive(wasTitleActive);
-    }
-
-    private static void CaptureCameraView(Camera cam, Vector3 camPos, string outputPath)
-    {
-        cam.transform.position = camPos;
         int width = 1280;
         int height = 720;
 
@@ -1593,6 +1792,8 @@ public static class LevelBuilder
         RenderTexture prev = RenderTexture.active;
         RenderTexture.active = rt;
 
+        // Warm-up render pass ensures URP 2D shaders, canvas sorting, and parallax layers settle before readback
+        cam.Render();
         cam.Render();
 
         Texture2D tex = new Texture2D(width, height, TextureFormat.RGB24, false);

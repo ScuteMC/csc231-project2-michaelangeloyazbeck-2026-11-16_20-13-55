@@ -62,6 +62,7 @@ namespace VesperTwilightCourier
         private float coyoteTimer;
         private float jumpBufferTimer;
         private float knockbackLockTimer;
+        private float footstepDustTimer;
 
         private readonly List<UpdraftVent> activeUpdrafts = new List<UpdraftVent>();
         private readonly Collider2D[] groundOverlapBuffer = new Collider2D[12];
@@ -96,6 +97,7 @@ namespace VesperTwilightCourier
                 horizontalInput = 0f;
                 jumpHeld = false;
                 glideButtonHeld = false;
+                transform.localScale = Vector3.Lerp(transform.localScale, Vector3.one, Time.unscaledDeltaTime * 10f);
                 UpdateAnimator(0f);
                 return;
             }
@@ -103,6 +105,7 @@ namespace VesperTwilightCourier
             if (playerHealth != null && playerHealth.IsDead)
             {
                 horizontalInput = 0f;
+                transform.localScale = Vector3.Lerp(transform.localScale, Vector3.one, Time.deltaTime * 10f);
                 UpdateAnimator(0f);
                 return;
             }
@@ -110,6 +113,8 @@ namespace VesperTwilightCourier
             ReadInput();
             UpdateTimers();
             HandleSpriteFacing();
+            HandleFootstepDust();
+            transform.localScale = Vector3.Lerp(transform.localScale, Vector3.one, Time.deltaTime * 10f);
             UpdateAnimator(Mathf.Abs(rb.linearVelocity.x));
 
             if (UIManager.Instance != null)
@@ -290,6 +295,7 @@ namespace VesperTwilightCourier
             if (isGrounded && !wasGrounded)
             {
                 SetGlidingState(false);
+                transform.localScale = new Vector3(1.14f, 0.86f, 1f);
                 if (landingDustParticles != null)
                 {
                     landingDustParticles.Play();
@@ -310,6 +316,7 @@ namespace VesperTwilightCourier
             jumpHoldEligibleForGlide = true;
 
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            transform.localScale = new Vector3(0.90f, 1.12f, 1f);
 
             if (jumpDustParticles != null)
             {
@@ -328,6 +335,7 @@ namespace VesperTwilightCourier
             coyoteTimer = 0f;
             jumpHoldEligibleForGlide = true;
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, upwardSpeed);
+            transform.localScale = new Vector3(0.90f, 1.12f, 1f);
 
             if (jumpDustParticles != null)
             {
@@ -348,8 +356,29 @@ namespace VesperTwilightCourier
             coyoteTimer = 0f;
             jumpBufferTimer = 0f;
             knockbackLockTimer = 0f;
+            footstepDustTimer = 0.08f;
+            transform.localScale = Vector3.one;
             activeUpdrafts.Clear();
             SetGlidingState(false);
+        }
+
+        private void HandleFootstepDust()
+        {
+            if (!isGrounded || Mathf.Abs(rb.linearVelocity.x) <= 2.0f)
+            {
+                footstepDustTimer = 0.08f;
+                return;
+            }
+
+            footstepDustTimer -= Time.deltaTime;
+            if (footstepDustTimer <= 0f)
+            {
+                footstepDustTimer = 0.26f;
+                if (landingDustParticles != null)
+                {
+                    landingDustParticles.Emit(2);
+                }
+            }
         }
 
         public void RegisterUpdraft(UpdraftVent vent)
