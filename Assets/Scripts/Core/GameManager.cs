@@ -100,15 +100,50 @@ namespace VesperTwilightCourier
             }
 
             bool pausePressed = false;
+            bool confirmPressed = false;
+            bool retryPressed = false;
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
                 pausePressed = Keyboard.current.escapeKey.wasPressedThisFrame ||
                                Keyboard.current.pKey.wasPressedThisFrame;
+                confirmPressed = Keyboard.current.enterKey.wasPressedThisFrame ||
+                                 Keyboard.current.numpadEnterKey.wasPressedThisFrame;
+                retryPressed = Keyboard.current.rKey.wasPressedThisFrame;
+            }
+
+            if (Gamepad.current != null)
+            {
+                pausePressed |= Gamepad.current.startButton.wasPressedThisFrame;
+                confirmPressed |= Gamepad.current.startButton.wasPressedThisFrame ||
+                                  Gamepad.current.buttonSouth.wasPressedThisFrame;
             }
 #elif ENABLE_LEGACY_INPUT_MANAGER
             pausePressed = Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P);
+            confirmPressed = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+            retryPressed = Input.GetKeyDown(KeyCode.R);
 #endif
+
+            if (CurrentState == GameState.Title && confirmPressed)
+            {
+                StartGame();
+                return;
+            }
+
+            if (CurrentState == GameState.GameOver)
+            {
+                if (confirmPressed || retryPressed)
+                {
+                    RetryFromCheckpoint();
+                    return;
+                }
+            }
+
+            if (CurrentState == GameState.Victory && confirmPressed)
+            {
+                RestartLevel();
+                return;
+            }
 
             if (pausePressed && (CurrentState == GameState.Playing || CurrentState == GameState.Paused))
             {

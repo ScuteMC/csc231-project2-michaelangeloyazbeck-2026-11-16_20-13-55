@@ -4,6 +4,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -1158,12 +1159,14 @@ public static class LevelBuilder
         Button startBtn = CreateButton("StartRunButton", titlePanel.transform, a.uiWhiteSprite, uiFont,
             "START RUN", new Vector2(0f, -120f), new Vector2(280f, 62f),
             new Color(0.16f, 0.62f, 0.82f, 1f), Color.white);
-        startBtn.onClick.AddListener(gm.StartGame);
+        uiMgr.startRunButton = startBtn;
+        UnityEventTools.AddPersistentListener(startBtn.onClick, gm.StartGame);
 
         Button titleQuitBtn = CreateButton("TitleQuitButton", titlePanel.transform, a.uiWhiteSprite, uiFont,
             "QUIT", new Vector2(0f, -200f), new Vector2(220f, 50f),
             new Color(0.24f, 0.22f, 0.36f, 1f), new Color(0.9f, 0.9f, 1f, 1f));
-        titleQuitBtn.onClick.AddListener(gm.QuitGame);
+        uiMgr.titleQuitButton = titleQuitBtn;
+        UnityEventTools.AddPersistentListener(titleQuitBtn.onClick, gm.QuitGame);
 
         // 2. HUD PANEL
         GameObject hudPanel = CreateFullScreenPanel("HUDPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0f, 0f, 0f, 0f));
@@ -1178,6 +1181,7 @@ public static class LevelBuilder
             Image hImg = heartGo.AddComponent<Image>();
             hImg.sprite = a.uiHeartSprite;
             hImg.color = uiMgr.fullHeartColor;
+            hImg.raycastTarget = false;
 
             RectTransform hRt = heartGo.GetComponent<RectTransform>();
             hRt.anchorMin = new Vector2(0f, 1f);
@@ -1199,7 +1203,7 @@ public static class LevelBuilder
 
         // Top-right Audio Controls + Pause Button + Glide Status
         uiMgr.hudVolumeSlider = CreateSlider("HudVolumeSlider", hudPanel.transform, a.uiWhiteSprite,
-            new Vector2(1f, 1f), new Vector2(-285f, -38f), new Vector2(150f, 22f),
+            new Vector2(1f, 1f), new Vector2(-365f, -38f), new Vector2(150f, 22f),
             out _);
 
         Button hudMuteBtn = CreateButton("HudMuteButton", hudPanel.transform, a.uiWhiteSprite, uiFont,
@@ -1209,9 +1213,10 @@ public static class LevelBuilder
         hudMuteRt.anchorMin = new Vector2(1f, 1f);
         hudMuteRt.anchorMax = new Vector2(1f, 1f);
         hudMuteRt.anchoredPosition = new Vector2(-195f, -38f);
+        uiMgr.hudMuteButton = hudMuteBtn;
         uiMgr.hudMuteButtonText = hudMuteBtn.GetComponentInChildren<Text>();
         uiMgr.hudMuteButtonText.fontSize = 15;
-        hudMuteBtn.onClick.AddListener(uiMgr.OnToggleMuteClicked);
+        UnityEventTools.AddPersistentListener(hudMuteBtn.onClick, uiMgr.OnToggleMuteClicked);
 
         Button pauseBtn = CreateButton("HudPauseButton", hudPanel.transform, a.uiWhiteSprite, uiFont,
             "PAUSE", new Vector2(0f, 0f), new Vector2(96f, 36f),
@@ -1221,7 +1226,8 @@ public static class LevelBuilder
         pauseBtnRt.anchorMax = new Vector2(1f, 1f);
         pauseBtnRt.anchoredPosition = new Vector2(-72f, -38f);
         pauseBtn.GetComponentInChildren<Text>().fontSize = 16;
-        pauseBtn.onClick.AddListener(gm.TogglePause);
+        uiMgr.hudPauseButton = pauseBtn;
+        UnityEventTools.AddPersistentListener(pauseBtn.onClick, gm.TogglePause);
 
         // Glide badge at bottom-left
         GameObject badgeGo = new GameObject("GlideStatusBadge");
@@ -1229,6 +1235,7 @@ public static class LevelBuilder
         Image badgeImg = badgeGo.AddComponent<Image>();
         badgeImg.sprite = a.uiWhiteSprite;
         badgeImg.color = new Color(0.12f, 0.14f, 0.28f, 0.85f);
+        badgeImg.raycastTarget = false;
         RectTransform badgeRt = badgeGo.GetComponent<RectTransform>();
         badgeRt.anchorMin = new Vector2(0f, 0f);
         badgeRt.anchorMax = new Vector2(0f, 0f);
@@ -1245,6 +1252,7 @@ public static class LevelBuilder
         Image bannerImg = bannerGo.AddComponent<Image>();
         bannerImg.sprite = a.uiWhiteSprite;
         bannerImg.color = new Color(0.06f, 0.08f, 0.18f, 0.86f);
+        bannerImg.raycastTarget = false;
         RectTransform bannerRt = bannerGo.GetComponent<RectTransform>();
         bannerRt.anchorMin = new Vector2(0.5f, 0f);
         bannerRt.anchorMax = new Vector2(0.5f, 0f);
@@ -1275,28 +1283,33 @@ public static class LevelBuilder
         Button pauseMuteBtn = CreateButton("PauseMuteButton", pausePanel.transform, a.uiWhiteSprite, uiFont,
             "MUTE AUDIO", new Vector2(0f, 25f), new Vector2(220f, 44f),
             new Color(0.22f, 0.25f, 0.42f, 1f), Color.white);
+        uiMgr.pauseMuteButton = pauseMuteBtn;
         uiMgr.pauseMuteButtonText = pauseMuteBtn.GetComponentInChildren<Text>();
-        pauseMuteBtn.onClick.AddListener(uiMgr.OnToggleMuteClicked);
+        UnityEventTools.AddPersistentListener(pauseMuteBtn.onClick, uiMgr.OnToggleMuteClicked);
 
         Button resumeBtn = CreateButton("ResumeButton", pausePanel.transform, a.uiWhiteSprite, uiFont,
             "RESUME", new Vector2(0f, -45f), new Vector2(250f, 52f),
             new Color(0.16f, 0.62f, 0.82f, 1f), Color.white);
-        resumeBtn.onClick.AddListener(gm.ResumeGame);
+        uiMgr.resumeButton = resumeBtn;
+        UnityEventTools.AddPersistentListener(resumeBtn.onClick, gm.ResumeGame);
 
         Button pauseRestartBtn = CreateButton("PauseRestartButton", pausePanel.transform, a.uiWhiteSprite, uiFont,
             "RESTART LEVEL", new Vector2(0f, -110f), new Vector2(250f, 48f),
             new Color(0.28f, 0.25f, 0.48f, 1f), Color.white);
-        pauseRestartBtn.onClick.AddListener(gm.RestartLevel);
+        uiMgr.pauseRestartButton = pauseRestartBtn;
+        UnityEventTools.AddPersistentListener(pauseRestartBtn.onClick, gm.RestartLevel);
 
         Button pauseTitleBtn = CreateButton("PauseTitleButton", pausePanel.transform, a.uiWhiteSprite, uiFont,
             "MAIN MENU", new Vector2(0f, -172f), new Vector2(250f, 46f),
             new Color(0.22f, 0.22f, 0.34f, 1f), Color.white);
-        pauseTitleBtn.onClick.AddListener(gm.ReturnToTitle);
+        uiMgr.pauseTitleButton = pauseTitleBtn;
+        UnityEventTools.AddPersistentListener(pauseTitleBtn.onClick, gm.ReturnToTitle);
 
         Button pauseQuitBtn = CreateButton("PauseQuitButton", pausePanel.transform, a.uiWhiteSprite, uiFont,
             "QUIT GAME", new Vector2(0f, -230f), new Vector2(250f, 44f),
             new Color(0.45f, 0.16f, 0.24f, 1f), Color.white);
-        pauseQuitBtn.onClick.AddListener(gm.QuitGame);
+        uiMgr.pauseQuitButton = pauseQuitBtn;
+        UnityEventTools.AddPersistentListener(pauseQuitBtn.onClick, gm.QuitGame);
 
         // 4. WIN SCREEN PANEL
         GameObject winPanel = CreateFullScreenPanel("WinPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.04f, 0.08f, 0.18f, 0.88f));
@@ -1314,12 +1327,14 @@ public static class LevelBuilder
         Button winPlayAgainBtn = CreateButton("WinPlayAgainButton", winPanel.transform, a.uiWhiteSprite, uiFont,
             "PLAY AGAIN", new Vector2(0f, -95f), new Vector2(260f, 54f),
             new Color(0.16f, 0.66f, 0.78f, 1f), Color.white);
-        winPlayAgainBtn.onClick.AddListener(gm.RestartLevel);
+        uiMgr.winPlayAgainButton = winPlayAgainBtn;
+        UnityEventTools.AddPersistentListener(winPlayAgainBtn.onClick, gm.RestartLevel);
 
         Button winMenuBtn = CreateButton("WinMenuButton", winPanel.transform, a.uiWhiteSprite, uiFont,
             "MAIN MENU", new Vector2(0f, -165f), new Vector2(260f, 48f),
             new Color(0.24f, 0.24f, 0.38f, 1f), Color.white);
-        winMenuBtn.onClick.AddListener(gm.ReturnToTitle);
+        uiMgr.winMenuButton = winMenuBtn;
+        UnityEventTools.AddPersistentListener(winMenuBtn.onClick, gm.ReturnToTitle);
 
         // 5. GAME OVER PANEL
         GameObject gameOverPanel = CreateFullScreenPanel("GameOverPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.12f, 0.03f, 0.08f, 0.88f));
@@ -1337,17 +1352,20 @@ public static class LevelBuilder
         Button retryCpBtn = CreateButton("RetryCheckpointButton", gameOverPanel.transform, a.uiWhiteSprite, uiFont,
             "RETRY CHECKPOINT", new Vector2(0f, -25f), new Vector2(280f, 56f),
             new Color(0.18f, 0.62f, 0.84f, 1f), Color.white);
-        retryCpBtn.onClick.AddListener(gm.RetryFromCheckpoint);
+        uiMgr.retryCheckpointButton = retryCpBtn;
+        UnityEventTools.AddPersistentListener(retryCpBtn.onClick, gm.RetryFromCheckpoint);
 
         Button goRestartBtn = CreateButton("GameOverRestartButton", gameOverPanel.transform, a.uiWhiteSprite, uiFont,
             "RESTART LEVEL", new Vector2(0f, -95f), new Vector2(260f, 48f),
             new Color(0.28f, 0.24f, 0.42f, 1f), Color.white);
-        goRestartBtn.onClick.AddListener(gm.RestartLevel);
+        uiMgr.gameOverRestartButton = goRestartBtn;
+        UnityEventTools.AddPersistentListener(goRestartBtn.onClick, gm.RestartLevel);
 
         Button goTitleBtn = CreateButton("GameOverTitleButton", gameOverPanel.transform, a.uiWhiteSprite, uiFont,
             "MAIN MENU", new Vector2(0f, -158f), new Vector2(260f, 46f),
             new Color(0.22f, 0.22f, 0.32f, 1f), Color.white);
-        goTitleBtn.onClick.AddListener(gm.ReturnToTitle);
+        uiMgr.gameOverTitleButton = goTitleBtn;
+        UnityEventTools.AddPersistentListener(goTitleBtn.onClick, gm.ReturnToTitle);
 
         // Initial visible panel in Scene (Title active, others inactive)
         titlePanel.SetActive(true);
@@ -1409,6 +1427,7 @@ public static class LevelBuilder
         txt.alignment = alignment;
         txt.horizontalOverflow = HorizontalWrapMode.Wrap;
         txt.verticalOverflow = VerticalWrapMode.Overflow;
+        txt.raycastTarget = false;
 
         RectTransform rt = go.GetComponent<RectTransform>();
         rt.anchorMin = anchor;

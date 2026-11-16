@@ -40,6 +40,22 @@ namespace VesperTwilightCourier
         [Header("Win Screen Stats")]
         public Text winSummaryText;
 
+        [Header("Menu & HUD Buttons")]
+        public Button startRunButton;
+        public Button titleQuitButton;
+        public Button hudMuteButton;
+        public Button hudPauseButton;
+        public Button pauseMuteButton;
+        public Button resumeButton;
+        public Button pauseRestartButton;
+        public Button pauseTitleButton;
+        public Button pauseQuitButton;
+        public Button winPlayAgainButton;
+        public Button winMenuButton;
+        public Button retryCheckpointButton;
+        public Button gameOverRestartButton;
+        public Button gameOverTitleButton;
+
         private Coroutine bannerRoutine;
         private bool syncingAudioUi;
 
@@ -56,6 +72,7 @@ namespace VesperTwilightCourier
         private void Start()
         {
             RegisterAudioListeners();
+            RegisterButtonListeners();
             SyncAudioControls();
             if (bannerContainer != null)
             {
@@ -72,6 +89,89 @@ namespace VesperTwilightCourier
             if (pauseVolumeSlider != null)
             {
                 pauseVolumeSlider.onValueChanged.AddListener(OnVolumeSliderChanged);
+            }
+        }
+
+        private void RegisterButtonListeners()
+        {
+            Button[] allButtons = GetComponentsInChildren<Button>(true);
+
+            BindButton(ref startRunButton, "StartRunButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.StartGame();
+            });
+            BindButton(ref titleQuitButton, "TitleQuitButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.QuitGame();
+            });
+            BindButton(ref hudMuteButton, "HudMuteButton", allButtons, OnToggleMuteClicked);
+            BindButton(ref hudPauseButton, "HudPauseButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.TogglePause();
+            });
+            BindButton(ref pauseMuteButton, "PauseMuteButton", allButtons, OnToggleMuteClicked);
+            BindButton(ref resumeButton, "ResumeButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.ResumeGame();
+            });
+            BindButton(ref pauseRestartButton, "PauseRestartButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
+            });
+            BindButton(ref pauseTitleButton, "PauseTitleButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.ReturnToTitle();
+            });
+            BindButton(ref pauseQuitButton, "PauseQuitButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.QuitGame();
+            });
+            BindButton(ref winPlayAgainButton, "WinPlayAgainButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
+            });
+            BindButton(ref winMenuButton, "WinMenuButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.ReturnToTitle();
+            });
+            BindButton(ref retryCheckpointButton, "RetryCheckpointButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.RetryFromCheckpoint();
+            });
+            BindButton(ref gameOverRestartButton, "GameOverRestartButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
+            });
+            BindButton(ref gameOverTitleButton, "GameOverTitleButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.ReturnToTitle();
+            });
+        }
+
+        private static void BindButton(ref Button field, string objectName, Button[] allButtons, UnityEngine.Events.UnityAction action)
+        {
+            if (field == null && allButtons != null)
+            {
+                for (int i = 0; i < allButtons.Length; i++)
+                {
+                    if (allButtons[i] != null && allButtons[i].name == objectName)
+                    {
+                        field = allButtons[i];
+                        break;
+                    }
+                }
+            }
+
+            if (field == null || action == null)
+            {
+                return;
+            }
+
+            // Avoid double-invoking if a persistent scene listener is already wired on this button
+            if (field.onClick.GetPersistentEventCount() == 0)
+            {
+                field.onClick.RemoveAllListeners();
+                field.onClick.AddListener(action);
             }
         }
 
