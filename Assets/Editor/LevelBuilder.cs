@@ -22,6 +22,7 @@ public static class LevelBuilder
     private const string AnimatorPath = "Assets/Animations/VesperAnimator.controller";
     private const string AnimationFolder = "Assets/Animations";
     private const string SpriteFolder = "Assets/Art/Sprites";
+    private const string AnimFramesFolder = "Assets/Art/Sprites/AnimFrames";
     private const string AudioFolder = "Assets/Audio";
     private const string ArtFolder = "Assets/Art";
     private const string SettingsFolder = "Assets/Settings";
@@ -29,13 +30,26 @@ public static class LevelBuilder
     private class BuiltAssets
     {
         public Sprite vesperIdle, vesperRun1, vesperRun2, vesperJump, vesperFall, vesperGlide, vesperHurt;
+        public Sprite[] vesperIdleFrames, vesperRunFrames, vesperJumpFrames, vesperFallFrames, vesperGlideFrames, vesperHurtFrames;
+        public Sprite[] sentinelFrames, shardFrames, checkpointFrames, goalBeaconFrames, waterFrames;
         public Sprite tileRooftop, tileRooftopBody, hazardSpikes, enemySentinel, collectibleShard, propCheckpoint, propGoalBeacon;
+        public Sprite tileSpikeSlot, propGothicPillar, tileMovingPlatform, tileCrumblePlatform;
         public Sprite bgFarSky, bgMidCity, bgNearSilhouettes;
         public Sprite uiWhiteSprite, uiHeartSprite, softParticleSprite;
         public Material particleMaterial;
         public PhysicsMaterial2D frictionlessMaterial;
         public RuntimeAnimatorController vesperAnimator;
+        public RuntimeAnimatorController sentinelAnimator, shardAnimator, checkpointAnimator, goalBeaconAnimator, waterAnimator;
         public AudioClip bgmClip, jumpClip, landClip, collectClip, hurtClip, checkpointClip, glideClip, winClip;
+    }
+
+    private struct PlatformFootprint
+    {
+        public string name;
+        public float minX;
+        public float maxX;
+        public float minY;
+        public float maxY;
     }
 
     [MenuItem("Vesper/Build Level, Screenshots, and Windows Player")]
@@ -156,11 +170,27 @@ public static class LevelBuilder
 
         ConfigureSingleSprite($"{SpriteFolder}/Tile_Rooftop.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/Tile_Rooftop_Body.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Tile_SpikeSlot.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Prop_GothicPillar.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Tile_MovingPlatform.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Tile_CrumblePlatform.png", 128f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/Hazard_Spikes.png", 128f, new Vector2(0.5f, 0.0f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/Enemy_Sentinel.png", 160f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
         ConfigureSingleSprite($"{SpriteFolder}/Collectible_Shard.png", 180f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
         ConfigureSingleSprite($"{SpriteFolder}/Prop_Checkpoint.png", 110f, new Vector2(0.5f, 0.0f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
         ConfigureSingleSprite($"{SpriteFolder}/Prop_GoalBeacon.png", 95f, new Vector2(0.5f, 0.0f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+
+        ConfigureSpriteSequence("Vesper_Idle", 6, 128f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Vesper_Run", 6, 128f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Vesper_Jump", 4, 128f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Vesper_Fall", 4, 128f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Vesper_Glide", 4, 128f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Vesper_Hurt", 4, 128f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Enemy_Sentinel", 6, 160f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Collectible_Shard", 6, 180f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Prop_Checkpoint", 4, 110f, new Vector2(0.5f, 0.0f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Prop_GoalBeacon", 6, 95f, new Vector2(0.5f, 0.0f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
+        ConfigureSpriteSequence("Water", 6, 64f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
 
         ConfigureSingleSprite($"{SpriteFolder}/BG_FarSky.png", 64f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/BG_MidCity.png", 64f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
@@ -169,6 +199,14 @@ public static class LevelBuilder
         ConfigureSingleSprite($"{ArtFolder}/VFX_SoftParticle.png", 64f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{ArtFolder}/UI_SolidWhite.png", 16f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{ArtFolder}/UI_Heart.png", 64f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+    }
+
+    private static void ConfigureSpriteSequence(string prefix, int count, float ppu, Vector2 pivot, TextureWrapMode wrapMode, SpriteMeshType meshType)
+    {
+        for (int i = 1; i <= count; i++)
+        {
+            ConfigureSingleSprite($"{AnimFramesFolder}/{prefix}_{i:00}.png", ppu, pivot, wrapMode, meshType);
+        }
     }
 
     private static void ConfigureSingleSprite(string assetPath, float ppu, Vector2 pivot, TextureWrapMode wrapMode, SpriteMeshType meshType)
@@ -214,11 +252,27 @@ public static class LevelBuilder
 
         a.tileRooftop = LoadSprite($"{SpriteFolder}/Tile_Rooftop.png");
         a.tileRooftopBody = LoadSprite($"{SpriteFolder}/Tile_Rooftop_Body.png");
+        a.tileSpikeSlot = LoadSprite($"{SpriteFolder}/Tile_SpikeSlot.png");
+        a.propGothicPillar = LoadSprite($"{SpriteFolder}/Prop_GothicPillar.png");
+        a.tileMovingPlatform = LoadSprite($"{SpriteFolder}/Tile_MovingPlatform.png");
+        a.tileCrumblePlatform = LoadSprite($"{SpriteFolder}/Tile_CrumblePlatform.png");
         a.hazardSpikes = LoadSprite($"{SpriteFolder}/Hazard_Spikes.png");
         a.enemySentinel = LoadSprite($"{SpriteFolder}/Enemy_Sentinel.png");
         a.collectibleShard = LoadSprite($"{SpriteFolder}/Collectible_Shard.png");
         a.propCheckpoint = LoadSprite($"{SpriteFolder}/Prop_Checkpoint.png");
         a.propGoalBeacon = LoadSprite($"{SpriteFolder}/Prop_GoalBeacon.png");
+
+        a.vesperIdleFrames = LoadSpriteSequence("Vesper_Idle", 6);
+        a.vesperRunFrames = LoadSpriteSequence("Vesper_Run", 6);
+        a.vesperJumpFrames = LoadSpriteSequence("Vesper_Jump", 4);
+        a.vesperFallFrames = LoadSpriteSequence("Vesper_Fall", 4);
+        a.vesperGlideFrames = LoadSpriteSequence("Vesper_Glide", 4);
+        a.vesperHurtFrames = LoadSpriteSequence("Vesper_Hurt", 4);
+        a.sentinelFrames = LoadSpriteSequence("Enemy_Sentinel", 6);
+        a.shardFrames = LoadSpriteSequence("Collectible_Shard", 6);
+        a.checkpointFrames = LoadSpriteSequence("Prop_Checkpoint", 4);
+        a.goalBeaconFrames = LoadSpriteSequence("Prop_GoalBeacon", 6);
+        a.waterFrames = LoadSpriteSequence("Water", 6);
 
         a.bgFarSky = LoadSprite($"{SpriteFolder}/BG_FarSky.png");
         a.bgMidCity = LoadSprite($"{SpriteFolder}/BG_MidCity.png");
@@ -265,8 +319,40 @@ public static class LevelBuilder
         a.frictionlessMaterial = physMat;
 
         a.vesperAnimator = BuildVesperAnimatorController(a);
+        a.sentinelAnimator = BuildLoopingPropAnimator("SentinelAnimator", "Enemy_Sentinel_Hover", a.sentinelFrames, 0.11f);
+        a.shardAnimator = BuildLoopingPropAnimator("ShardAnimator", "Collectible_Shard_Shimmer", a.shardFrames, 0.13f);
+        a.checkpointAnimator = BuildLoopingPropAnimator("CheckpointAnimator", "Prop_Checkpoint_Flicker", a.checkpointFrames, 0.16f);
+        a.goalBeaconAnimator = BuildLoopingPropAnimator("GoalBeaconAnimator", "Prop_GoalBeacon_Pulse", a.goalBeaconFrames, 0.14f);
+        a.waterAnimator = BuildLoopingPropAnimator("WaterCanalAnimator", "Water_Canal_Flow", a.waterFrames, 0.16f);
         AssetDatabase.SaveAssets();
         return a;
+    }
+
+    private static Sprite[] LoadSpriteSequence(string prefix, int count)
+    {
+        Sprite[] frames = new Sprite[count];
+        for (int i = 0; i < count; i++)
+        {
+            frames[i] = LoadSprite($"{AnimFramesFolder}/{prefix}_{i + 1:00}.png");
+        }
+        return frames;
+    }
+
+    private static RuntimeAnimatorController BuildLoopingPropAnimator(string controllerName, string clipName, Sprite[] frames, float frameDuration)
+    {
+        string path = $"{AnimationFolder}/{controllerName}.controller";
+        if (File.Exists(path))
+        {
+            AssetDatabase.DeleteAsset(path);
+        }
+
+        AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+        AnimationClip clip = CreateSpriteClip(clipName, frames, frameDuration, true);
+        AnimatorState state = controller.layers[0].stateMachine.AddState("Loop");
+        state.motion = clip;
+        controller.layers[0].stateMachine.defaultState = state;
+        EditorUtility.SetDirty(controller);
+        return controller;
     }
 
     private static Sprite LoadSprite(string path)
@@ -294,12 +380,12 @@ public static class LevelBuilder
         controller.AddParameter("IsHurt", AnimatorControllerParameterType.Bool);
         controller.AddParameter("IsDead", AnimatorControllerParameterType.Bool);
 
-        AnimationClip idleClip = CreateSpriteClip("Vesper_Idle", new[] { a.vesperIdle, a.vesperIdle }, 0.4f, true);
-        AnimationClip runClip = CreateSpriteClip("Vesper_Run", new[] { a.vesperRun1, a.vesperRun2, a.vesperRun1 }, 0.12f, true);
-        AnimationClip jumpClip = CreateSpriteClip("Vesper_Jump", new[] { a.vesperJump, a.vesperJump }, 0.25f, true);
-        AnimationClip fallClip = CreateSpriteClip("Vesper_Fall", new[] { a.vesperFall, a.vesperFall }, 0.25f, true);
-        AnimationClip glideClip = CreateSpriteClip("Vesper_Glide", new[] { a.vesperGlide, a.vesperGlide }, 0.25f, true);
-        AnimationClip hurtClip = CreateSpriteClip("Vesper_Hurt", new[] { a.vesperHurt, a.vesperHurt }, 0.25f, false);
+        AnimationClip idleClip = CreateSpriteClip("Vesper_Idle", a.vesperIdleFrames, 0.14f, true);
+        AnimationClip runClip = CreateSpriteClip("Vesper_Run", a.vesperRunFrames, 0.075f, true);
+        AnimationClip jumpClip = CreateSpriteClip("Vesper_Jump", a.vesperJumpFrames, 0.09f, true);
+        AnimationClip fallClip = CreateSpriteClip("Vesper_Fall", a.vesperFallFrames, 0.09f, true);
+        AnimationClip glideClip = CreateSpriteClip("Vesper_Glide", a.vesperGlideFrames, 0.09f, true);
+        AnimationClip hurtClip = CreateSpriteClip("Vesper_Hurt", a.vesperHurtFrames, 0.07f, false);
 
         AnimatorStateMachine sm = controller.layers[0].stateMachine;
         AnimatorState idleState = sm.AddState("Idle");
@@ -439,13 +525,22 @@ public static class LevelBuilder
             propertyName = "m_Sprite"
         };
 
-        ObjectReferenceKeyframe[] keys = new ObjectReferenceKeyframe[frames.Length];
+        int keyCount = loop && frames.Length > 1 ? frames.Length + 1 : frames.Length;
+        ObjectReferenceKeyframe[] keys = new ObjectReferenceKeyframe[keyCount];
         for (int i = 0; i < frames.Length; i++)
         {
             keys[i] = new ObjectReferenceKeyframe
             {
                 time = i * frameDuration,
                 value = frames[i]
+            };
+        }
+        if (loop && frames.Length > 1)
+        {
+            keys[frames.Length] = new ObjectReferenceKeyframe
+            {
+                time = frames.Length * frameDuration,
+                value = frames[0]
             };
         }
 
@@ -490,6 +585,7 @@ public static class LevelBuilder
         camGo.AddComponent<AudioListener>();
         camGo.AddComponent<UniversalAdditionalCameraData>();
         CameraController camController = camGo.AddComponent<CameraController>();
+        camController.maxX = 221f;
 
         CreateAmbientParticles(camGo.transform, a.particleMaterial);
 
@@ -546,26 +642,34 @@ public static class LevelBuilder
         main.playOnAwake = true;
         main.duration = 6f;
         main.startLifetime = new ParticleSystem.MinMaxCurve(4f, 7f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.25f, 0.8f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.22f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.7f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.24f);
         main.startColor = new ParticleSystem.MinMaxGradient(
-            new Color(0.45f, 0.92f, 1f, 0.55f),
-            new Color(0.98f, 0.84f, 0.45f, 0.5f)
+            new Color(0.45f, 0.94f, 1f, 0.58f),
+            new Color(0.98f, 0.84f, 0.45f, 0.52f)
         );
         main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.maxParticles = 120;
+        main.maxParticles = 140;
 
         var emission = ps.emission;
-        emission.rateOverTime = 16f;
+        emission.rateOverTime = 20f;
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
-        shape.scale = new Vector3(26f, 15f, 1f);
+        shape.scale = new Vector3(28f, 16f, 1f);
+
+        var vel = ps.velocityOverLifetime;
+        vel.enabled = true;
+        vel.x = new ParticleSystem.MinMaxCurve(-0.25f);
+        vel.y = new ParticleSystem.MinMaxCurve(0.18f);
+        vel.z = new ParticleSystem.MinMaxCurve(0f);
+
+        ConfigureParticleNoise(ps, 0.65f, 0.45f, 0.35f);
 
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = particleMat;
         renderer.sortingOrder = -2;
-        ConfigureParticleFade(ps, 0.72f, true);
+        ConfigureParticleFade(ps, 0.76f, true);
     }
 
     private static void CreateParallaxRig(BuiltAssets a)
@@ -597,8 +701,8 @@ public static class LevelBuilder
         parallax.parallaxFactorY = factorY;
 
         float tileWidth = (sprite != null ? sprite.bounds.size.x : 20f) * scale;
-        // Mirror alternating panels for seamless panoramic parallax with zero vertical seams
-        for (int i = -1; i <= 9; i++)
+        // Mirror alternating panels for seamless panoramic parallax across the entire extended level
+        for (int i = -1; i <= 12; i++)
         {
             GameObject tileGo = new GameObject($"{layerName}_{i + 1}");
             tileGo.transform.SetParent(layerGo.transform, false);
@@ -619,7 +723,7 @@ public static class LevelBuilder
         playerGo.transform.position = new Vector3(2f, 0.2f, 0f);
 
         SpriteRenderer sr = playerGo.AddComponent<SpriteRenderer>();
-        sr.sprite = a.vesperIdle;
+        sr.sprite = a.vesperIdleFrames != null && a.vesperIdleFrames.Length > 0 ? a.vesperIdleFrames[0] : a.vesperIdle;
         sr.sortingOrder = 10;
 
         Animator anim = playerGo.AddComponent<Animator>();
@@ -643,22 +747,29 @@ public static class LevelBuilder
 
         pc.jumpDustParticles = CreateOneShotBurstParticles(
             "JumpDustParticles", playerGo.transform, new Vector3(0f, 0.1f, 0f),
-            a.particleMaterial, new Color(0.55f, 0.9f, 1f, 0.85f), 10, 0.14f, 0.28f, 3.2f, 35f, 5
+            a.particleMaterial, new Color(0.55f, 0.92f, 1f, 0.88f), 12, 0.14f, 0.28f, 3.4f, 40f, 5
         );
         pc.landingDustParticles = CreateOneShotBurstParticles(
             "LandingDustParticles", playerGo.transform, new Vector3(0f, 0.05f, 0f),
-            a.particleMaterial, new Color(0.75f, 0.78f, 0.95f, 0.85f), 14, 0.12f, 0.25f, 3.8f, 15f, 5
+            a.particleMaterial, new Color(0.75f, 0.8f, 0.96f, 0.85f), 14, 0.12f, 0.25f, 3.8f, 22f, 5
         );
         pc.glideTrailParticles = CreateLoopingTrailParticles(
-            "GlideTrailParticles", playerGo.transform, new Vector3(0f, 0.9f, 0f),
-            a.particleMaterial, new Color(0.32f, 0.88f, 1f, 0.8f), new Color(0.55f, 0.35f, 0.95f, 0.75f), 4
+            "GlideTrailParticles", playerGo.transform, new Vector3(-0.22f, 0.96f, 0f),
+            a.particleMaterial, new Color(0.32f, 0.94f, 1f, 0.92f), new Color(0.62f, 0.36f, 1f, 0.85f), 4,
+            enableRibbons: true, noiseStrength: 0.5f
         );
+        var glideVel = pc.glideTrailParticles.velocityOverLifetime;
+        glideVel.enabled = true;
+        glideVel.x = new ParticleSystem.MinMaxCurve(-2.4f);
+        glideVel.y = new ParticleSystem.MinMaxCurve(0.55f);
+        glideVel.z = new ParticleSystem.MinMaxCurve(0f);
         var glideMain = pc.glideTrailParticles.main;
         glideMain.playOnAwake = false;
         pc.glideTrailParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         ph.hurtBurstParticles = CreateOneShotBurstParticles(
             "HurtBurstParticles", playerGo.transform, new Vector3(0f, 0.9f, 0f),
-            a.particleMaterial, new Color(1f, 0.28f, 0.4f, 0.95f), 18, 0.16f, 0.32f, 5.2f, 180f, 12
+            a.particleMaterial, new Color(1f, 0.28f, 0.4f, 0.95f), 20, 0.16f, 0.34f, 5.6f, 180f, 12,
+            enableTrails: true
         );
 
         return playerGo;
@@ -667,144 +778,206 @@ public static class LevelBuilder
     private static void BuildLevelGeometryAndProps(BuiltAssets a)
     {
         GameObject levelRoot = new GameObject("Level_TwilightRooftops");
+        List<PlatformFootprint> footprints = new List<PlatformFootprint>();
+        const float GroundBottomY = -9.0f;
 
         // ============================================================
-        // ZONE 1: Courtyard of Whispers (x = -2 .. 52)
-        // Introduces Movement, Jumping, Shards, and Shadow-Cloak Glide safely
+        // TWILIGHT CANAL WATER (x = -14 .. 244, surfaceY = -4.6)
+        // Animated 6-frame moonlit canal water + mist + splash particles
         // ============================================================
-        CreatePlatform("Roof_1A_Start", -2f, 14f, 0f, 6f, a, levelRoot.transform);
-        CreatePlatform("Roof_1B_Step", 16f, 22f, 1.4f, 6f, a, levelRoot.transform);
-        CreatePlatform("Roof_1C_Launch", 24f, 30f, 3.0f, 6f, a, levelRoot.transform);
-        // Safe glide catch floor below the first glide gap so players learn risk-free
-        CreatePlatform("Roof_1_SafetyFloor", 28f, 43f, -1.5f, 4f, a, levelRoot.transform);
-        CreatePlatform("Roof_1_SafetyStep", 39f, 43f, 0.0f, 2.0f, a, levelRoot.transform);
-        CreatePlatform("Roof_1D_Landing", 40f, 56f, 1.2f, 6f, a, levelRoot.transform);
+        CreateWaterCanal(-14f, 244f, -4.6f, a, levelRoot.transform);
+
+        // ============================================================
+        // ZONE 1: Courtyard of Whispers (x = -2 .. 56)
+        // Strictly disjoint rooftops grounded into the canal; teaches movement,
+        // jumping, Shards, and Shadow-Cloak Glide safely
+        // ============================================================
+        CreateGroundedPlatform("Roof_1A_Start", -2f, 14f, 0f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateGroundedPlatform("Roof_1B_Step", 16.5f, 23.0f, 1.4f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateGroundedPlatform("Roof_1C_Launch", 25.5f, 31.5f, 3.0f, GroundBottomY, a, levelRoot.transform, footprints);
+        // Disjoint safety floor & climb-out step cleanly recessed inside the glide chasm
+        CreateGroundedPlatform("Roof_1_SafetyFloor", 32.0f, 38.8f, -1.8f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateGroundedPlatform("Roof_1_SafetyStep", 39.0f, 41.6f, -0.3f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateGroundedPlatform("Roof_1D_Landing", 42.0f, 56.0f, 1.2f, GroundBottomY, a, levelRoot.transform, footprints);
 
         CreateTutorialTrigger("Tut_1_Controls", new Vector2(3.5f, 1.5f), new Vector2(4f, 4f),
             "COURTYARD OF WHISPERS: Move with A/D or Arrows, Jump with SPACE or W!", levelRoot.transform);
-        CreateTutorialTrigger("Tut_2_Glide", new Vector2(27f, 4.5f), new Vector2(4f, 4f),
+        CreateTutorialTrigger("Tut_2_Glide", new Vector2(28.5f, 4.5f), new Vector2(4f, 4f),
             "SIGNATURE MOVE: Hold SPACE or SHIFT in mid-air to open your Shadow-Cloak Glide!", levelRoot.transform);
 
         // Shards 1..7
         CreateShard(1, new Vector2(8f, 1.1f), a, levelRoot.transform);
         CreateShard(2, new Vector2(12f, 1.1f), a, levelRoot.transform);
-        CreateShard(3, new Vector2(19f, 2.5f), a, levelRoot.transform);
-        CreateShard(4, new Vector2(27f, 4.1f), a, levelRoot.transform);
-        CreateShard(5, new Vector2(33f, 3.9f), a, levelRoot.transform);
-        CreateShard(6, new Vector2(35.5f, 3.3f), a, levelRoot.transform);
-        CreateShard(7, new Vector2(38f, 2.7f), a, levelRoot.transform);
+        CreateShard(3, new Vector2(19.8f, 2.5f), a, levelRoot.transform);
+        CreateShard(4, new Vector2(28.5f, 4.1f), a, levelRoot.transform);
+        CreateShard(5, new Vector2(34.0f, 3.9f), a, levelRoot.transform);
+        CreateShard(6, new Vector2(36.8f, 3.3f), a, levelRoot.transform);
+        CreateShard(7, new Vector2(39.6f, 2.6f), a, levelRoot.transform);
 
         // ============================================================
-        // ZONE 2: Gale-Draft Chimneys (x = 46 .. 108)
-        // Introduces Checkpoints, Updraft Vents, and Electrified Roof Spikes
+        // ZONE 2: Gale-Draft Chimneys (x = 45 .. 127)
+        // Introduces Checkpoints, Updraft Vents, Ground-Embedded Pop-Up Spikes,
+        // Gothic Pillar Aqueducts, and Non-Colliding Clockwork Moving Platforms
         // ============================================================
-        CreateCheckpoint(1, "Gale-Draft Overlook", new Vector2(45f, 1.2f), a, levelRoot.transform);
-        CreateTutorialTrigger("Tut_3_Updraft", new Vector2(50f, 2.8f), new Vector2(4f, 4f),
+        CreateCheckpoint(1, "Gale-Draft Overlook", new Vector2(45.5f, 1.2f), a, levelRoot.transform);
+        CreateTutorialTrigger("Tut_3_Updraft", new Vector2(50.0f, 2.8f), new Vector2(4f, 4f),
             "UPDRAFT CHIMNEYS: Glide inside cyan wind columns to soar to high rooftops!", levelRoot.transform);
 
-        // Safe Updraft intro: low floor still underneath Roof_2B
-        CreateUpdraft("Updraft_1_Intro", new Vector2(53.5f, 1.2f), 3.4f, 8.2f, 9.5f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_2A_Under", 54f, 62f, 1.2f, 4f, a, levelRoot.transform);
-        CreatePlatform("Roof_2B_Upper", 57f, 73f, 5.4f, 2f, a, levelRoot.transform);
+        CreateUpdraft("Updraft_1_Intro", new Vector2(53.5f, 1.2f), 3.4f, 8.2f, 9.6f, a.particleMaterial, levelRoot.transform);
 
-        CreateTutorialTrigger("Tut_4_Spikes", new Vector2(59.5f, 7.0f), new Vector2(3.5f, 4f),
-            "HAZARD ALERT: Leap cleanly over Electrified Roof Spikes!", levelRoot.transform);
-        CreateSpikes("Spikes_2_Intro", new Vector2(65.5f, 5.4f), 2.0f, a.hazardSpikes, levelRoot.transform);
+        // Elevated aqueduct bridge visibly supported by grounded Gothic stone pillars down into the canal
+        CreateElevatedPlatform("Roof_2B_Upper", 58.0f, 74.0f, 5.4f, 2.0f, a, levelRoot.transform, footprints);
+        CreateGothicPillar("Pillar_2B_Left", 60.5f, 3.45f, GroundBottomY, 1.6f, a, levelRoot.transform);
+        CreateGothicPillar("Pillar_2B_Right", 71.5f, 3.45f, GroundBottomY, 1.6f, a, levelRoot.transform);
 
-        // Gap to Roof 2C with spikes + updraft challenge
-        CreatePlatform("Roof_2C_Mid", 76.5f, 88.5f, 3.2f, 6f, a, levelRoot.transform);
-        CreateSpikes("Spikes_2C", new Vector2(82.0f, 3.2f), 2.2f, a.hazardSpikes, levelRoot.transform);
+        CreateTutorialTrigger("Tut_4_Spikes", new Vector2(61.0f, 7.0f), new Vector2(3.5f, 4f),
+            "AMBUSH TRAPS: Watch the stone grates - concealed spikes spark and erupt when crossed!", levelRoot.transform);
+        CreatePopUpSpikes("Spikes_2_Ambush", new Vector2(66.2f, 5.4f), 2.0f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
 
-        CreateUpdraft("Updraft_2_Chasm", new Vector2(91.0f, 1.5f), 4.0f, 8.8f, 10.2f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_2D_High", 94.5f, 120f, 6.0f, 6f, a, levelRoot.transform);
-        CreateSpikes("Spikes_2D", new Vector2(99.5f, 6.0f), 2.0f, a.hazardSpikes, levelRoot.transform);
+        // Horizontal Moving Clockwork Lift spanning 74.0 .. 87.0 with >= 1.2u clearance on both ends
+        CreateMovingPlatform("MovingPlat_2A_Shuttle", new Vector3(77.0f, 3.72f, 0f), new Vector3(84.0f, 3.72f, 0f),
+            3.6f, 0.95f, 2.4f, 0.45f, 0.0f, a, levelRoot.transform, footprints);
+
+        CreateGroundedPlatform("Roof_2C_Mid", 87.0f, 99.0f, 3.2f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreatePopUpSpikes("Spikes_2C_Timed", new Vector2(92.6f, 3.2f), 2.2f, PopUpSpikes.TrapMode.TimedCycle, 0.5f, a, levelRoot.transform);
+
+        // Deep canal chasm updraft lifting up to Roof_2D_High
+        CreateUpdraft("Updraft_2_Chasm", new Vector2(102.2f, -1.5f), 4.0f, 11.2f, 10.6f, a.particleMaterial, levelRoot.transform);
+        CreateGroundedPlatform("Roof_2D_High", 105.5f, 127.0f, 6.0f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreatePopUpSpikes("Spikes_2D_Ambush", new Vector2(109.8f, 6.0f), 2.0f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
 
         // Shards 8..14
         CreateShard(8, new Vector2(53.5f, 4.5f), a, levelRoot.transform);
-        CreateShard(9, new Vector2(53.5f, 6.8f), a, levelRoot.transform);
-        CreateShard(10, new Vector2(65.5f, 7.6f), a, levelRoot.transform);
-        CreateShard(11, new Vector2(82.0f, 5.5f), a, levelRoot.transform);
-        CreateShard(12, new Vector2(86.0f, 4.4f), a, levelRoot.transform);
-        CreateShard(13, new Vector2(91.0f, 6.0f), a, levelRoot.transform);
-        CreateShard(14, new Vector2(93.2f, 7.8f), a, levelRoot.transform);
+        CreateShard(9, new Vector2(53.5f, 6.9f), a, levelRoot.transform);
+        CreateShard(10, new Vector2(66.2f, 7.6f), a, levelRoot.transform);
+        CreateShard(11, new Vector2(80.5f, 5.8f), a, levelRoot.transform);
+        CreateShard(12, new Vector2(92.6f, 5.5f), a, levelRoot.transform);
+        CreateShard(13, new Vector2(102.2f, 5.8f), a, levelRoot.transform);
+        CreateShard(14, new Vector2(104.2f, 7.9f), a, levelRoot.transform);
 
         // ============================================================
-        // ZONE 3: Clockwork Foundry Roofs (x = 104 .. 164)
-        // Introduces Clockwork Sentinel Drones & High/Low Routes
+        // ZONE 3: Clockwork Foundry Roofs (x = 113 .. 178.5)
+        // Introduces Clockwork Sentinels, Crumbling Stone Ledges, and
+        // Dual Disjoint Moving Clockwork Platforms (zero collision!)
         // ============================================================
-        CreateCheckpoint(2, "Clockwork Foundry Watch", new Vector2(104.5f, 6.0f), a, levelRoot.transform);
-        CreateTutorialTrigger("Tut_5_Sentinels", new Vector2(107.5f, 7.5f), new Vector2(3.5f, 4f),
-            "CLOCKWORK SENTINELS: Land on top of patrolling drones to stomp-bounce over them!", levelRoot.transform);
+        CreateCheckpoint(2, "Clockwork Foundry Watch", new Vector2(113.5f, 6.0f), a, levelRoot.transform);
+        CreateTutorialTrigger("Tut_5_Sentinels", new Vector2(116.5f, 7.5f), new Vector2(3.5f, 4f),
+            "CLOCKWORK FOUNDRY: Stomp Sentinels from above and move fast across cracked stone!", levelRoot.transform);
 
-        // Safe Sentinel intro on wide flat rooftop (108..120)
-        CreateSentinel("Sentinel_1_Intro", new Vector2(114f, 6.95f), -3.2f, 3.2f, 2.2f, a, levelRoot.transform);
+        CreateSentinel("Sentinel_1_Intro", new Vector2(121.5f, 6.95f), -3.0f, 3.0f, 2.3f, a, levelRoot.transform);
 
-        // Sky Bridge with spikes + Sentinel
-        CreatePlatform("Roof_3A_Foundry", 123.5f, 136.5f, 4.6f, 6f, a, levelRoot.transform);
-        CreateSpikes("Spikes_3A", new Vector2(126.5f, 4.6f), 1.8f, a.hazardSpikes, levelRoot.transform);
-        CreateSentinel("Sentinel_2_Foundry", new Vector2(132.5f, 5.55f), -2.5f, 2.5f, 2.7f, a, levelRoot.transform);
+        // Fragile crumbling stone span in canal gap 127.0 .. 136.0 (2.5u clean gaps on each side)
+        CreateCrumblingPlatform("Crumble_3A_Span", 129.5f, 133.5f, 5.2f, 1.0f, a, levelRoot.transform, footprints);
 
-        // Dual route: Upper bonus shard skybridge via Updraft_3 OR lower combat roof
-        CreateUpdraft("Updraft_3_Split", new Vector2(138.0f, 2.0f), 2.8f, 8.0f, 9.5f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_3B_Lower", 139.5f, 149.0f, 2.0f, 6f, a, levelRoot.transform);
-        CreatePlatform("Roof_3B_High", 140.5f, 148.0f, 6.6f, 2.0f, a, levelRoot.transform);
-        CreateSentinel("Sentinel_3_Low", new Vector2(144.2f, 2.95f), -2.8f, 2.8f, 2.6f, a, levelRoot.transform);
+        CreateGroundedPlatform("Roof_3A_Foundry", 136.0f, 148.5f, 4.6f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreatePopUpSpikes("Spikes_3A_Ambush", new Vector2(139.2f, 4.6f), 1.8f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
+        CreateSentinel("Sentinel_2_Foundry", new Vector2(144.6f, 5.55f), -2.4f, 2.4f, 2.7f, a, levelRoot.transform);
 
-        // Twin Spike Gauntlet leading to Zone 4 Checkpoint
-        CreatePlatform("Roof_3C_Gauntlet", 151.5f, 164.5f, 3.5f, 6f, a, levelRoot.transform);
-        CreateSpikes("Spikes_3B", new Vector2(154.5f, 3.5f), 1.8f, a.hazardSpikes, levelRoot.transform);
-        CreateSpikes("Spikes_3C", new Vector2(159.0f, 3.5f), 1.8f, a.hazardSpikes, levelRoot.transform);
+        // Wide Foundry Canal (148.5 .. 164.5): Dual strictly non-colliding Moving Platforms
+        // Lift A stays strictly within X [150.8 .. 154.2], Shuttle B stays strictly within X [156.1 .. 162.9] -> >= 1.9u clear!
+        CreateMovingPlatform("MovingPlat_3A_VerticalLift", new Vector3(152.5f, 2.8f, 0f), new Vector3(152.5f, 6.2f, 0f),
+            3.4f, 0.95f, 2.3f, 0.45f, 0.0f, a, levelRoot.transform, footprints);
+        CreateMovingPlatform("MovingPlat_3B_Shuttle", new Vector3(157.8f, 4.2f, 0f), new Vector3(161.2f, 4.2f, 0f),
+            3.4f, 0.95f, 2.1f, 0.40f, 0.35f, a, levelRoot.transform, footprints);
+
+        // Twin out-of-phase Pop-Up Spike Gauntlet leading to Zone 4 Checkpoint
+        CreateGroundedPlatform("Roof_3C_Gauntlet", 164.5f, 178.5f, 3.6f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreatePopUpSpikes("Spikes_3B_TimedA", new Vector2(168.0f, 3.6f), 1.8f, PopUpSpikes.TrapMode.TimedCycle, 0.0f, a, levelRoot.transform);
+        CreatePopUpSpikes("Spikes_3C_TimedB", new Vector2(172.2f, 3.6f), 1.8f, PopUpSpikes.TrapMode.TimedCycle, 1.65f, a, levelRoot.transform);
 
         // Shards 15..20
-        CreateShard(15, new Vector2(114.0f, 9.2f), a, levelRoot.transform);
-        CreateShard(16, new Vector2(126.5f, 6.9f), a, levelRoot.transform);
-        CreateShard(17, new Vector2(132.5f, 7.9f), a, levelRoot.transform);
-        CreateShard(18, new Vector2(142.5f, 8.0f), a, levelRoot.transform);
-        CreateShard(19, new Vector2(146.0f, 8.0f), a, levelRoot.transform);
-        CreateShard(20, new Vector2(156.7f, 5.4f), a, levelRoot.transform);
+        CreateShard(15, new Vector2(121.5f, 9.2f), a, levelRoot.transform);
+        CreateShard(16, new Vector2(131.5f, 6.8f), a, levelRoot.transform);
+        CreateShard(17, new Vector2(144.6f, 7.9f), a, levelRoot.transform);
+        CreateShard(18, new Vector2(152.5f, 7.6f), a, levelRoot.transform);
+        CreateShard(19, new Vector2(159.5f, 6.0f), a, levelRoot.transform);
+        CreateShard(20, new Vector2(170.1f, 5.7f), a, levelRoot.transform);
 
         // ============================================================
-        // ZONE 4: Twilight Sanctum Ascent (x = 162 .. 212)
-        // Combines Platforming, Sentinels, and Dual Updraft Glides to Goal
+        // ZONE 4: Twilight Sanctum Ascent (x = 176 .. 228)
+        // Combines Sentinels, Dual Updrafts, Crumbling Perch, and Final Ambush
         // ============================================================
-        CreateCheckpoint(3, "Sanctum Stair Gate", new Vector2(162.5f, 3.5f), a, levelRoot.transform);
-        CreateTutorialTrigger("Tut_6_Final", new Vector2(163.0f, 5.0f), new Vector2(3.5f, 4f),
-            "TWILIGHT SANCTUM ASCENT: Combine Updrafts, Glides, and Stomps to reach the Beacon!", levelRoot.transform);
+        CreateCheckpoint(3, "Sanctum Stair Gate", new Vector2(176.2f, 3.6f), a, levelRoot.transform);
+        CreateTutorialTrigger("Tut_6_Final", new Vector2(176.5f, 5.2f), new Vector2(3.5f, 4f),
+            "TWILIGHT SANCTUM ASCENT: Chain Updrafts, Glides, and crumbling ledges to ignite the Beacon!", levelRoot.transform);
 
-        CreatePlatform("Roof_4A_Bastion", 167.0f, 176.5f, 4.6f, 6f, a, levelRoot.transform);
-        CreateSentinel("Sentinel_4_Bastion", new Vector2(171.8f, 5.55f), -2.8f, 2.8f, 2.9f, a, levelRoot.transform);
+        CreateGroundedPlatform("Roof_4A_Bastion", 181.0f, 190.5f, 4.6f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateSentinel("Sentinel_4_Bastion", new Vector2(185.8f, 5.55f), -2.8f, 2.8f, 2.9f, a, levelRoot.transform);
 
-        // Dual Updraft Chasm
-        CreateUpdraft("Updraft_4_AscentA", new Vector2(179.5f, 2.5f), 3.6f, 9.0f, 10.2f, a.particleMaterial, levelRoot.transform);
-        CreatePlatform("Roof_4B_Perch", 182.5f, 188.0f, 7.2f, 2.0f, a, levelRoot.transform);
-        CreateUpdraft("Updraft_5_AscentB", new Vector2(190.5f, 4.5f), 3.6f, 9.5f, 10.5f, a.particleMaterial, levelRoot.transform);
+        // Dual Updraft Ascent with Crumbling Perch mid-air
+        CreateUpdraft("Updraft_4_AscentA", new Vector2(193.8f, -1.5f), 3.6f, 12.0f, 10.6f, a.particleMaterial, levelRoot.transform);
+        CreateCrumblingPlatform("Crumble_4B_Perch", 197.5f, 202.0f, 7.4f, 1.0f, a, levelRoot.transform, footprints);
+        CreateUpdraft("Updraft_5_AscentB", new Vector2(205.5f, 1.0f), 3.6f, 11.5f, 10.8f, a.particleMaterial, levelRoot.transform);
 
-        // Final Sanctum Terrace & Beacon
-        CreatePlatform("Roof_4C_Sanctum", 193.5f, 212.0f, 9.0f, 8f, a, levelRoot.transform);
-        CreateSentinel("Sentinel_5_Guard", new Vector2(197.5f, 9.95f), -2.5f, 2.5f, 3.0f, a, levelRoot.transform);
-        CreateSpikes("Spikes_4_Final", new Vector2(201.5f, 9.0f), 1.8f, a.hazardSpikes, levelRoot.transform);
+        // Final Sanctum Terrace & Animated Beacon
+        CreateGroundedPlatform("Roof_4C_Sanctum", 209.0f, 228.0f, 9.0f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateSentinel("Sentinel_5_Guard", new Vector2(213.4f, 9.95f), -2.4f, 2.4f, 3.0f, a, levelRoot.transform);
+        CreatePopUpSpikes("Spikes_4_FinalAmbush", new Vector2(217.6f, 9.0f), 1.8f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
 
         // Shards 21..25
-        CreateShard(21, new Vector2(171.8f, 7.9f), a, levelRoot.transform);
-        CreateShard(22, new Vector2(179.5f, 7.2f), a, levelRoot.transform);
-        CreateShard(23, new Vector2(185.2f, 8.6f), a, levelRoot.transform);
-        CreateShard(24, new Vector2(197.5f, 12.1f), a, levelRoot.transform);
-        CreateShard(25, new Vector2(201.5f, 11.4f), a, levelRoot.transform);
+        CreateShard(21, new Vector2(185.8f, 7.9f), a, levelRoot.transform);
+        CreateShard(22, new Vector2(193.8f, 7.4f), a, levelRoot.transform);
+        CreateShard(23, new Vector2(199.8f, 9.0f), a, levelRoot.transform);
+        CreateShard(24, new Vector2(213.4f, 12.1f), a, levelRoot.transform);
+        CreateShard(25, new Vector2(217.6f, 11.4f), a, levelRoot.transform);
 
-        CreateLevelGoal(new Vector2(206.5f, 9.0f), a, levelRoot.transform);
+        CreateLevelGoal(new Vector2(222.8f, 9.0f), a, levelRoot.transform);
 
-        // Invisible Solid World Boundaries (Left & Right) + Abyss Pit Killzone
+        // Verify mathematically that zero static, crumbling, or moving platform swept envelopes overlap!
+        ValidateNoPlatformOverlaps(footprints);
+
+        // Invisible Solid World Boundaries (Left & Right) + Deep Backup Abyss Killzone
         CreateBoundaryWall("LeftWorldWall", new Vector2(-2.5f, 10f), new Vector2(1f, 40f), levelRoot.transform);
-        CreateBoundaryWall("RightWorldWall", new Vector2(212.5f, 10f), new Vector2(1f, 40f), levelRoot.transform);
-        CreateAbyssKillzone(new Vector2(105f, -10.5f), new Vector2(240f, 8f), levelRoot.transform);
+        CreateBoundaryWall("RightWorldWall", new Vector2(228.5f, 10f), new Vector2(1f, 40f), levelRoot.transform);
+        CreateAbyssKillzone(new Vector2(113f, -11.5f), new Vector2(270f, 4f), levelRoot.transform);
     }
 
-    private static void CreatePlatform(string name, float startX, float endX, float topY, float height, BuiltAssets a, Transform parent)
+    private static void ValidateNoPlatformOverlaps(List<PlatformFootprint> footprints)
     {
-        float finalHeight = Mathf.Max(2.0f, height);
+        for (int i = 0; i < footprints.Count; i++)
+        {
+            for (int j = i + 1; j < footprints.Count; j++)
+            {
+                PlatformFootprint a = footprints[i];
+                PlatformFootprint b = footprints[j];
+                bool overlapX = a.minX < b.maxX - 0.01f && a.maxX > b.minX + 0.01f;
+                bool overlapY = a.minY < b.maxY - 0.01f && a.maxY > b.minY + 0.01f;
+                if (overlapX && overlapY)
+                {
+                    throw new Exception(
+                        $"[LevelBuilder] Platform overlap detected between '{a.name}' ([{a.minX:F2}..{a.maxX:F2}], [{a.minY:F2}..{a.maxY:F2}]) " +
+                        $"and '{b.name}' ([{b.minX:F2}..{b.maxX:F2}], [{b.minY:F2}..{b.maxY:F2}])!");
+                }
+            }
+        }
+        Debug.Log($"[LevelBuilder] Platform Overlap Validation PASSED across {footprints.Count} static/moving/crumbling footprints (0 overlaps).");
+    }
+
+    private static void CreateGroundedPlatform(string name, float startX, float endX, float topY, float bottomY, BuiltAssets a, Transform parent, List<PlatformFootprint> footprints)
+    {
+        float height = Mathf.Max(2.0f, topY - bottomY);
+        CreatePlatformInternal(name, startX, endX, topY, height, a, parent, footprints);
+    }
+
+    private static void CreateElevatedPlatform(string name, float startX, float endX, float topY, float height, BuiltAssets a, Transform parent, List<PlatformFootprint> footprints)
+    {
+        CreatePlatformInternal(name, startX, endX, topY, Mathf.Max(2.0f, height), a, parent, footprints);
+    }
+
+    private static void CreatePlatformInternal(string name, float startX, float endX, float topY, float finalHeight, BuiltAssets a, Transform parent, List<PlatformFootprint> footprints)
+    {
         float width = endX - startX;
         float centerX = (startX + endX) * 0.5f;
         float centerY = topY - finalHeight * 0.5f;
+
+        footprints.Add(new PlatformFootprint
+        {
+            name = name,
+            minX = startX,
+            maxX = endX,
+            minY = topY - finalHeight,
+            maxY = topY
+        });
 
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
@@ -841,27 +1014,453 @@ public static class LevelBuilder
         }
     }
 
-    private static void CreateSpikes(string name, Vector2 baseCenter, float width, Sprite spikeSprite, Transform parent)
+    private static void CreateGothicPillar(string name, float centerX, float topY, float bottomY, float width, BuiltAssets a, Transform parent)
+    {
+        float height = Mathf.Max(1f, topY - bottomY);
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(centerX, (topY + bottomY) * 0.5f, 0f);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = a.propGothicPillar;
+        sr.drawMode = SpriteDrawMode.Tiled;
+        sr.tileMode = SpriteTileMode.Continuous;
+        sr.size = new Vector2(width, height);
+        sr.sortingOrder = -1;
+    }
+
+    private static void CreateMovingPlatform(
+        string name,
+        Vector3 startPos,
+        Vector3 endPos,
+        float width,
+        float height,
+        float travelDuration,
+        float endpointPause,
+        float phaseOffset,
+        BuiltAssets a,
+        Transform parent,
+        List<PlatformFootprint> footprints)
+    {
+        // Register the full swept bounding box of this moving platform so no overlap can EVER happen
+        footprints.Add(new PlatformFootprint
+        {
+            name = name,
+            minX = Mathf.Min(startPos.x, endPos.x) - width * 0.5f,
+            maxX = Mathf.Max(startPos.x, endPos.x) + width * 0.5f,
+            minY = Mathf.Min(startPos.y, endPos.y) - height * 0.5f,
+            maxY = Mathf.Max(startPos.y, endPos.y) + height * 0.5f
+        });
+
+        // Subtle glowing iron guide rail showing the platform's exact safe path
+        GameObject railGo = new GameObject($"{name}_GuideRail");
+        railGo.transform.SetParent(parent, false);
+        Vector3 mid = (startPos + endPos) * 0.5f;
+        Vector3 diff = endPos - startPos;
+        float railLen = diff.magnitude + 0.5f;
+        float railAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
+        railGo.transform.position = mid;
+        railGo.transform.rotation = Quaternion.Euler(0f, 0f, railAngle);
+        railGo.transform.localScale = new Vector3(railLen, 0.14f, 1f);
+        SpriteRenderer railSr = railGo.AddComponent<SpriteRenderer>();
+        railSr.sprite = a.uiWhiteSprite;
+        railSr.color = new Color(0.28f, 0.72f, 0.88f, 0.34f);
+        railSr.sortingOrder = -1;
+
+        // Endcap nodes on guide rail
+        foreach (Vector3 endPt in new[] { startPos, endPos })
+        {
+            GameObject cap = new GameObject("TrackAnchor");
+            cap.transform.SetParent(parent, false);
+            cap.transform.position = endPt;
+            cap.transform.localScale = new Vector3(0.26f, 0.26f, 1f);
+            SpriteRenderer capSr = cap.AddComponent<SpriteRenderer>();
+            capSr.sprite = a.softParticleSprite;
+            capSr.color = new Color(0.45f, 0.94f, 1f, 0.75f);
+            capSr.sortingOrder = -1;
+        }
+
+        // Actual moving carriage
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = startPos;
+
+        BoxCollider2D col = go.AddComponent<BoxCollider2D>();
+        col.size = new Vector2(width, height * 0.78f);
+        col.offset = new Vector2(0f, height * 0.11f);
+
+        GameObject visualGo = new GameObject("CarriageVisual");
+        visualGo.transform.SetParent(go.transform, false);
+        SpriteRenderer sr = visualGo.AddComponent<SpriteRenderer>();
+        sr.sprite = a.tileMovingPlatform;
+        sr.sortingOrder = 2;
+        if (a.tileMovingPlatform != null)
+        {
+            Vector2 spriteSize = a.tileMovingPlatform.bounds.size;
+            visualGo.transform.localScale = new Vector3(width / Mathf.Max(0.01f, spriteSize.x), height / Mathf.Max(0.01f, spriteSize.y), 1f);
+        }
+
+        MovingPlatform mp = go.AddComponent<MovingPlatform>();
+        mp.startPosition = startPos;
+        mp.endPosition = endPos;
+        mp.travelDuration = travelDuration;
+        mp.endpointPause = endpointPause;
+        mp.phaseOffset = phaseOffset;
+
+        // Twin cyan thruster steam jets underneath carriage
+        GameObject psGo = new GameObject($"{name}_Thrusters");
+        psGo.transform.SetParent(go.transform, false);
+        psGo.transform.localPosition = new Vector3(0f, -height * 0.48f, 0f);
+        psGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+
+        ParticleSystem ps = psGo.AddComponent<ParticleSystem>();
+        var main = ps.main;
+        main.loop = true;
+        main.playOnAwake = true;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.28f, 0.52f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(2.2f, 3.8f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.14f, 0.30f);
+        main.startColor = new ParticleSystem.MinMaxGradient(
+            new Color(0.35f, 0.96f, 1f, 0.85f),
+            new Color(0.65f, 0.92f, 1f, 0.55f)
+        );
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.maxParticles = 45;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 24f;
+
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Box;
+        shape.scale = new Vector3(width * 0.58f, 0.1f, 0.1f);
+
+        ConfigureParticleNoise(ps, 0.4f, 1.4f, 0.8f);
+
+        var renderer = psGo.GetComponent<ParticleSystemRenderer>();
+        renderer.material = a.particleMaterial;
+        renderer.sortingOrder = 1;
+        ConfigureParticleFade(ps, 0.88f, true);
+        mp.thrusterParticles = ps;
+    }
+
+    private static void CreateCrumblingPlatform(
+        string name,
+        float startX,
+        float endX,
+        float topY,
+        float height,
+        BuiltAssets a,
+        Transform parent,
+        List<PlatformFootprint> footprints)
+    {
+        float width = endX - startX;
+        float centerX = (startX + endX) * 0.5f;
+        float centerY = topY - height * 0.5f;
+
+        footprints.Add(new PlatformFootprint
+        {
+            name = name,
+            minX = startX,
+            maxX = endX,
+            minY = topY - height,
+            maxY = topY
+        });
+
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(centerX, centerY, 0f);
+
+        BoxCollider2D col = go.AddComponent<BoxCollider2D>();
+        col.size = new Vector2(width, height);
+
+        GameObject visualGo = new GameObject("CrackedStoneVisual");
+        visualGo.transform.SetParent(go.transform, false);
+        SpriteRenderer sr = visualGo.AddComponent<SpriteRenderer>();
+        sr.sprite = a.tileCrumblePlatform;
+        sr.drawMode = SpriteDrawMode.Tiled;
+        sr.tileMode = SpriteTileMode.Continuous;
+        sr.size = new Vector2(width, height);
+        sr.sortingOrder = 1;
+
+        // Tumbling stone debris particles with RotationOverLifetime + gravity
+        GameObject psGo = new GameObject($"{name}_DebrisParticles");
+        psGo.transform.SetParent(go.transform, false);
+        psGo.transform.localPosition = new Vector3(0f, -height * 0.25f, 0f);
+        psGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+
+        ParticleSystem ps = psGo.AddComponent<ParticleSystem>();
+        var main = ps.main;
+        main.loop = true;
+        main.playOnAwake = false;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.55f, 1.0f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 3.6f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.14f, 0.30f);
+        main.startColor = new ParticleSystem.MinMaxGradient(
+            new Color(0.55f, 0.52f, 0.68f, 0.95f),
+            new Color(0.98f, 0.68f, 0.32f, 0.95f)
+        );
+        main.gravityModifier = 1.85f;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.maxParticles = 60;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 26f;
+
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Box;
+        shape.scale = new Vector3(width * 0.9f, 0.2f, 0.1f);
+
+        var rot = ps.rotationOverLifetime;
+        rot.enabled = true;
+        rot.z = new ParticleSystem.MinMaxCurve(-240f * Mathf.Deg2Rad, 240f * Mathf.Deg2Rad);
+
+        var renderer = psGo.GetComponent<ParticleSystemRenderer>();
+        renderer.material = a.particleMaterial;
+        renderer.sortingOrder = 6;
+        ConfigureParticleFade(ps, 0.95f, true);
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+        CrumblingPlatform cp = go.AddComponent<CrumblingPlatform>();
+        cp.visualTransform = visualGo.transform;
+        cp.visualRenderer = sr;
+        cp.debrisParticles = ps;
+    }
+
+    private static void CreatePopUpSpikes(
+        string name,
+        Vector2 baseCenter,
+        float width,
+        PopUpSpikes.TrapMode mode,
+        float cycleOffset,
+        BuiltAssets a,
+        Transform parent)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         go.transform.position = new Vector3(baseCenter.x, baseCenter.y, 0f);
 
-        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = spikeSprite;
-        sr.drawMode = SpriteDrawMode.Tiled;
-        sr.tileMode = SpriteTileMode.Continuous;
-        sr.size = new Vector2(width, 0.85f);
-        sr.sortingOrder = 3;
+        // 1. Flush recessed metal trap grate sitting embedded inside the rooftop lip
+        GameObject slotGo = new GameObject("FloorTrapGrate");
+        slotGo.transform.SetParent(go.transform, false);
+        slotGo.transform.localPosition = new Vector3(0f, -0.14f, 0f);
+        SpriteRenderer slotSr = slotGo.AddComponent<SpriteRenderer>();
+        slotSr.sprite = a.tileSpikeSlot;
+        slotSr.drawMode = SpriteDrawMode.Tiled;
+        slotSr.tileMode = SpriteTileMode.Continuous;
+        slotSr.size = new Vector2(width + 0.16f, 0.36f);
+        slotSr.sortingOrder = 4;
 
-        BoxCollider2D col = go.AddComponent<BoxCollider2D>();
+        // 2. Custom-range SpriteMask above topY so retracted spikes are 100% hidden inside the stonework
+        GameObject maskGo = new GameObject("SpikeRevealMask");
+        maskGo.transform.SetParent(go.transform, false);
+        maskGo.transform.localPosition = new Vector3(0f, 0.56f, 0f);
+        maskGo.transform.localScale = new Vector3(width + 0.35f, 1.12f, 1f);
+        SpriteMask mask = maskGo.AddComponent<SpriteMask>();
+        mask.sprite = a.uiWhiteSprite;
+        mask.isCustomRangeActive = true;
+        mask.backSortingOrder = 2;
+        mask.frontSortingOrder = 4;
+
+        // 3. Animated Spike Blades child (masked so only portion emerging above the floor grate renders)
+        GameObject bladesGo = new GameObject("SpikeBlades");
+        bladesGo.transform.SetParent(go.transform, false);
+        bladesGo.transform.localPosition = new Vector3(0f, -0.92f, 0f);
+        SpriteRenderer bladeSr = bladesGo.AddComponent<SpriteRenderer>();
+        bladeSr.sprite = a.hazardSpikes;
+        bladeSr.drawMode = SpriteDrawMode.Tiled;
+        bladeSr.tileMode = SpriteTileMode.Continuous;
+        bladeSr.size = new Vector2(width, 0.85f);
+        bladeSr.sortingOrder = 3;
+        bladeSr.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+
+        // 4. Crackling spark & lightning-trail ParticleSystem for telegraph & eruption
+        GameObject psGo = new GameObject($"{name}_Sparks");
+        psGo.transform.SetParent(go.transform, false);
+        psGo.transform.localPosition = new Vector3(0f, 0.04f, 0f);
+        psGo.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+
+        ParticleSystem ps = psGo.AddComponent<ParticleSystem>();
+        var main = ps.main;
+        main.loop = false;
+        main.playOnAwake = false;
+        main.duration = 0.35f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.22f, 0.42f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(3.4f, 6.2f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.10f, 0.22f);
+        main.startColor = new ParticleSystem.MinMaxGradient(
+            new Color(1f, 0.24f, 0.56f, 0.98f),
+            new Color(0.45f, 0.96f, 1f, 0.98f)
+        );
+        main.gravityModifier = 0.85f;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.maxParticles = 60;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 12) });
+
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Box;
+        shape.scale = new Vector3(width * 0.85f, 0.1f, 0.1f);
+
+        ConfigureParticleNoise(ps, 1.15f, 3.0f, 1.5f);
+        ConfigureParticleTrails(ps, a.particleMaterial, 0.65f, 0.14f, 0.45f);
+
+        var renderer = psGo.GetComponent<ParticleSystemRenderer>();
+        renderer.material = a.particleMaterial;
+        renderer.sortingOrder = 6;
+        ConfigureParticleFade(ps, 1.0f, true);
+
+        // 5. PopUpSpikes controller
+        PopUpSpikes trap = go.AddComponent<PopUpSpikes>();
+        trap.mode = mode;
+        trap.cycleOffset = cycleOffset;
+        trap.spikeVisual = bladesGo.transform;
+        trap.sparkParticles = ps;
+        trap.lethalBoxSize = new Vector2(width * 0.84f, 0.56f);
+        trap.lethalBoxOffset = new Vector2(0f, 0.34f);
+    }
+
+    private static void CreateWaterCanal(float startX, float endX, float surfaceY, BuiltAssets a, Transform parent)
+    {
+        float width = endX - startX;
+        float centerX = (startX + endX) * 0.5f;
+
+        GameObject root = new GameObject("TwilightCanal_Water");
+        root.transform.SetParent(parent, false);
+        root.transform.position = new Vector3(centerX, surfaceY - 1.0f, 0f);
+
+        // Trigger collider slightly below the wave crest so falling into the water splashes & respawns
+        BoxCollider2D col = root.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
-        col.offset = new Vector2(0f, 0.35f);
-        col.size = new Vector2(width * 0.88f, 0.6f);
+        col.offset = new Vector2(0f, -0.35f);
+        col.size = new Vector2(width, 2.6f);
 
-        Hazard hazard = go.AddComponent<Hazard>();
-        hazard.isKillzone = false;
-        hazard.damageAmount = 1;
+        // Back parallax wave layer behind masonry & pillars
+        GameObject backLayer = new GameObject("WaterBackLayer");
+        backLayer.transform.SetParent(root.transform, false);
+        backLayer.transform.localPosition = new Vector3(0f, 0.25f, 0f);
+        SpriteRenderer backSr = backLayer.AddComponent<SpriteRenderer>();
+        backSr.sprite = a.waterFrames[0];
+        backSr.drawMode = SpriteDrawMode.Tiled;
+        backSr.tileMode = SpriteTileMode.Continuous;
+        backSr.size = new Vector2(width + 8f, 3.6f);
+        backSr.color = new Color(0.56f, 0.72f, 0.92f, 0.82f);
+        backSr.sortingOrder = -3;
+        Animator backAnim = backLayer.AddComponent<Animator>();
+        backAnim.runtimeAnimatorController = a.waterAnimator;
+        backAnim.speed = 0.78f;
+
+        // Front luminous wave layer overlapping building foundations
+        GameObject frontLayer = new GameObject("WaterFrontLayer");
+        frontLayer.transform.SetParent(root.transform, false);
+        frontLayer.transform.localPosition = new Vector3(0f, -0.15f, 0f);
+        SpriteRenderer frontSr = frontLayer.AddComponent<SpriteRenderer>();
+        frontSr.sprite = a.waterFrames[0];
+        frontSr.drawMode = SpriteDrawMode.Tiled;
+        frontSr.tileMode = SpriteTileMode.Continuous;
+        frontSr.size = new Vector2(width + 8f, 4.0f);
+        frontSr.color = new Color(0.92f, 0.98f, 1f, 0.86f);
+        frontSr.sortingOrder = 14;
+        Animator frontAnim = frontLayer.AddComponent<Animator>();
+        frontAnim.runtimeAnimatorController = a.waterAnimator;
+        frontAnim.speed = 1.05f;
+
+        // Deep opaque abyss backdrop below the wave texture so no sky leaks under the canal
+        GameObject deepFill = new GameObject("WaterDeepFill");
+        deepFill.transform.SetParent(root.transform, false);
+        deepFill.transform.localPosition = new Vector3(0f, -3.8f, 0f);
+        deepFill.transform.localScale = new Vector3(width + 12f, 5.2f, 1f);
+        SpriteRenderer deepSr = deepFill.AddComponent<SpriteRenderer>();
+        deepSr.sprite = a.uiWhiteSprite;
+        deepSr.color = new Color(0.03f, 0.08f, 0.19f, 0.98f);
+        deepSr.sortingOrder = 13;
+
+        // Rising Twilight Canal Mist ParticleSystems spaced along the canal
+        for (float mx = 10f; mx <= 230f; mx += 44f)
+        {
+            GameObject mistGo = new GameObject($"CanalMistParticles_{mx:000}");
+            mistGo.transform.SetParent(root.transform, false);
+            mistGo.transform.position = new Vector3(mx, surfaceY + 0.1f, 0f);
+
+            ParticleSystem mist = mistGo.AddComponent<ParticleSystem>();
+            var main = mist.main;
+            main.loop = true;
+            main.playOnAwake = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.8f, 4.6f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.55f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.55f, 1.35f);
+            main.startColor = new ParticleSystem.MinMaxGradient(
+                new Color(0.32f, 0.84f, 0.98f, 0.24f),
+                new Color(0.45f, 0.52f, 0.92f, 0.18f)
+            );
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 45;
+
+            var emission = mist.emission;
+            emission.rateOverTime = 8f;
+
+            var shape = mist.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(42f, 0.25f, 0.2f);
+
+            var vel = mist.velocityOverLifetime;
+            vel.enabled = true;
+            vel.x = new ParticleSystem.MinMaxCurve(0.35f);
+            vel.y = new ParticleSystem.MinMaxCurve(0.45f);
+            vel.z = new ParticleSystem.MinMaxCurve(0f);
+
+            ConfigureParticleNoise(mist, 0.55f, 0.4f, 0.3f);
+
+            var mr = mistGo.GetComponent<ParticleSystemRenderer>();
+            mr.material = a.particleMaterial;
+            mr.sortingOrder = 15;
+            ConfigureParticleFade(mist, 0.34f, false);
+        }
+
+        // Dynamic Water Splash ParticleSystem triggered on fall into canal
+        GameObject splashGo = new GameObject("WaterSplashParticles");
+        splashGo.transform.SetParent(root.transform, false);
+        splashGo.transform.position = new Vector3(0f, surfaceY, 0f);
+        splashGo.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+
+        ParticleSystem splash = splashGo.AddComponent<ParticleSystem>();
+        var sMain = splash.main;
+        sMain.loop = false;
+        sMain.playOnAwake = false;
+        sMain.duration = 0.6f;
+        sMain.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 0.85f);
+        sMain.startSpeed = new ParticleSystem.MinMaxCurve(4.5f, 9.2f);
+        sMain.startSize = new ParticleSystem.MinMaxCurve(0.16f, 0.36f);
+        sMain.startColor = new ParticleSystem.MinMaxGradient(
+            new Color(0.55f, 0.96f, 1f, 0.96f),
+            new Color(0.92f, 0.98f, 1f, 0.92f)
+        );
+        sMain.gravityModifier = 1.9f;
+        sMain.simulationSpace = ParticleSystemSimulationSpace.World;
+        sMain.maxParticles = 80;
+
+        var sEmit = splash.emission;
+        sEmit.rateOverTime = 0f;
+        sEmit.SetBursts(new[] { new ParticleSystem.Burst(0f, 30) });
+
+        var sShape = splash.shape;
+        sShape.shapeType = ParticleSystemShapeType.Cone;
+        sShape.angle = 36f;
+        sShape.radius = 0.35f;
+
+        ConfigureParticleTrails(splash, a.particleMaterial, 0.55f, 0.16f, 0.5f);
+
+        var sRend = splashGo.GetComponent<ParticleSystemRenderer>();
+        sRend.material = a.particleMaterial;
+        sRend.sortingOrder = 16;
+        ConfigureParticleFade(splash, 0.95f, true);
+
+        WaterCanal canal = root.AddComponent<WaterCanal>();
+        canal.frontWaveLayer = frontLayer.transform;
+        canal.backWaveLayer = backLayer.transform;
+        canal.surfaceWorldY = surfaceY;
+        canal.splashParticles = splash;
     }
 
     private static void CreateSentinel(string name, Vector2 pos, float leftOffset, float rightOffset, float speed, BuiltAssets a, Transform parent)
@@ -871,12 +1470,26 @@ public static class LevelBuilder
         go.transform.position = new Vector3(pos.x, pos.y, 0f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = a.enemySentinel;
+        sr.sprite = a.sentinelFrames[0];
         sr.sortingOrder = 6;
+
+        Animator anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = a.sentinelAnimator;
 
         CircleCollider2D col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
         col.radius = 0.62f;
+
+        // Ambient clockwork exhaust & arcane wisps trailing the drone
+        ParticleSystem exhaust = CreateLoopingTrailParticles(
+            $"{name}_ExhaustParticles", go.transform, new Vector3(0f, -0.15f, 0f),
+            a.particleMaterial, new Color(0.96f, 0.32f, 0.45f, 0.65f), new Color(0.88f, 0.68f, 0.32f, 0.55f), 5,
+            enableRibbons: false, noiseStrength: 0.45f
+        );
+        var eEmit = exhaust.emission;
+        eEmit.rateOverTime = 12f;
+        var eMain = exhaust.main;
+        eMain.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.18f);
 
         PatrolEnemy enemy = go.AddComponent<PatrolEnemy>();
         enemy.leftOffset = leftOffset;
@@ -884,7 +1497,8 @@ public static class LevelBuilder
         enemy.patrolSpeed = speed;
         enemy.defeatParticles = CreateOneShotBurstParticles(
             $"{name}_DefeatParticles", go.transform, Vector3.zero,
-            a.particleMaterial, new Color(1f, 0.55f, 0.25f, 0.95f), 20, 0.14f, 0.3f, 5.5f, 180f, 11
+            a.particleMaterial, new Color(1f, 0.58f, 0.25f, 0.96f), 26, 0.14f, 0.34f, 6.2f, 180f, 11,
+            enableTrails: true
         );
     }
 
@@ -895,17 +1509,34 @@ public static class LevelBuilder
         go.transform.position = new Vector3(pos.x, pos.y, 0f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = a.collectibleShard;
+        sr.sprite = a.shardFrames[0];
         sr.sortingOrder = 5;
+
+        Animator anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = a.shardAnimator;
 
         CircleCollider2D col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
         col.radius = 0.52f;
 
+        // Ambient orbiting cyan shimmer sparkles around uncollected shard
+        ParticleSystem sparkle = CreateLoopingTrailParticles(
+            $"ShardSparkle_{index:00}", go.transform, Vector3.zero,
+            a.particleMaterial, new Color(0.45f, 0.98f, 1f, 0.72f), new Color(1f, 0.92f, 0.55f, 0.65f), 6,
+            enableRibbons: false, noiseStrength: 0.35f
+        );
+        var spMain = sparkle.main;
+        spMain.startSize = new ParticleSystem.MinMaxCurve(0.07f, 0.15f);
+        spMain.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.65f);
+        spMain.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 0.85f);
+        var spEmit = sparkle.emission;
+        spEmit.rateOverTime = 7f;
+
         CollectibleShard shard = go.AddComponent<CollectibleShard>();
         shard.pickupParticles = CreateOneShotBurstParticles(
             $"ShardPickupParticles_{index:00}", go.transform, Vector3.zero,
-            a.particleMaterial, new Color(0.32f, 0.96f, 1f, 0.95f), 16, 0.14f, 0.26f, 4.5f, 180f, 12
+            a.particleMaterial, new Color(0.32f, 0.96f, 1f, 0.98f), 20, 0.14f, 0.28f, 5.2f, 180f, 12,
+            enableTrails: true
         );
     }
 
@@ -916,8 +1547,11 @@ public static class LevelBuilder
         go.transform.position = new Vector3(basePos.x, basePos.y, 0f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = a.propCheckpoint;
+        sr.sprite = a.checkpointFrames[0];
         sr.sortingOrder = 2;
+
+        Animator anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = a.checkpointAnimator;
 
         BoxCollider2D col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
@@ -931,13 +1565,21 @@ public static class LevelBuilder
         cp.respawnOffset = new Vector3(0f, 0.5f, 0f);
 
         cp.activationParticles = CreateOneShotBurstParticles(
-            $"CheckpointBurst_{index}", go.transform, new Vector3(0f, 1.5f, 0f),
-            a.particleMaterial, new Color(1f, 0.85f, 0.3f, 0.95f), 22, 0.16f, 0.34f, 5.0f, 180f, 11
+            $"CheckpointBurst_{index}", go.transform, new Vector3(-0.38f, 1.55f, 0f),
+            a.particleMaterial, new Color(1f, 0.85f, 0.3f, 0.96f), 26, 0.16f, 0.34f, 5.5f, 180f, 11,
+            enableTrails: true
         );
         cp.idleFlameParticles = CreateLoopingTrailParticles(
-            $"CheckpointFlame_{index}", go.transform, new Vector3(0f, 1.6f, 0f),
-            a.particleMaterial, new Color(1f, 0.92f, 0.45f, 0.85f), new Color(0.35f, 0.9f, 1f, 0.7f), 8
+            $"CheckpointFlame_{index}", go.transform, new Vector3(-0.38f, 1.62f, 0f),
+            a.particleMaterial, new Color(1f, 0.92f, 0.45f, 0.88f), new Color(0.35f, 0.94f, 1f, 0.78f), 8,
+            enableRibbons: false, noiseStrength: 0.6f
         );
+        var flameVel = cp.idleFlameParticles.velocityOverLifetime;
+        flameVel.enabled = true;
+        flameVel.x = new ParticleSystem.MinMaxCurve(0f);
+        flameVel.y = new ParticleSystem.MinMaxCurve(1.4f);
+        flameVel.z = new ParticleSystem.MinMaxCurve(0f);
+
         cp.idleFlameParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = cp.idleFlameParticles.main;
         main.playOnAwake = false;
@@ -956,7 +1598,7 @@ public static class LevelBuilder
         UpdraftVent vent = go.AddComponent<UpdraftVent>();
         vent.updraftSpeed = speed;
 
-        // Visible rising cyan wind streams via ParticleSystem
+        // Visible swirling cyan wind vortex ribbons via ParticleSystem + Noise + Trails
         GameObject psGo = new GameObject("UpdraftWindParticles");
         psGo.transform.SetParent(go.transform, false);
         psGo.transform.localPosition = new Vector3(0f, -height * 0.48f, 0f);
@@ -966,26 +1608,30 @@ public static class LevelBuilder
         var main = ps.main;
         main.loop = true;
         main.playOnAwake = true;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(height / 7.2f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(6.8f, 9.2f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.44f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(height / 7.5f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(7.0f, 9.6f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.20f, 0.42f);
         main.startColor = new ParticleSystem.MinMaxGradient(
-            new Color(0.38f, 0.96f, 1f, 0.85f),
-            new Color(0.75f, 0.98f, 1f, 0.65f)
+            new Color(0.38f, 0.96f, 1f, 0.88f),
+            new Color(0.78f, 0.98f, 1f, 0.70f)
         );
-        main.maxParticles = 70;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.maxParticles = 95;
 
         var emission = ps.emission;
-        emission.rateOverTime = 28f;
+        emission.rateOverTime = 34f;
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
         shape.scale = new Vector3(width * 0.8f, 0.25f, 0.25f);
 
+        ConfigureParticleNoise(ps, 0.85f, 0.85f, 1.1f);
+        ConfigureParticleTrails(ps, particleMat, 0.55f, 0.20f, 0.55f);
+
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = particleMat;
         renderer.sortingOrder = 1;
-        ConfigureParticleFade(ps, 0.85f, true);
+        ConfigureParticleFade(ps, 0.88f, true);
     }
 
     private static void CreateTutorialTrigger(string name, Vector2 center, Vector2 size, string message, Transform parent)
@@ -1011,8 +1657,11 @@ public static class LevelBuilder
         go.transform.position = new Vector3(basePos.x, basePos.y, 0f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = a.propGoalBeacon;
+        sr.sprite = a.goalBeaconFrames[0];
         sr.sortingOrder = 4;
+
+        Animator anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = a.goalBeaconAnimator;
 
         BoxCollider2D col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
@@ -1021,12 +1670,22 @@ public static class LevelBuilder
 
         LevelGoal goal = go.AddComponent<LevelGoal>();
         goal.idleBeaconParticles = CreateLoopingTrailParticles(
-            "GoalBeaconIdleParticles", go.transform, new Vector3(0f, 2.0f, 0f),
-            a.particleMaterial, new Color(1f, 0.92f, 0.45f, 0.9f), new Color(0.35f, 0.95f, 1f, 0.9f), 11
+            "GoalBeaconIdleParticles", go.transform, new Vector3(0.18f, 2.0f, 0f),
+            a.particleMaterial, new Color(1f, 0.92f, 0.45f, 0.92f), new Color(0.35f, 0.96f, 1f, 0.92f), 11,
+            enableRibbons: true, noiseStrength: 0.7f
         );
+        var beaconVel = goal.idleBeaconParticles.velocityOverLifetime;
+        beaconVel.enabled = true;
+        beaconVel.x = new ParticleSystem.MinMaxCurve(0f);
+        beaconVel.y = new ParticleSystem.MinMaxCurve(2.2f);
+        beaconVel.z = new ParticleSystem.MinMaxCurve(0f);
+        var beaconMain = goal.idleBeaconParticles.main;
+        beaconMain.startLifetime = new ParticleSystem.MinMaxCurve(0.8f, 1.4f);
+
         goal.victoryBurstParticles = CreateOneShotBurstParticles(
-            "GoalVictoryBurstParticles", go.transform, new Vector3(0f, 2.0f, 0f),
-            a.particleMaterial, new Color(1f, 0.95f, 0.55f, 1f), 45, 0.2f, 0.45f, 7.5f, 180f, 15
+            "GoalVictoryBurstParticles", go.transform, new Vector3(0.18f, 2.0f, 0f),
+            a.particleMaterial, new Color(1f, 0.95f, 0.55f, 1f), 55, 0.22f, 0.48f, 8.2f, 180f, 15,
+            enableTrails: true
         );
     }
 
@@ -1066,7 +1725,8 @@ public static class LevelBuilder
         float maxSize,
         float speed,
         float angleSpread,
-        int sortingOrder)
+        int sortingOrder,
+        bool enableTrails = false)
     {
         GameObject psGo = new GameObject(name);
         psGo.transform.SetParent(parent, false);
@@ -1077,12 +1737,12 @@ public static class LevelBuilder
         var main = ps.main;
         main.loop = false;
         main.playOnAwake = false;
-        main.duration = 0.6f;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.28f, 0.55f);
+        main.duration = 0.65f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.28f, 0.58f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(speed * 0.45f, speed);
         main.startSize = new ParticleSystem.MinMaxCurve(minSize, maxSize);
         main.startColor = color;
-        main.gravityModifier = 0.6f;
+        main.gravityModifier = 0.65f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
@@ -1093,6 +1753,11 @@ public static class LevelBuilder
         shape.shapeType = ParticleSystemShapeType.Cone;
         shape.angle = Mathf.Clamp(angleSpread, 5f, 180f);
         shape.radius = 0.25f;
+
+        if (enableTrails)
+        {
+            ConfigureParticleTrails(ps, mat, 0.55f, 0.16f, 0.5f);
+        }
 
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = mat;
@@ -1109,7 +1774,9 @@ public static class LevelBuilder
         Material mat,
         Color colorA,
         Color colorB,
-        int sortingOrder)
+        int sortingOrder,
+        bool enableRibbons = false,
+        float noiseStrength = 0f)
     {
         GameObject psGo = new GameObject(name);
         psGo.transform.SetParent(parent, false);
@@ -1119,25 +1786,68 @@ public static class LevelBuilder
         var main = ps.main;
         main.loop = true;
         main.playOnAwake = true;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.65f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 1.4f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.38f, 0.68f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0.45f, 1.5f);
         main.startSize = new ParticleSystem.MinMaxCurve(0.16f, 0.34f);
         main.startColor = new ParticleSystem.MinMaxGradient(colorA, colorB);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.rateOverTime = 26f;
+        emission.rateOverTime = 28f;
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Circle;
         shape.radius = 0.35f;
 
+        if (noiseStrength > 0.01f)
+        {
+            ConfigureParticleNoise(ps, noiseStrength, 0.9f, 0.6f);
+        }
+        if (enableRibbons)
+        {
+            ConfigureParticleTrails(ps, mat, 0.65f, 0.26f, 0.65f);
+        }
+
         var renderer = psGo.GetComponent<ParticleSystemRenderer>();
         renderer.material = mat;
         renderer.sortingOrder = sortingOrder;
-        ConfigureParticleFade(ps, 0.9f, true);
+        ConfigureParticleFade(ps, 0.92f, true);
 
         return ps;
+    }
+
+    private static void ConfigureParticleNoise(ParticleSystem ps, float strength, float frequency, float scrollSpeed)
+    {
+        var noise = ps.noise;
+        noise.enabled = true;
+        noise.separateAxes = false;
+        noise.strength = new ParticleSystem.MinMaxCurve(strength);
+        noise.frequency = frequency;
+        noise.scrollSpeed = new ParticleSystem.MinMaxCurve(scrollSpeed);
+        noise.damping = true;
+        noise.quality = ParticleSystemNoiseQuality.Medium;
+    }
+
+    private static void ConfigureParticleTrails(ParticleSystem ps, Material trailMat, float ratio, float lifetime, float widthScale)
+    {
+        var trails = ps.trails;
+        trails.enabled = true;
+        trails.ratio = ratio;
+        trails.lifetime = new ParticleSystem.MinMaxCurve(lifetime);
+        trails.minVertexDistance = 0.12f;
+        trails.inheritParticleColor = true;
+        trails.dieWithParticles = true;
+        AnimationCurve widthCurve = new AnimationCurve(
+            new Keyframe(0f, widthScale),
+            new Keyframe(1f, 0f)
+        );
+        trails.widthOverTrail = new ParticleSystem.MinMaxCurve(1f, widthCurve);
+
+        var renderer = ps.GetComponent<ParticleSystemRenderer>();
+        if (renderer != null && trailMat != null)
+        {
+            renderer.trailMaterial = trailMat;
+        }
     }
 
     private static void ConfigureParticleFade(ParticleSystem ps, float peakAlpha, bool shrinkToZero)
@@ -1638,14 +2348,14 @@ public static class LevelBuilder
 
         Vector3 baseCamPos = cam.transform.position;
 
-        // 1. Capture Title Screen over live Zone 1 backdrop
+        // 1. Capture Title Screen over live Zone 1 backdrop + Twilight Canal
         if (uiMgr != null)
         {
             uiMgr.ShowOnlyPanel(GameState.Title);
         }
-        CaptureCameraView(cam, new Vector3(8f, 2.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/title_screen.png");
+        CaptureCameraView(cam, new Vector3(8f, 1.4f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/title_screen.png");
 
-        // 2. Capture Zone 1 Gameplay + HUD + Tutorial Banner
+        // 2. Capture Zone 1 Gameplay + HUD + Grounded Rooftops & Twilight Canal Water
         if (uiMgr != null)
         {
             uiMgr.ShowOnlyPanel(GameState.Playing);
@@ -1656,17 +2366,17 @@ public static class LevelBuilder
             }
             uiMgr.UpdateShards(2, 25);
         }
-        CaptureCameraView(cam, new Vector3(8f, 2.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/gameplay_preview.png");
+        CaptureCameraView(cam, new Vector3(9.5f, 1.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/gameplay_preview.png");
 
-        // 3. Capture Signature Shadow-Cloak Glide + Active Particles + HUD Glide Badge
+        // 3. Capture Signature Shadow-Cloak Glide + Ribbon Trail Particles + Disjoint Safety Floor & Canal Water
         if (player != null && playerSr != null && assets != null)
         {
-            player.transform.position = new Vector3(33.2f, 4.1f, 0f);
-            playerSr.sprite = assets.vesperGlide;
+            player.transform.position = new Vector3(34.5f, 4.1f, 0f);
+            playerSr.sprite = assets.vesperGlideFrames != null && assets.vesperGlideFrames.Length > 1 ? assets.vesperGlideFrames[1] : assets.vesperGlide;
             if (player.glideTrailParticles != null)
             {
                 player.glideTrailParticles.Play();
-                player.glideTrailParticles.Simulate(0.45f, true, true);
+                player.glideTrailParticles.Simulate(0.55f, true, true);
             }
             if (uiMgr != null)
             {
@@ -1677,7 +2387,7 @@ public static class LevelBuilder
                 }
             }
         }
-        CaptureCameraView(cam, new Vector3(34f, 3.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/glide_and_particles_preview.png");
+        CaptureCameraView(cam, new Vector3(35.5f, 1.8f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/glide_and_particles_preview.png");
 
         // Restore player position/sprite cleanly
         if (player != null && playerSr != null)
@@ -1690,55 +2400,67 @@ public static class LevelBuilder
             }
         }
 
-        // 4. Capture Zone 2 with lit Checkpoint flame particles, Updraft wind streams, and clean electric spikes
+        // 4. Capture Zone 2: Gothic Pillars, Pop-Up Ground Spikes erupting with Spark Trails, and Moving Platform Shuttle
         if (uiMgr != null && uiMgr.bannerContainer != null)
         {
             uiMgr.UpdateGlideStatus(false, false);
-            uiMgr.UpdateShards(9, 25);
-            uiMgr.bannerText.text = "UPDRAFT CHIMNEYS: Glide inside cyan wind columns to soar to high rooftops!";
+            uiMgr.UpdateShards(10, 25);
+            uiMgr.bannerText.text = "AMBUSH TRAPS: Watch the stone grates - concealed spikes spark and erupt when crossed!";
         }
-        Checkpoint cp1 = null;
-        foreach (Checkpoint cp in UnityEngine.Object.FindObjectsByType<Checkpoint>(FindObjectsSortMode.None))
+        PopUpSpikes[] allTraps = UnityEngine.Object.FindObjectsByType<PopUpSpikes>(FindObjectsSortMode.None);
+        PopUpSpikes zone2Trap = null;
+        PopUpSpikes zone4Trap = null;
+        foreach (PopUpSpikes trap in allTraps)
         {
-            if (cp.checkpointIndex == 1)
+            if (trap.gameObject.name == "Spikes_2_Ambush") zone2Trap = trap;
+            if (trap.gameObject.name == "Spikes_4_FinalAmbush") zone4Trap = trap;
+        }
+        if (zone2Trap != null)
+        {
+            zone2Trap.SetPreviewExtension(1.0f);
+            if (zone2Trap.sparkParticles != null)
             {
-                cp1 = cp;
-                break;
+                zone2Trap.sparkParticles.Play();
+                zone2Trap.sparkParticles.Simulate(0.18f, true, true);
             }
         }
-        if (cp1 != null && cp1.lanternRenderer != null)
-        {
-            cp1.lanternRenderer.color = cp1.litTint;
-            if (cp1.idleFlameParticles != null)
-            {
-                cp1.idleFlameParticles.Simulate(0.8f, true, true);
-            }
-        }
-        CaptureCameraView(cam, new Vector3(53.5f, 4.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone2_updraft_preview.png");
+        CaptureCameraView(cam, new Vector3(71.5f, 2.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone2_traps_and_moving_preview.png");
 
-        if (cp1 != null && cp1.lanternRenderer != null)
+        if (zone2Trap != null)
         {
-            cp1.lanternRenderer.color = cp1.unlitTint;
-            if (cp1.idleFlameParticles != null)
+            zone2Trap.SetPreviewExtension(0.0f);
+            if (zone2Trap.sparkParticles != null)
             {
-                cp1.idleFlameParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                zone2Trap.sparkParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
         }
 
-        // 5. Capture Zone 3 Clockwork Sentinel & 3-layer skyline depth
+        // 5. Capture Zone 3A: Crumbling Stone Span, Foundry Sentinel & Canal
         if (uiMgr != null)
         {
-            uiMgr.UpdateShards(15, 25);
+            uiMgr.UpdateShards(16, 25);
             if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
         }
-        CaptureCameraView(cam, new Vector3(114f, 7.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone3_sentinel_preview.png");
+        CaptureCameraView(cam, new Vector3(132.5f, 3.0f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone3_crumble_span_preview.png");
 
-        // 6. Capture Zone 4 Sanctum Beacon Goal
+        // 6. Capture Zone 3B: Dual Non-Colliding Moving Platforms + Thrusters + Foundry Sentinel
+        if (uiMgr != null)
+        {
+            uiMgr.UpdateShards(18, 25);
+        }
+        CaptureCameraView(cam, new Vector3(152.0f, 2.4f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone3_dynamic_platforms_preview.png");
+
+        // 7. Capture Zone 4: Sanctum Beacon Goal + Animated Light Pillar + Final Sentinel & Concealed Floor Grate
         if (uiMgr != null)
         {
             uiMgr.UpdateShards(25, 25);
         }
-        CaptureCameraView(cam, new Vector3(201f, 10.5f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/level_goal_preview.png");
+        if (zone4Trap != null)
+        {
+            // Keep final trap retracted in stone grate to verify clean embedded concealment
+            zone4Trap.SetPreviewExtension(0.0f);
+        }
+        CaptureCameraView(cam, new Vector3(217.5f, 10.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/level_goal_preview.png");
 
         // Restore Camera, Parallax, and Initial Title UI state cleanly
         cam.transform.position = baseCamPos;
