@@ -14,6 +14,10 @@ namespace VesperTwilightCourier
         public float displayDuration = 5.0f;
         public bool triggerOnce = true;
 
+        [Header("District Objective Update")]
+        public string districtLabel = "";
+        public string objectiveText = "";
+
         private bool hasTriggered;
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -32,6 +36,10 @@ namespace VesperTwilightCourier
 
             if (UIManager.Instance != null)
             {
+                if (!string.IsNullOrEmpty(districtLabel) || !string.IsNullOrEmpty(objectiveText))
+                {
+                    UIManager.Instance.UpdateObjective(districtLabel, objectiveText);
+                }
                 UIManager.Instance.ShowBanner(tutorialMessage, displayDuration);
             }
         }

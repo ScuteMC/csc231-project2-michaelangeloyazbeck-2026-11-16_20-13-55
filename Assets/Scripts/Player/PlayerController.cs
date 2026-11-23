@@ -28,7 +28,7 @@ namespace VesperTwilightCourier
 
         [Header("Signature Move: Shadow-Cloak Glide")]
         public float glideFallSpeed = -2.2f;
-        public float updraftAcceleration = 32f;
+        public float updraftAcceleration = 58f;
 
         [Header("Ground Detection")]
         public Vector2 groundCheckOffset = new Vector2(0f, -0.02f);
@@ -47,6 +47,7 @@ namespace VesperTwilightCourier
         private Animator animator;
         private SpriteRenderer spriteRenderer;
         private PlayerHealth playerHealth;
+        private float baseGravityScale = 3.2f;
 
         private float horizontalInput;
         private bool jumpPressedThisFrame;
@@ -58,6 +59,7 @@ namespace VesperTwilightCourier
         private bool wasGrounded;
         private bool isGliding;
         private bool wasGliding;
+        private bool wasInUpdraftLift;
 
         private float coyoteTimer;
         private float jumpBufferTimer;
@@ -66,6 +68,7 @@ namespace VesperTwilightCourier
 
         private readonly List<UpdraftVent> activeUpdrafts = new List<UpdraftVent>();
         private readonly Collider2D[] groundOverlapBuffer = new Collider2D[12];
+        private readonly Collider2D[] updraftOverlapBuffer = new Collider2D[8];
 
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
         private static readonly int VerticalVelHash = Animator.StringToHash("VerticalVelocity");
@@ -80,6 +83,7 @@ namespace VesperTwilightCourier
             animator = GetComponent<Animator>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             playerHealth = GetComponent<PlayerHealth>();
+            baseGravityScale = rb != null && rb.gravityScale > 0.01f ? rb.gravityScale : 3.2f;
         }
 
         private void Start()
@@ -127,11 +131,15 @@ namespace VesperTwilightCourier
         {
             if (GameManager.Instance != null && !GameManager.Instance.IsPlaying)
             {
+                rb.gravityScale = baseGravityScale;
+                wasInUpdraftLift = false;
                 return;
             }
 
             if (playerHealth != null && playerHealth.IsDead)
             {
+                rb.gravityScale = baseGravityScale;
+                wasInUpdraftLift = false;
                 rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
                 return;
             }
@@ -141,6 +149,8 @@ namespace VesperTwilightCourier
             if (knockbackLockTimer > 0f)
             {
                 knockbackLockTimer -= Time.fixedDeltaTime;
+                rb.gravityScale = baseGravityScale;
+                wasInUpdraftLift = false;
                 SetGlidingState(false);
                 return;
             }
@@ -151,15 +161,18 @@ namespace VesperTwilightCourier
                 ExecuteJump();
             }
 
+            float currentUpdraftSpeed = GetActiveUpdraftSpeed();
+            bool inUpdraft = currentUpdraftSpeed > 0f;
+
             // Variable jump height cut when jump key is released early while ascending
-            if (!jumpHeld && !isGliding && rb.linearVelocity.y > 0f && activeUpdrafts.Count == 0)
+            if (!jumpHeld && !isGliding && rb.linearVelocity.y > 0f && !inUpdraft)
             {
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
             }
 
-            // Determine Shadow-Cloak Glide state
-            bool wantsGlide = !isGrounded && (glideButtonHeld || (jumpHeld && jumpHoldEligibleForGlide));
-            bool canGlide = wantsGlide && (rb.linearVelocity.y <= 0.35f || activeUpdrafts.Count > 0 || glideButtonHeld);
+            // Determine Shadow-Cloak Glide state (works seamlessly whether entering updraft fresh or already gliding!)
+            bool wantsGlide = !isGrounded && (glideButtonHeld || (jumpHeld && (jumpHoldEligibleForGlide || inUpdraft)));
+            bool canGlide = wantsGlide && (rb.linearVelocity.y <= 0.35f || inUpdraft || glideButtonHeld);
             SetGlidingState(canGlide);
 
             // Horizontal acceleration
@@ -169,23 +182,49 @@ namespace VesperTwilightCourier
             float nextVelX = Mathf.MoveTowards(rb.linearVelocity.x, targetVelX, accel * Time.fixedDeltaTime);
             float nextVelY = rb.linearVelocity.y;
 
-            if (isGliding)
+            bool isUpdraftLifting = isGliding && inUpdraft;
+            if (isUpdraftLifting)
             {
-                float updraftSpeed = GetHighestUpdraftSpeed();
-                if (updraftSpeed > 0f)
+                // Suspend gravity inside thermal updraft columns so glide lift is never cancelled by gravityScale
+                rb.gravityScale = 0f;
+                if (nextVelY < 2.8f)
                 {
-                    nextVelY = Mathf.MoveTowards(nextVelY, updraftSpeed, updraftAcceleration * Time.fixedDeltaTime);
+                    nextVelY = Mathf.MoveTowards(nextVelY, Mathf.Max(2.8f, currentUpdraftSpeed), updraftAcceleration * 2.2f * Time.fixedDeltaTime);
                 }
-                else if (nextVelY < glideFallSpeed)
+                else
                 {
-                    nextVelY = glideFallSpeed;
+                    nextVelY = Mathf.MoveTowards(nextVelY, currentUpdraftSpeed, updraftAcceleration * Time.fixedDeltaTime);
+                }
+
+                if (!wasInUpdraftLift)
+                {
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.PlayGlide();
+                    }
+                    if (jumpDustParticles != null)
+                    {
+                        jumpDustParticles.Emit(6);
+                    }
                 }
             }
-            else if (nextVelY < maxFallSpeed)
+            else
             {
-                nextVelY = maxFallSpeed;
+                rb.gravityScale = baseGravityScale;
+                if (isGliding)
+                {
+                    if (nextVelY < glideFallSpeed)
+                    {
+                        nextVelY = glideFallSpeed;
+                    }
+                }
+                else if (nextVelY < maxFallSpeed)
+                {
+                    nextVelY = maxFallSpeed;
+                }
             }
 
+            wasInUpdraftLift = isUpdraftLifting;
             rb.linearVelocity = new Vector2(nextVelX, nextVelY);
         }
 
@@ -352,11 +391,13 @@ namespace VesperTwilightCourier
 
         public void ResetMotionAndTimers()
         {
+            rb.gravityScale = baseGravityScale;
             rb.linearVelocity = Vector2.zero;
             coyoteTimer = 0f;
             jumpBufferTimer = 0f;
             knockbackLockTimer = 0f;
             footstepDustTimer = 0.08f;
+            wasInUpdraftLift = false;
             transform.localScale = Vector3.one;
             activeUpdrafts.Clear();
             SetGlidingState(false);
@@ -397,7 +438,7 @@ namespace VesperTwilightCourier
             }
         }
 
-        private float GetHighestUpdraftSpeed()
+        private float GetActiveUpdraftSpeed()
         {
             float maxSpeed = 0f;
             for (int i = activeUpdrafts.Count - 1; i >= 0; i--)
@@ -413,6 +454,27 @@ namespace VesperTwilightCourier
                     maxSpeed = activeUpdrafts[i].updraftSpeed;
                 }
             }
+
+            // Live OverlapBox trigger scan guarantees updraft detection even if entered mid-glide or after spawn
+            ContactFilter2D filter = new ContactFilter2D();
+            filter.useTriggers = true;
+            Vector2 bodyCenter = (Vector2)transform.position + new Vector2(0f, 0.78f);
+            int overlapCount = Physics2D.OverlapBox(bodyCenter, new Vector2(0.76f, 1.56f), 0f, filter, updraftOverlapBuffer);
+            for (int i = 0; i < overlapCount; i++)
+            {
+                Collider2D col = updraftOverlapBuffer[i];
+                if (col == null)
+                {
+                    continue;
+                }
+
+                UpdraftVent vent = col.GetComponent<UpdraftVent>();
+                if (vent != null && vent.updraftSpeed > maxSpeed)
+                {
+                    maxSpeed = vent.updraftSpeed;
+                }
+            }
+
             return maxSpeed;
         }
 

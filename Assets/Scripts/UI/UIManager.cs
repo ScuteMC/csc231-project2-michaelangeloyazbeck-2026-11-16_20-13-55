@@ -5,9 +5,9 @@ using UnityEngine.UI;
 namespace VesperTwilightCourier
 {
     /// <summary>
-    /// Manages all five UI screens (Title, HUD, Pause, Level Complete, Game Over)
-    /// along with live HUD counters, heart indicators, glide status badge, banner tips,
-    /// and volume/mute controls.
+    /// Manages all eight UI screens (Title, Story Intro Prologue, Lore Briefing, Visual Tutorial,
+    /// HUD, Pause, Level Complete Epilogue, Game Over) along with live HUD counters, mission objective,
+    /// Sanctum progress gauge, heart indicators, glide status badge, banner tips, and audio controls.
     /// </summary>
     public class UIManager : MonoBehaviour
     {
@@ -15,10 +15,21 @@ namespace VesperTwilightCourier
 
         [Header("Screen Panels")]
         public GameObject titlePanel;
+        public GameObject storyIntroPanel;
+        public GameObject lorePanel;
+        public GameObject tutorialPanel;
         public GameObject hudPanel;
         public GameObject pausePanel;
         public GameObject winPanel;
         public GameObject gameOverPanel;
+
+        [Header("Story Prologue Elements")]
+        public Image storyCardImage;
+        public Text storyStepTitleText;
+        public Text storyStepBodyText;
+        public Text storyPageIndicatorText;
+        public Text storyNextButtonText;
+        public Sprite[] storyCardSprites;
 
         [Header("HUD Elements")]
         public Image[] heartIcons;
@@ -26,6 +37,9 @@ namespace VesperTwilightCourier
         public Color emptyHeartColor = new Color(0.22f, 0.22f, 0.28f, 0.45f);
         public Text shardCounterText;
         public Text timerText;
+        public Text districtObjectiveText;
+        public Image sanctumProgressFill;
+        public Text sanctumProgressPercentText;
         public Text glideBadgeText;
         public Image glideBadgeBackground;
         public GameObject bannerContainer;
@@ -42,7 +56,16 @@ namespace VesperTwilightCourier
 
         [Header("Menu & HUD Buttons")]
         public Button startRunButton;
+        public Button titleStoryButton;
+        public Button titleTutorialButton;
         public Button titleQuitButton;
+        public Button storyNextButton;
+        public Button storyBackButton;
+        public Button storySkipButton;
+        public Button loreBackButton;
+        public Button loreStartButton;
+        public Button tutorialBackButton;
+        public Button pauseTutorialButton;
         public Button hudMuteButton;
         public Button hudPauseButton;
         public Button pauseMuteButton;
@@ -59,6 +82,21 @@ namespace VesperTwilightCourier
         private Coroutine bannerRoutine;
         private Coroutine shardPopRoutine;
         private bool syncingAudioUi;
+        private int currentStorySlide;
+
+        private static readonly string[] StorySlideTitles =
+        {
+            "I. THE FALLING ECLIPSE",
+            "II. SHATTERED LIGHT",
+            "III. THE COURIER'S OATH"
+        };
+
+        private static readonly string[] StorySlideBodies =
+        {
+            "A crimson eclipse hangs frozen over Noctis Reach, draining every district lantern toward eternal frost.\nShould darkness claim the upper spires, the canal city beneath will never see another dawn.",
+            "The high Sanctum Beacon has shattered its Memory Shards across four perilous rooftop districts.\nCorrupted Clockwork Sentinels and concealed spike grates now guard every fractured crossing.",
+            "You are Vesper, a Shadow-Stitcher Courier sworn to restore the fallen light.\nSpread your dusk-woven cloak, ride the thermal chimneys, reclaim the shards, and reignite the Beacon!"
+        };
 
         private void Awake()
         {
@@ -75,7 +113,7 @@ namespace VesperTwilightCourier
             RegisterAudioListeners();
             RegisterButtonListeners();
             SyncAudioControls();
-            if (bannerContainer != null)
+            if (bannerContainer != null && bannerRoutine == null)
             {
                 bannerContainer.SetActive(false);
             }
@@ -99,11 +137,41 @@ namespace VesperTwilightCourier
 
             BindButton(ref startRunButton, "StartRunButton", allButtons, () =>
             {
-                if (GameManager.Instance != null) GameManager.Instance.StartGame();
+                if (GameManager.Instance != null) GameManager.Instance.BeginDeliveryFromTitle();
+            });
+            BindButton(ref titleStoryButton, "TitleStoryButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.ShowLoreScreen();
+            });
+            BindButton(ref titleTutorialButton, "TitleTutorialButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.OpenTutorialFromTitle();
             });
             BindButton(ref titleQuitButton, "TitleQuitButton", allButtons, () =>
             {
                 if (GameManager.Instance != null) GameManager.Instance.QuitGame();
+            });
+            BindButton(ref storyNextButton, "StoryNextButton", allButtons, AdvanceStoryIntro);
+            BindButton(ref storyBackButton, "StoryBackButton", allButtons, PreviousStoryIntro);
+            BindButton(ref storySkipButton, "StorySkipButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.StartGame();
+            });
+            BindButton(ref loreBackButton, "LoreBackButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.CloseSubScreen();
+            });
+            BindButton(ref loreStartButton, "LoreStartButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.StartGame();
+            });
+            BindButton(ref tutorialBackButton, "TutorialBackButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.CloseSubScreen();
+            });
+            BindButton(ref pauseTutorialButton, "PauseTutorialButton", allButtons, () =>
+            {
+                if (GameManager.Instance != null) GameManager.Instance.OpenTutorialFromPause();
             });
             BindButton(ref hudMuteButton, "HudMuteButton", allButtons, OnToggleMuteClicked);
             BindButton(ref hudPauseButton, "HudPauseButton", allButtons, () =>
@@ -168,7 +236,7 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            // Avoid double-invoking if a persistent scene listener is already wired on this button
+            // Avoid double-invoking when a persistent scene listener is already wired on this button
             if (field.onClick.GetPersistentEventCount() == 0)
             {
                 field.onClick.RemoveAllListeners();
@@ -179,10 +247,114 @@ namespace VesperTwilightCourier
         public void ShowOnlyPanel(GameState state)
         {
             if (titlePanel != null) titlePanel.SetActive(state == GameState.Title);
+            if (storyIntroPanel != null) storyIntroPanel.SetActive(state == GameState.StoryIntro);
+            if (lorePanel != null) lorePanel.SetActive(state == GameState.Lore);
+            if (tutorialPanel != null) tutorialPanel.SetActive(state == GameState.Tutorial);
             if (hudPanel != null) hudPanel.SetActive(state == GameState.Playing);
             if (pausePanel != null) pausePanel.SetActive(state == GameState.Paused);
             if (winPanel != null) winPanel.SetActive(state == GameState.Victory);
             if (gameOverPanel != null) gameOverPanel.SetActive(state == GameState.GameOver);
+        }
+
+        public void OpenStoryIntro()
+        {
+            ShowOnlyPanel(GameState.StoryIntro);
+            SetStorySlide(0);
+        }
+
+        public void AdvanceStoryIntro()
+        {
+            if (currentStorySlide + 1 >= StorySlideTitles.Length)
+            {
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.StartGame();
+                }
+                return;
+            }
+
+            SetStorySlide(currentStorySlide + 1);
+        }
+
+        public void PreviousStoryIntro()
+        {
+            if (currentStorySlide > 0)
+            {
+                SetStorySlide(currentStorySlide - 1);
+            }
+        }
+
+        public void SetStorySlide(int index)
+        {
+            currentStorySlide = Mathf.Clamp(index, 0, StorySlideTitles.Length - 1);
+
+            if (storyStepTitleText != null)
+            {
+                storyStepTitleText.text = StorySlideTitles[currentStorySlide];
+            }
+
+            if (storyStepBodyText != null)
+            {
+                storyStepBodyText.text = StorySlideBodies[currentStorySlide];
+            }
+
+            if (storyPageIndicatorText != null)
+            {
+                storyPageIndicatorText.text = $"{currentStorySlide + 1} / {StorySlideTitles.Length}";
+            }
+
+            if (storyCardImage != null && storyCardSprites != null && currentStorySlide < storyCardSprites.Length && storyCardSprites[currentStorySlide] != null)
+            {
+                storyCardImage.sprite = storyCardSprites[currentStorySlide];
+            }
+
+            if (storyNextButtonText != null)
+            {
+                storyNextButtonText.text = currentStorySlide == StorySlideTitles.Length - 1
+                    ? "BEGIN DELIVERY"
+                    : "NEXT PAGE";
+            }
+
+            if (storyBackButton != null)
+            {
+                storyBackButton.interactable = currentStorySlide > 0;
+            }
+        }
+
+        public void UpdateObjective(string district, string objective)
+        {
+            if (districtObjectiveText == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(district) && !string.IsNullOrEmpty(objective))
+            {
+                districtObjectiveText.text = $"{district}\n{objective}";
+            }
+            else if (!string.IsNullOrEmpty(district))
+            {
+                districtObjectiveText.text = district;
+            }
+            else if (!string.IsNullOrEmpty(objective))
+            {
+                districtObjectiveText.text = objective;
+            }
+        }
+
+        public void UpdateSanctumProgress(float normalized)
+        {
+            float clamped = Mathf.Clamp01(normalized);
+            if (sanctumProgressFill != null)
+            {
+                RectTransform fillRt = sanctumProgressFill.rectTransform;
+                fillRt.anchorMax = new Vector2(clamped, 1f);
+            }
+
+            if (sanctumProgressPercentText != null)
+            {
+                sanctumProgressPercentText.text = $"{Mathf.RoundToInt(clamped * 100f)}%";
+            }
         }
 
         public void UpdateHealth(int current, int max)
@@ -277,8 +449,8 @@ namespace VesperTwilightCourier
             if (glideBadgeBackground != null)
             {
                 glideBadgeBackground.color = isGliding
-                    ? new Color(0.18f, 0.72f, 0.85f, 0.9f)
-                    : new Color(0.12f, 0.14f, 0.28f, 0.85f);
+                    ? new Color(0.55f, 0.96f, 1f, 0.96f)
+                    : Color.white;
             }
         }
 
@@ -315,11 +487,26 @@ namespace VesperTwilightCourier
 
             int mins = Mathf.FloorToInt(elapsedSeconds / 60f);
             int secs = Mathf.FloorToInt(elapsedSeconds % 60f);
+            string rank;
+            if (collectedShards >= 22 && deaths <= 1)
+            {
+                rank = "S  -  MASTER OF THE TWILIGHT";
+            }
+            else if (collectedShards >= 15)
+            {
+                rank = "A  -  SANCTUM VANGUARD";
+            }
+            else
+            {
+                rank = "B  -  SHADOW COURIER";
+            }
+
             winSummaryText.text =
-                $"Sanctum Beacon Reached!\n\n" +
-                $"Memory Shards: {collectedShards} / {totalShards}\n" +
-                $"Clear Time: {mins:00}:{secs:00}\n" +
-                $"Retries: {deaths}";
+                "The Sanctum Beacon blazes across Noctis Reach, shattering the Eternal Eclipse!\n" +
+                "Dawn breaks over the canal spires thanks to Vesper's delivery.\n\n" +
+                $"COURIER RANK:  {rank}\n" +
+                $"Memory Shards Restored:  {collectedShards} / {totalShards}    |    " +
+                $"Clear Time:  {mins:00}:{secs:00}    |    Retries:  {deaths}";
         }
 
         public void OnVolumeSliderChanged(float value)

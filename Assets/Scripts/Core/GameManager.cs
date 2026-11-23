@@ -9,6 +9,9 @@ namespace VesperTwilightCourier
     public enum GameState
     {
         Title,
+        StoryIntro,
+        Lore,
+        Tutorial,
         Playing,
         Paused,
         GameOver,
@@ -16,14 +19,15 @@ namespace VesperTwilightCourier
     }
 
     /// <summary>
-    /// Coordinates game states (Title, Playing, Paused, GameOver, Victory),
-    /// shard progression, checkpoints, level timer, and scene flow.
+    /// Coordinates game states (Title, StoryIntro, Lore, Tutorial, Playing, Paused, GameOver, Victory),
+    /// shard progression, Sanctum Beacon progress tracking, checkpoints, timer, and scene flow.
     /// </summary>
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; }
 
         private static bool skipTitleOnNextLoad;
+        private static bool hasSeenStoryIntroThisSession;
 
         [Header("Player References")]
         public PlayerController playerController;
@@ -31,6 +35,10 @@ namespace VesperTwilightCourier
 
         [Header("Level Progression")]
         public int totalShards = 25;
+        public float levelStartX = 2f;
+        public float levelGoalX = 222.8f;
+
+        private bool tutorialOpenedFromPause;
 
         public GameState CurrentState { get; private set; } = GameState.Title;
         public bool IsPlaying => CurrentState == GameState.Playing;
@@ -96,11 +104,17 @@ namespace VesperTwilightCourier
                 if (UIManager.Instance != null)
                 {
                     UIManager.Instance.UpdateTimer(ElapsedTime);
+                    if (playerController != null)
+                    {
+                        float progress = Mathf.InverseLerp(levelStartX, levelGoalX, playerController.transform.position.x);
+                        UIManager.Instance.UpdateSanctumProgress(progress);
+                    }
                 }
             }
 
             bool pausePressed = false;
             bool confirmPressed = false;
+            bool spacePressed = false;
             bool retryPressed = false;
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
@@ -109,6 +123,7 @@ namespace VesperTwilightCourier
                                Keyboard.current.pKey.wasPressedThisFrame;
                 confirmPressed = Keyboard.current.enterKey.wasPressedThisFrame ||
                                  Keyboard.current.numpadEnterKey.wasPressedThisFrame;
+                spacePressed = Keyboard.current.spaceKey.wasPressedThisFrame;
                 retryPressed = Keyboard.current.rKey.wasPressedThisFrame;
             }
 
@@ -121,12 +136,41 @@ namespace VesperTwilightCourier
 #elif ENABLE_LEGACY_INPUT_MANAGER
             pausePressed = Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P);
             confirmPressed = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+            spacePressed = Input.GetKeyDown(KeyCode.Space);
             retryPressed = Input.GetKeyDown(KeyCode.R);
 #endif
 
             if (CurrentState == GameState.Title && confirmPressed)
             {
-                StartGame();
+                BeginDeliveryFromTitle();
+                return;
+            }
+
+            if (CurrentState == GameState.StoryIntro)
+            {
+                if (confirmPressed || spacePressed)
+                {
+                    if (UIManager.Instance != null)
+                    {
+                        UIManager.Instance.AdvanceStoryIntro();
+                    }
+                    else
+                    {
+                        StartGame();
+                    }
+                    return;
+                }
+
+                if (pausePressed)
+                {
+                    StartGame();
+                    return;
+                }
+            }
+
+            if ((CurrentState == GameState.Lore || CurrentState == GameState.Tutorial) && pausePressed)
+            {
+                CloseSubScreen();
                 return;
             }
 
@@ -153,6 +197,7 @@ namespace VesperTwilightCourier
 
         public void ShowTitleScreen()
         {
+            tutorialOpenedFromPause = false;
             CurrentState = GameState.Title;
             Time.timeScale = 0f;
             if (UIManager.Instance != null)
@@ -162,8 +207,76 @@ namespace VesperTwilightCourier
             }
         }
 
+        public void BeginDeliveryFromTitle()
+        {
+            if (!hasSeenStoryIntroThisSession)
+            {
+                hasSeenStoryIntroThisSession = true;
+                ShowStoryIntro();
+            }
+            else
+            {
+                StartGame();
+            }
+        }
+
+        public void ShowStoryIntro()
+        {
+            CurrentState = GameState.StoryIntro;
+            Time.timeScale = 0f;
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.OpenStoryIntro();
+            }
+        }
+
+        public void ShowLoreScreen()
+        {
+            tutorialOpenedFromPause = false;
+            CurrentState = GameState.Lore;
+            Time.timeScale = 0f;
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ShowOnlyPanel(GameState.Lore);
+            }
+        }
+
+        public void OpenTutorialFromTitle() => ShowTutorialScreen(false);
+        public void OpenTutorialFromPause() => ShowTutorialScreen(true);
+
+        public void ShowTutorialScreen(bool fromPause)
+        {
+            tutorialOpenedFromPause = fromPause;
+            CurrentState = GameState.Tutorial;
+            Time.timeScale = 0f;
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ShowOnlyPanel(GameState.Tutorial);
+            }
+        }
+
+        public void CloseSubScreen()
+        {
+            if (tutorialOpenedFromPause)
+            {
+                tutorialOpenedFromPause = false;
+                CurrentState = GameState.Paused;
+                Time.timeScale = 0f;
+                if (UIManager.Instance != null)
+                {
+                    UIManager.Instance.ShowOnlyPanel(GameState.Paused);
+                    UIManager.Instance.SyncAudioControls();
+                }
+            }
+            else
+            {
+                ShowTitleScreen();
+            }
+        }
+
         public void StartGame()
         {
+            tutorialOpenedFromPause = false;
             CurrentState = GameState.Playing;
             Time.timeScale = 1f;
             if (UIManager.Instance != null)
@@ -171,11 +284,13 @@ namespace VesperTwilightCourier
                 UIManager.Instance.ShowOnlyPanel(GameState.Playing);
                 UIManager.Instance.SyncAudioControls();
                 UIManager.Instance.UpdateShards(CollectedShards, totalShards);
+                UIManager.Instance.UpdateSanctumProgress(0f);
+                UIManager.Instance.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Reclaim Memory Shards & ignite the Sanctum Beacon");
                 if (playerHealth != null)
                 {
                     UIManager.Instance.UpdateHealth(playerHealth.CurrentHealth, playerHealth.maxHealth);
                 }
-                UIManager.Instance.ShowBanner("Move: A/D or Arrows | Jump: Space/W | Reach the Sanctum Beacon!", 4.5f);
+                UIManager.Instance.ShowBanner("THE ECLIPSE DESCENDS: Cross the rooftops to reignite the Sanctum Beacon!", 4.5f);
             }
         }
 
