@@ -18,15 +18,19 @@ namespace VesperTwilightCourier
         [Header("Feedback")]
         public Color hurtFlashColor = new Color(1f, 0.35f, 0.45f, 1f);
         public ParticleSystem hurtBurstParticles;
+        public ParticleSystem aetherShieldParticles;
+        public ParticleSystem aetherHealParticles;
 
         public int CurrentHealth { get; private set; }
         public bool IsInvulnerable { get; private set; }
         public bool IsHurting { get; private set; }
         public bool IsDead { get; private set; }
+        public bool HasAetherShield { get; private set; }
 
         private SpriteRenderer spriteRenderer;
         private PlayerController playerController;
         private Coroutine invulnRoutine;
+        private Coroutine briefInvulnRoutine;
         private Color baseColor = Color.white;
 
         private void Awake()
@@ -54,6 +58,44 @@ namespace VesperTwilightCourier
 
             if (GameManager.Instance != null && !GameManager.Instance.IsPlaying)
             {
+                return;
+            }
+
+            if (HasAetherShield)
+            {
+                HasAetherShield = false;
+                if (aetherShieldParticles != null)
+                {
+                    aetherShieldParticles.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                }
+                if (aetherHealParticles != null)
+                {
+                    aetherHealParticles.Play();
+                }
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlayCollect();
+                }
+                if (CameraController.Instance != null)
+                {
+                    CameraController.Instance.TriggerShake(0.18f, 0.22f);
+                }
+
+                float shieldPushDir = transform.position.x >= sourcePosition.x ? 1f : -1f;
+                if (playerController != null)
+                {
+                    playerController.ApplyKnockback(new Vector2(shieldPushDir * 5.2f, 7.0f), 0.16f);
+                }
+
+                GrantBriefInvulnerability(0.95f);
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.RefreshAetherLightHud();
+                }
+                if (UIManager.Instance != null)
+                {
+                    UIManager.Instance.ShowBanner("AETHER SHIELD ABSORBED THE BLOW!", 2.8f);
+                }
                 return;
             }
 
@@ -148,10 +190,20 @@ namespace VesperTwilightCourier
             {
                 StopCoroutine(invulnRoutine);
             }
+            if (briefInvulnRoutine != null)
+            {
+                StopCoroutine(briefInvulnRoutine);
+                briefInvulnRoutine = null;
+            }
 
             IsDead = false;
             IsHurting = false;
             IsInvulnerable = false;
+            HasAetherShield = false;
+            if (aetherShieldParticles != null)
+            {
+                aetherShieldParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
             CurrentHealth = maxHealth;
 
             if (spriteRenderer != null)
@@ -165,6 +217,76 @@ namespace VesperTwilightCourier
             {
                 UIManager.Instance.UpdateHealth(CurrentHealth, maxHealth);
             }
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.RefreshAetherLightHud();
+            }
+        }
+
+        public bool Heal(int amount)
+        {
+            if (IsDead || CurrentHealth >= maxHealth)
+            {
+                return false;
+            }
+
+            CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + Mathf.Max(1, amount));
+            if (aetherHealParticles != null)
+            {
+                aetherHealParticles.Play();
+            }
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateHealth(CurrentHealth, maxHealth);
+            }
+            return true;
+        }
+
+        public void GrantAetherShield()
+        {
+            if (IsDead)
+            {
+                return;
+            }
+
+            HasAetherShield = true;
+            if (aetherShieldParticles != null && !aetherShieldParticles.isPlaying)
+            {
+                aetherShieldParticles.Play();
+            }
+            if (aetherHealParticles != null)
+            {
+                aetherHealParticles.Play();
+            }
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.RefreshAetherLightHud();
+            }
+        }
+
+        public void GrantBriefInvulnerability(float duration)
+        {
+            if (IsDead || invulnRoutine != null)
+            {
+                return;
+            }
+
+            if (briefInvulnRoutine != null)
+            {
+                StopCoroutine(briefInvulnRoutine);
+            }
+            briefInvulnRoutine = StartCoroutine(BriefInvulnerabilityRoutine(duration));
+        }
+
+        private IEnumerator BriefInvulnerabilityRoutine(float duration)
+        {
+            IsInvulnerable = true;
+            yield return new WaitForSeconds(duration);
+            if (invulnRoutine == null && !IsDead)
+            {
+                IsInvulnerable = false;
+            }
+            briefInvulnRoutine = null;
         }
 
         public void TeleportTo(Vector3 worldPosition)
@@ -183,9 +305,20 @@ namespace VesperTwilightCourier
 
         private void Die()
         {
+            if (briefInvulnRoutine != null)
+            {
+                StopCoroutine(briefInvulnRoutine);
+                briefInvulnRoutine = null;
+            }
+
             IsDead = true;
             IsHurting = true;
             IsInvulnerable = true;
+            HasAetherShield = false;
+            if (aetherShieldParticles != null)
+            {
+                aetherShieldParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
 
             if (spriteRenderer != null)
             {

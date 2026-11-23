@@ -891,6 +891,29 @@ public static class LevelBuilder
             a.particleMaterial, new Color(1f, 0.28f, 0.4f, 0.95f), 20, 0.16f, 0.34f, 5.6f, 180f, 12,
             enableTrails: true
         );
+        ph.aetherHealParticles = CreateOneShotBurstParticles(
+            "AetherHealParticles", playerGo.transform, new Vector3(0f, 0.9f, 0f),
+            a.particleMaterial, new Color(0.42f, 0.98f, 1f, 0.98f), 22, 0.14f, 0.30f, 4.8f, 180f, 12,
+            enableTrails: true
+        );
+        ph.aetherShieldParticles = CreateLoopingTrailParticles(
+            "AetherShieldParticles", playerGo.transform, new Vector3(0f, 0.85f, 0f),
+            a.particleMaterial, new Color(0.38f, 0.96f, 1f, 0.72f), new Color(1f, 0.90f, 0.45f, 0.68f), 11,
+            enableRibbons: false, noiseStrength: 0.75f
+        );
+        var shieldMain = ph.aetherShieldParticles.main;
+        shieldMain.playOnAwake = false;
+        shieldMain.startSize = new ParticleSystem.MinMaxCurve(0.10f, 0.22f);
+        var shieldShape = ph.aetherShieldParticles.shape;
+        shieldShape.shapeType = ParticleSystemShapeType.Circle;
+        shieldShape.radius = 0.72f;
+        ph.aetherShieldParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+        pc.aetherFlashParticles = CreateOneShotBurstParticles(
+            "AetherFlashParticles", playerGo.transform, new Vector3(0f, 0.9f, 0f),
+            a.particleMaterial, new Color(0.55f, 0.98f, 1f, 1f), 42, 0.22f, 0.52f, 11.5f, 180f, 14,
+            enableTrails: true
+        );
 
         return playerGo;
     }
@@ -928,8 +951,8 @@ public static class LevelBuilder
         CreateStreetLamp("Lamp_1D", new Vector2(49.0f, 1.2f), a, levelRoot.transform);
 
         CreateTutorialTrigger("Tut_1_Controls", new Vector2(3.5f, 1.5f), new Vector2(4f, 4f),
-            "COURTYARD OF WHISPERS: Gather Memory Shards! Move: A/D or Arrows | Jump: SPACE or W",
-            "DISTRICT I: COURTYARD OF WHISPERS", "Reclaim Memory Shards & cross to Gale-Draft Aqueduct",
+            "SHARDS FUEL YOUR LIGHT: Every 5 Shards Heals/Shields, 5/12/18 Upgrade Cloak, & 4 Charge [E/F] Aether Flash!",
+            "DISTRICT I: COURTYARD OF WHISPERS", "Gather Shards for Light powers & reach Gale-Draft Aqueduct",
             levelRoot.transform);
         CreateTutorialTrigger("Tut_2_Glide", new Vector2(28.5f, 4.5f), new Vector2(4f, 4f),
             "SHADOW-CLOAK GLIDE: Hold SPACE or SHIFT in mid-air to glide across the chasm!",
@@ -1976,9 +1999,9 @@ public static class LevelBuilder
         anim.runtimeAnimatorController = a.bossAnimator;
 
         BoxCollider2D col = go.AddComponent<BoxCollider2D>();
-        col.isTrigger = false;
-        col.offset = new Vector2(0f, 1.18f);
-        col.size = new Vector2(1.55f, 2.35f);
+        col.isTrigger = true;
+        col.offset = new Vector2(0f, 1.15f);
+        col.size = new Vector2(1.55f, 2.30f);
 
         Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Kinematic;
@@ -2456,8 +2479,8 @@ public static class LevelBuilder
             new Vector2(0f, -78f), a.sentinelFrames[0], new Vector2(74f, 74f),
             "CLOCKWORK SENTINELS", "STOMP TOP", "Land on top of patrolling drones to stomp-bounce over gaps!", goldTrim);
         CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Goal",
-            new Vector2(325f, -78f), a.goalBeaconFrames[0], new Vector2(74f, 74f),
-            "SHARDS & BEACON", "SAVE NOCTIS", "Gather Memory Shards, light Lanterns, and ignite the Beacon!", goldTrim);
+            new Vector2(325f, -78f), a.shardFrames[0], new Vector2(74f, 74f),
+            "AETHER SHARDS & LIGHT", "[E / F] FLASH", "5/12/18 Tiers power Cloak & Boss Dmg; per 5 Heal/Shield; per 4 charge Flash!", goldTrim);
 
         Button tutBackBtn = CreateOrnateButton("TutorialBackButton", tutModal.transform, a.uiBtnSecondary, uiFont,
             "BACK", new Vector2(0f, -236f), new Vector2(240f, 50f), 18, warmWhite);
@@ -2609,6 +2632,25 @@ public static class LevelBuilder
         pauseBtnRt.anchoredPosition = new Vector2(-58f, 0f);
         uiMgr.hudPauseButton = pauseBtn;
         UnityEventTools.AddPersistentListener(pauseBtn.onClick, gm.TogglePause);
+
+        // Aether Light Resonance badge directly above Glide badge at bottom-left
+        GameObject lightBadgeGo = new GameObject("AetherLightBadge");
+        lightBadgeGo.transform.SetParent(hudPanel.transform, false);
+        Image lightBadgeImg = lightBadgeGo.AddComponent<Image>();
+        lightBadgeImg.sprite = a.uiHudBar;
+        lightBadgeImg.type = Image.Type.Sliced;
+        lightBadgeImg.color = Color.white;
+        lightBadgeImg.raycastTarget = false;
+        RectTransform lightBadgeRt = lightBadgeGo.GetComponent<RectTransform>();
+        lightBadgeRt.anchorMin = new Vector2(0f, 0f);
+        lightBadgeRt.anchorMax = new Vector2(0f, 0f);
+        lightBadgeRt.anchoredPosition = new Vector2(150f, 88f);
+        lightBadgeRt.sizeDelta = new Vector2(268f, 42f);
+        uiMgr.aetherLightBadgeBackground = lightBadgeImg;
+
+        uiMgr.aetherLightBadgeText = CreateText("AetherLightBadgeText", lightBadgeGo.transform, uiFont,
+            "LIGHT [○○○] E/F | NEED SHARDS", 12, FontStyle.Bold,
+            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(252f, 32f));
 
         // Glide badge at bottom-left
         GameObject badgeGo = new GameObject("GlideStatusBadge");
@@ -3135,11 +3177,12 @@ public static class LevelBuilder
         if (uiMgr != null)
         {
             uiMgr.ShowOnlyPanel(GameState.Playing);
-            uiMgr.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Reclaim Memory Shards & cross to Gale-Draft Aqueduct");
+            uiMgr.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Gather Shards for Light powers & reach Gale-Draft Aqueduct");
             uiMgr.UpdateSanctumProgress(0.05f);
+            uiMgr.UpdateAetherLightHud(0, 3, 0, false);
             if (uiMgr.bannerContainer != null && uiMgr.bannerText != null)
             {
-                uiMgr.bannerText.text = "COURTYARD OF WHISPERS: Gather Memory Shards! Move: A/D or Arrows | Jump: SPACE or W";
+                uiMgr.bannerText.text = "SHARDS FUEL YOUR LIGHT: Every 5 Shards Heals/Shields, 5/12/18 Upgrade Cloak, & 4 Charge [E/F] Aether Flash!";
                 uiMgr.bannerContainer.SetActive(true);
             }
             uiMgr.UpdateShards(2, 25);
@@ -3218,6 +3261,7 @@ public static class LevelBuilder
             uiMgr.UpdateShards(25, 25);
             uiMgr.UpdateObjective("DISTRICT IV: TWILIGHT SANCTUM", "Defeat Malakor to unseal the Sanctum Beacon!");
             uiMgr.UpdateSanctumProgress(0.96f);
+            uiMgr.UpdateAetherLightHud(3, 3, 3, true);
             uiMgr.UpdateBossHud(true, 3, 3, "ARMORED PATROL — BAIT HALBERD SLAM");
         }
         if (zone4Trap != null)
@@ -3350,6 +3394,7 @@ public static class LevelBuilder
         {
             uiMgr.UpdateShards(0, 25);
             uiMgr.UpdateSanctumProgress(0f);
+            uiMgr.UpdateAetherLightHud(0, 3, 0, false);
             uiMgr.ShowOnlyPanel(GameState.Title);
             if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
         }
@@ -3401,7 +3446,23 @@ public static class LevelBuilder
         tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
         tex.Apply();
 
-        File.WriteAllBytes(outputPath, tex.EncodeToPNG());
+        byte[] pngBytes = tex.EncodeToPNG();
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                if (File.Exists(outputPath))
+                {
+                    File.Delete(outputPath);
+                }
+                File.WriteAllBytes(outputPath, pngBytes);
+                break;
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                System.Threading.Thread.Sleep(150);
+            }
+        }
 
         cam.targetTexture = null;
         RenderTexture.active = prev;

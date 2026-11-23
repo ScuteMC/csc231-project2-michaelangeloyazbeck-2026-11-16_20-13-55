@@ -42,6 +42,8 @@ namespace VesperTwilightCourier
         public Text sanctumProgressPercentText;
         public Text glideBadgeText;
         public Image glideBadgeBackground;
+        public Text aetherLightBadgeText;
+        public Image aetherLightBadgeBackground;
         public GameObject bannerContainer;
         public Text bannerText;
 
@@ -457,6 +459,37 @@ namespace VesperTwilightCourier
                 glideBadgeBackground.color = isGliding
                     ? new Color(0.55f, 0.96f, 1f, 0.96f)
                     : Color.white;
+            }
+        }
+
+        public void UpdateAetherLightHud(int charges, int maxCharges, int lightTier, bool hasShield)
+        {
+            if (aetherLightBadgeText != null)
+            {
+                string pips = string.Empty;
+                for (int i = 0; i < maxCharges; i++)
+                {
+                    pips += i < charges ? "●" : "○";
+                }
+
+                string tierStr = lightTier switch
+                {
+                    >= 3 => "T3 2x BOSS",
+                    2 => "T2 GLIDE+",
+                    1 => "T1 SPEED+",
+                    _ => "NEED SHARDS"
+                };
+                string shieldSuffix = hasShield ? " | SHIELD" : string.Empty;
+                aetherLightBadgeText.text = $"LIGHT [{pips}] E/F | {tierStr}{shieldSuffix}";
+            }
+
+            if (aetherLightBadgeBackground != null)
+            {
+                aetherLightBadgeBackground.color = hasShield
+                    ? new Color(0.56f, 0.95f, 1f, 0.96f)
+                    : charges > 0
+                        ? new Color(0.95f, 0.88f, 0.62f, 0.96f)
+                        : Color.white;
             }
         }
 

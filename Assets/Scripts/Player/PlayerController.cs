@@ -38,6 +38,7 @@ namespace VesperTwilightCourier
         public ParticleSystem jumpDustParticles;
         public ParticleSystem landingDustParticles;
         public ParticleSystem glideTrailParticles;
+        public ParticleSystem aetherFlashParticles;
 
         public float FacingDirection { get; private set; } = 1f;
         public bool IsGrounded => isGrounded;
@@ -48,12 +49,15 @@ namespace VesperTwilightCourier
         private SpriteRenderer spriteRenderer;
         private PlayerHealth playerHealth;
         private float baseGravityScale = 3.2f;
+        private float baseMoveSpeed = 8.5f;
+        private float updraftLiftMultiplier = 1f;
 
         private float horizontalInput;
         private bool jumpPressedThisFrame;
         private bool jumpHeld;
         private bool glideButtonHeld;
         private bool jumpHoldEligibleForGlide;
+        private bool aetherFlashPressedThisFrame;
 
         private bool isGrounded;
         private bool wasGrounded;
@@ -84,6 +88,7 @@ namespace VesperTwilightCourier
             spriteRenderer = GetComponent<SpriteRenderer>();
             playerHealth = GetComponent<PlayerHealth>();
             baseGravityScale = rb != null && rb.gravityScale > 0.01f ? rb.gravityScale : 3.2f;
+            baseMoveSpeed = moveSpeed;
         }
 
         private void Start()
@@ -115,6 +120,10 @@ namespace VesperTwilightCourier
             }
 
             ReadInput();
+            if (aetherFlashPressedThisFrame)
+            {
+                TriggerAetherFlash();
+            }
             UpdateTimers();
             HandleSpriteFacing();
             HandleFootstepDust();
@@ -185,15 +194,16 @@ namespace VesperTwilightCourier
             bool isUpdraftLifting = isGliding && inUpdraft;
             if (isUpdraftLifting)
             {
+                float boostedUpdraftSpeed = currentUpdraftSpeed * updraftLiftMultiplier;
                 // Suspend gravity inside thermal updraft columns so glide lift is never cancelled by gravityScale
                 rb.gravityScale = 0f;
                 if (nextVelY < 2.8f)
                 {
-                    nextVelY = Mathf.MoveTowards(nextVelY, Mathf.Max(2.8f, currentUpdraftSpeed), updraftAcceleration * 2.2f * Time.fixedDeltaTime);
+                    nextVelY = Mathf.MoveTowards(nextVelY, Mathf.Max(2.8f, boostedUpdraftSpeed), updraftAcceleration * 2.2f * Time.fixedDeltaTime);
                 }
                 else
                 {
-                    nextVelY = Mathf.MoveTowards(nextVelY, currentUpdraftSpeed, updraftAcceleration * Time.fixedDeltaTime);
+                    nextVelY = Mathf.MoveTowards(nextVelY, boostedUpdraftSpeed, updraftAcceleration * Time.fixedDeltaTime);
                 }
 
                 if (!wasInUpdraftLift)
@@ -234,6 +244,7 @@ namespace VesperTwilightCourier
             bool jumpDown = false;
             bool jumpCurrentlyHeld = false;
             bool glideShiftHeld = false;
+            bool flashDown = false;
 
 #if ENABLE_INPUT_SYSTEM
             Keyboard kb = Keyboard.current;
@@ -245,6 +256,13 @@ namespace VesperTwilightCourier
                 jumpDown = kb.spaceKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame;
                 jumpCurrentlyHeld = kb.spaceKey.isPressed || kb.wKey.isPressed || kb.upArrowKey.isPressed;
                 glideShiftHeld = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+                flashDown = kb.eKey.wasPressedThisFrame || kb.fKey.wasPressedThisFrame;
+            }
+
+            Mouse mouse = Mouse.current;
+            if (mouse != null)
+            {
+                flashDown |= mouse.rightButton.wasPressedThisFrame;
             }
 
             Gamepad gp = Gamepad.current;
@@ -258,18 +276,21 @@ namespace VesperTwilightCourier
                 jumpDown |= gp.buttonSouth.wasPressedThisFrame;
                 jumpCurrentlyHeld |= gp.buttonSouth.isPressed;
                 glideShiftHeld |= gp.rightTrigger.isPressed || gp.rightShoulder.isPressed;
+                flashDown |= gp.buttonWest.wasPressedThisFrame;
             }
 #elif ENABLE_LEGACY_INPUT_MANAGER
             moveX = Input.GetAxisRaw("Horizontal");
             jumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
             jumpCurrentlyHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
             glideShiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            flashDown = Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F) || Input.GetMouseButtonDown(1);
 #endif
 
             horizontalInput = Mathf.Clamp(moveX, -1f, 1f);
             jumpPressedThisFrame = jumpDown;
             jumpHeld = jumpCurrentlyHeld;
             glideButtonHeld = glideShiftHeld;
+            aetherFlashPressedThisFrame = flashDown;
 
             if (jumpPressedThisFrame)
             {
@@ -403,6 +424,71 @@ namespace VesperTwilightCourier
             transform.localScale = Vector3.one;
             activeUpdrafts.Clear();
             SetGlidingState(false);
+        }
+
+        public void ApplyLightTier(int tier)
+        {
+            moveSpeed = tier >= 1 ? baseMoveSpeed * 1.12f : baseMoveSpeed;
+            if (tier >= 2)
+            {
+                glideFallSpeed = -1.55f;
+                updraftLiftMultiplier = 1.20f;
+            }
+            else
+            {
+                glideFallSpeed = -2.2f;
+                updraftLiftMultiplier = 1f;
+            }
+        }
+
+        private void TriggerAetherFlash()
+        {
+            if (GameManager.Instance == null || !GameManager.Instance.TryConsumeAetherFlashCharge())
+            {
+                return;
+            }
+
+            if (aetherFlashParticles != null)
+            {
+                aetherFlashParticles.Play();
+            }
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayCollect();
+            }
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.TriggerShake(0.18f, 0.22f);
+            }
+
+            Vector2 origin = transform.position;
+            PatrolEnemy[] sentinels = Object.FindObjectsByType<PatrolEnemy>(FindObjectsSortMode.None);
+            for (int i = 0; i < sentinels.Length; i++)
+            {
+                if (sentinels[i] != null && sentinels[i].gameObject.activeInHierarchy &&
+                    Vector2.Distance(origin, sentinels[i].transform.position) <= 6.5f)
+                {
+                    sentinels[i].DefeatByAetherFlash();
+                }
+            }
+
+            BossShockwave[] waves = Object.FindObjectsByType<BossShockwave>(FindObjectsSortMode.None);
+            for (int i = 0; i < waves.Length; i++)
+            {
+                if (waves[i] != null && Vector2.Distance(origin, waves[i].transform.position) <= 9.0f)
+                {
+                    Destroy(waves[i].gameObject);
+                }
+            }
+
+            FinalBossAI boss = Object.FindFirstObjectByType<FinalBossAI>();
+            if (boss != null && Vector2.Distance(origin, boss.transform.position) <= 8.0f && boss.ForceStunFromAetherFlash())
+            {
+                if (UIManager.Instance != null)
+                {
+                    UIManager.Instance.ShowBanner("AETHER FLASH! Malakor's guard is shattered — STOMP HIS CROWN!", 3.5f);
+                }
+            }
         }
 
         private void HandleFootstepDust()

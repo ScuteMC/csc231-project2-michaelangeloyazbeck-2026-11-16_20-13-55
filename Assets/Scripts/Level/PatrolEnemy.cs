@@ -134,5 +134,24 @@ namespace VesperTwilightCourier
 
             gameObject.SetActive(false);
         }
+
+        public void DefeatByAetherFlash()
+        {
+            if (defeated)
+            {
+                return;
+            }
+
+            defeated = true;
+            if (defeatParticles != null)
+            {
+                defeatParticles.transform.SetParent(null, true);
+                defeatParticles.transform.position = transform.position;
+                defeatParticles.Play();
+                Destroy(defeatParticles.gameObject, 2.0f);
+            }
+
+            gameObject.SetActive(false);
+        }
     }
 }

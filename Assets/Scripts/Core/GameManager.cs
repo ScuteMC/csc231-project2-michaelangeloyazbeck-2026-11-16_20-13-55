@@ -43,9 +43,14 @@ namespace VesperTwilightCourier
 
         private bool tutorialOpenedFromPause;
 
+        public const int MaxAetherFlashCharges = 3;
+
         public GameState CurrentState { get; private set; } = GameState.Title;
         public bool IsPlaying => CurrentState == GameState.Playing;
         public int CollectedShards { get; private set; }
+        public int AetherFlashCharges { get; private set; }
+        public int LightTier { get; private set; }
+        public bool HasCrownBreakerPower => CollectedShards >= 18;
         public float ElapsedTime { get; private set; }
         public int DeathsCount { get; private set; }
         public int HighestCheckpointIndex { get; private set; }
@@ -287,6 +292,10 @@ namespace VesperTwilightCourier
             tutorialOpenedFromPause = false;
             CurrentState = GameState.Playing;
             Time.timeScale = 1f;
+            if (playerController != null)
+            {
+                playerController.ApplyLightTier(LightTier);
+            }
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.ShowOnlyPanel(GameState.Playing);
@@ -295,11 +304,12 @@ namespace VesperTwilightCourier
                 UIManager.Instance.UpdateSanctumProgress(0f);
                 UIManager.Instance.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Reclaim Memory Shards & ignite the Sanctum Beacon");
                 UIManager.Instance.UpdateBossHud(false, 0, 3, string.Empty);
+                RefreshAetherLightHud();
                 if (playerHealth != null)
                 {
                     UIManager.Instance.UpdateHealth(playerHealth.CurrentHealth, playerHealth.maxHealth);
                 }
-                UIManager.Instance.ShowBanner("THE ECLIPSE DESCENDS: Cross the rooftops to reignite the Sanctum Beacon!", 4.5f);
+                UIManager.Instance.ShowBanner("Collect Shards to Heal/Shield (every 5), Upgrade Cloak (5/12/18), and Charge [E/F] Aether Flash (every 4)!", 5.0f);
             }
         }
 
@@ -335,10 +345,81 @@ namespace VesperTwilightCourier
         public void CollectShard()
         {
             CollectedShards++;
+            string specialBanner = null;
+
+            // Every 4 Memory Shards grants +1 [E/F] Aether Flash charge (up to 3)
+            if (CollectedShards % 4 == 0 && AetherFlashCharges < MaxAetherFlashCharges)
+            {
+                AetherFlashCharges++;
+                specialBanner = $"AETHER FLASH CHARGED ({AetherFlashCharges}/{MaxAetherFlashCharges})! Press [E/F] to shatter Sentinels or STUN Malakor!";
+            }
+
+            // Tier upgrades at 5, 12, 18 Shards
+            int newTier = CollectedShards >= 18 ? 3 : CollectedShards >= 12 ? 2 : CollectedShards >= 5 ? 1 : 0;
+            bool tierJustUpgraded = newTier > LightTier;
+            LightTier = newTier;
+            if (playerController != null)
+            {
+                playerController.ApplyLightTier(LightTier);
+            }
+
+            // Every 5 Shards restores +1 Heart (or activates an Aether Shield if at full Hearts!)
+            if (CollectedShards % 5 == 0 && playerHealth != null)
+            {
+                if (playerHealth.Heal(1))
+                {
+                    specialBanner = $"AETHER SURGE ({CollectedShards} Shards): +1 Heart Restored!";
+                }
+                else
+                {
+                    playerHealth.GrantAetherShield();
+                    specialBanner = $"AETHER SURGE ({CollectedShards} Shards): Aether Light Shield Activated!";
+                }
+            }
+
+            if (tierJustUpgraded)
+            {
+                specialBanner = LightTier switch
+                {
+                    1 => "LIGHT TIER I — DAWN STRIDE: +12% Speed! (+1 Aether Surge)",
+                    2 => "LIGHT TIER II — GALE-WOVEN CLOAK: Enhanced Glide & +20% Updraft Lift!",
+                    3 => "LIGHT TIER III — CROWN-BREAKER: Aerial Stomps deal DOUBLE damage to Malakor!",
+                    _ => specialBanner
+                };
+            }
+
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.UpdateShards(CollectedShards, totalShards);
+                if (!string.IsNullOrEmpty(specialBanner))
+                {
+                    UIManager.Instance.ShowBanner(specialBanner, 4.2f);
+                }
             }
+            RefreshAetherLightHud();
+        }
+
+        public bool TryConsumeAetherFlashCharge()
+        {
+            if (AetherFlashCharges <= 0)
+            {
+                return false;
+            }
+
+            AetherFlashCharges--;
+            RefreshAetherLightHud();
+            return true;
+        }
+
+        public void RefreshAetherLightHud()
+        {
+            if (UIManager.Instance == null)
+            {
+                return;
+            }
+
+            bool hasShield = playerHealth != null && playerHealth.HasAetherShield;
+            UIManager.Instance.UpdateAetherLightHud(AetherFlashCharges, MaxAetherFlashCharges, LightTier, hasShield);
         }
 
         public void ActivateCheckpoint(int index, Vector3 respawnPos, string checkpointName)

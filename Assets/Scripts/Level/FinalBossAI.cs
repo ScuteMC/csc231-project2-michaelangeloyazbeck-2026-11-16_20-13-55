@@ -36,7 +36,7 @@ namespace VesperTwilightCourier
         public float windupDuration = 0.62f;
         public float attackTotalDuration = 1.05f;
         public float stunDuration = 3.25f;
-        public float stompBounceSpeed = 13.8f;
+        public float stompBounceSpeed = 14.2f;
         public float armorDeflectBounceSpeed = 10.2f;
 
         [Header("References")]
@@ -63,6 +63,7 @@ namespace VesperTwilightCourier
         private float stateTimer;
         private float attackCooldownTimer = 0.65f;
         private float armorWarningCooldown;
+        private float postStompSafeTimer;
         private float hitFlashTimer;
         private bool slamExecuted;
         private bool arenaEngaged;
@@ -119,6 +120,11 @@ namespace VesperTwilightCourier
             if (armorWarningCooldown > 0f)
             {
                 armorWarningCooldown -= Time.deltaTime;
+            }
+
+            if (postStompSafeTimer > 0f)
+            {
+                postStompSafeTimer -= Time.deltaTime;
             }
 
             if (GameManager.Instance != null && !GameManager.Instance.IsPlaying)
@@ -313,19 +319,19 @@ namespace VesperTwilightCourier
             }
         }
 
-        private void OnCollisionEnter2D(Collision2D collision)
+        private void OnTriggerEnter2D(Collider2D other)
         {
-            HandlePlayerContact(collision.collider);
+            HandlePlayerContact(other);
         }
 
-        private void OnCollisionStay2D(Collision2D collision)
+        private void OnTriggerStay2D(Collider2D other)
         {
-            HandlePlayerContact(collision.collider);
+            HandlePlayerContact(other);
         }
 
         private void HandlePlayerContact(Collider2D other)
         {
-            if (defeated || other == null || !other.CompareTag("Player"))
+            if (defeated || postStompSafeTimer > 0f || other == null || !other.CompareTag("Player"))
             {
                 return;
             }
@@ -339,21 +345,29 @@ namespace VesperTwilightCourier
             Rigidbody2D playerRb = other.attachedRigidbody;
             PlayerHealth health = other.GetComponent<PlayerHealth>();
 
-            bool comingFromAbove = playerRb != null && playerRb.linearVelocity.y <= 0.2f &&
-                                   other.bounds.min.y >= transform.position.y + 1.05f;
-
             if (currentState == BossState.Stunned)
             {
-                if (comingFromAbove)
+                // Stunned: generous stomp onto his lowered body/exposed Aether Crown; never deal contact damage here!
+                bool stunnedStomp = playerRb != null && playerRb.linearVelocity.y <= 1.2f &&
+                                    other.bounds.min.y >= transform.position.y + 0.70f;
+                if (stunnedStomp)
                 {
-                    StompCrown(player);
+                    StompCrown(player, health);
                 }
                 return;
             }
 
-            // Wandering or Attacking: top landing deflects off Malakor's armored greathelm harmlessly!
+            // Wandering or Attacking: landing atop Malakor's armored helm bounces Vesper harmlessly
+            bool comingFromAbove = playerRb != null && playerRb.linearVelocity.y <= 0.8f &&
+                                   other.bounds.min.y >= transform.position.y + 1.15f;
             if (comingFromAbove && player != null)
             {
+                postStompSafeTimer = 0.55f;
+                if (health != null)
+                {
+                    health.GrantBriefInvulnerability(0.45f);
+                }
+
                 player.Bounce(armorDeflectBounceSpeed);
                 if (hitSparkParticles != null)
                 {
@@ -383,14 +397,21 @@ namespace VesperTwilightCourier
             }
         }
 
-        private void StompCrown(PlayerController player)
+        private void StompCrown(PlayerController player, PlayerHealth health)
         {
+            postStompSafeTimer = 0.75f;
+            if (health != null)
+            {
+                health.GrantBriefInvulnerability(0.65f);
+            }
+
             if (player != null)
             {
                 player.Bounce(stompBounceSpeed);
             }
 
-            currentHealth = Mathf.Max(0, currentHealth - 1);
+            int stompDamage = (GameManager.Instance != null && GameManager.Instance.HasCrownBreakerPower) ? 2 : 1;
+            currentHealth = Mathf.Max(0, currentHealth - stompDamage);
             hitFlashTimer = 0.25f;
 
             if (hitSparkParticles != null)
@@ -421,8 +442,27 @@ namespace VesperTwilightCourier
 
             if (UIManager.Instance != null)
             {
-                UIManager.Instance.ShowBanner($"AETHER CROWN STRUCK! Malakor has {currentHealth} core charge(s) left!", 3.2f);
+                string prefix = stompDamage > 1 ? "CROWN-BREAKER CRIT!" : "AETHER CROWN STRUCK!";
+                UIManager.Instance.ShowBanner($"{prefix} Malakor has {currentHealth} core charge(s) left!", 3.2f);
             }
+        }
+
+        public bool ForceStunFromAetherFlash()
+        {
+            if (defeated || currentState == BossState.Stunned)
+            {
+                return false;
+            }
+
+            ClearAllShockwaves();
+            if (hitSparkParticles != null)
+            {
+                hitSparkParticles.transform.position = transform.position + new Vector3(0f, 1.8f, 0f);
+                hitSparkParticles.Play();
+            }
+
+            SetState(BossState.Stunned);
+            return true;
         }
 
         private void DefeatBoss()
@@ -477,6 +517,7 @@ namespace VesperTwilightCourier
             hitFlashTimer = 0f;
             attackCooldownTimer = 0.7f;
             armorWarningCooldown = 0f;
+            postStompSafeTimer = 0f;
             facingDirection = -1f;
             transform.position = spawnPosition;
             ApplyFacingScale();

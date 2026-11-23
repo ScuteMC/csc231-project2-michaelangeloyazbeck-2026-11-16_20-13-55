@@ -10,7 +10,14 @@ A 2D atmospheric platformer built in **Unity 6000.5.1f1** (URP 2D, Unity Input S
 
 **Vesper's Oath**: As **Vesper**, youngest of the **Shadow-Stitcher Couriers**, you wear a dusk-woven cloak trimmed with luminescent threads. Your cause is clear: traverse all four rooftop districts, reclaim the scattered Memory Shards, outsmart the corrupted Clockwork Sentinels and floor ambush traps, defeat **Malakor, The Eclipse Warden** at the Sanctum Summit, and reignite the **Sanctum Beacon** to bring dawn back to Noctis Reach.
 
-- **Signature Move — Shadow-Cloak Glide**: Holding **Space** (after jump apex) or **Shift** in mid-air unfurls Vesper's shadow-stitched cloak to slow her descent (`-2.2 u/s`), boost horizontal air control (`1.2x`), trail glowing shadow ribbons, and soar up **Thermal Vent Updrafts** even if you enter them mid-glide!
+- **Signature Move — Shadow-Cloak Glide**: Holding **Space** (after jump apex) or **Shift** in mid-air unfurls Vesper's shadow-stitched cloak to slow her descent (`-2.2 u/s`, upgraded to `-1.55 u/s` at Tier II), boost horizontal air control (`1.2x`), trail glowing shadow ribbons, and soar up **Thermal Vent Updrafts** even if you enter them mid-glide!
+- **Aether Light Resonance (Meaningful Memory Shards)**: Every Memory Shard collected actively empowers Vesper:
+  - **Every 4 Shards**: Restores `+1` **Aether Flash** charge (`[E]` / `[F]` / Right-Click / Gamepad West, max `3`), unleashing a radial light burst that destroys nearby Sentinels, vaporizes Boss Shockwaves, and **force-stuns Malakor** directly!
+  - **Every 5 Shards**: Restores `+1 Heart` (or wraps Vesper in a glowing **Aether Light Shield** that absorbs one hit if already at full Hearts).
+  - **Light Tiers (5 / 12 / 18 Shards)**:
+    - *Tier I (`5`)* — **Dawn Stride** (`+12%` movement speed)
+    - *Tier II (`12`)* — **Gale-Woven Cloak** (`-1.55 u/s` slower descent & `+20%` Thermal Updraft lift)
+    - *Tier III (`18`)* — **Solar Crown-Breaker** (aerial stomps deal **double damage (`2`)** to Malakor's exposed Crown!)
 - **Multi-Keyframe Animations (Unity `AnimationClip`s + `AnimatorController`s)**:
   - **Vesper (`VesperAnimator.controller`)**: `Idle` (`6` frames), **Articulated `Run` (`8` frames: Contact -> Down -> Passing -> Drive/Apex for both left & right strides)**, `Jump` (`4` frames), `Fall` (`4` frames), `Glide` (`4` frames), and `Hurt` (`4` frames).
   - **Final Boss (`BossWardenAnimator.controller`)**: `Wandering` (`4` frames heavy armored patrol), `Attacking` (`4` frames overhead **Eclipse Halberd** wind-up, crimson crescent lunge, and stone impact slam), and `Stunned` (`4` frames kneeling exhaustion with exposed glowing cyan-gold **Aether Crown Core** and orbiting stun stars).
@@ -37,7 +44,8 @@ At the summit of District IV, **Malakor, The Eclipse Warden** — a towering Bra
 | **Move Left / Right** | `A` / `D` or `Left` / `Right` Arrow | Left Stick |
 | **Jump** | `Space`, `W`, or `Up` Arrow (variable height) | South Button (`A` / Cross) |
 | **Shadow-Cloak Glide** | Hold `Space` (after apex) or `Left/Right Shift` in air | Hold South Button or Right Trigger/Shoulder |
-| **Stomp Sentinel Drone** | Land on top of a patrolling drone | Land on top of a patrolling drone |
+| **Aether Flash Pulse** | `E`, `F`, or Right-Click (costs 1 charge; earned per 4 Shards) | West Button (`X` / Square) |
+| **Stomp Sentinel / Boss Crown** | Land on top of drones or Malakor's exposed Cyan Crown | Land on top of drones or Malakor's Crown |
 | **Pause / Menu Shortcuts** | `Esc` or `P` (Pause/Back), `Enter` (Confirm), `R` (Retry) | HUD Pause Button / Start |
 | **Audio Volume & Mute** | HUD top-right slider & Mute button, or Pause menu | — |
 
@@ -60,8 +68,8 @@ Level 1 (**Noctis Reach Rooftops**, ~244 world units across) is engineered with 
   - **Main Menu (`TitlePanel`)**: Live twilight courtyard backdrop, crescent-moon crest, Story Hook, `BEGIN DELIVERY`, `STORY & MISSION`, `HOW TO PLAY`, and `QUIT`.
   - **Interactive 3-Card Story Prologue (`StoryIntroPanel`)**: Illustrated cards (*I. The Falling Eclipse*, *II. Shattered Light*, *III. The Courier's Oath*) introducing Vesper's cause before entering District I.
   - **Story & Mission Briefing (`LorePanel`)**: Full world lore, backstory, and district roadmap accessible anytime from the Title Screen.
-  - **Visual Field Guide (`TutorialPanel`)**: Dedicated 6-card sprite-and-keycap tutorial grid (*Move & Jump*, *Shadow-Cloak Glide*, *Thermal Updrafts*, *Ambush Spike Grates*, *Clockwork Sentinels*, *Shards & Beacon*) accessible from Main Menu and Pause Menu.
-  - **In-Game HUD (`HUDPanel`)**: Top-left Stats Plaque (3 Hearts, Memory Shard counter with pop feedback, Timer), Top-center **District Objective + Sanctum Progress Bar (%)** plus the live **Boss Health & State Plaque** (`BossHudPlaque` shifting color across Patrol, Slam Warning, and Stunned Stomp Window), Top-right Audio Volume Slider + Mute + Pause buttons, Bottom-left Cloak status badge, and Bottom-center Whisper/Tutorial Banner.
+  - **Visual Field Guide (`TutorialPanel`)**: Dedicated 6-card sprite-and-keycap tutorial grid (*Move & Jump*, *Shadow-Cloak Glide*, *Thermal Updrafts*, *Ambush Spike Grates*, *Clockwork Sentinels*, *Aether Shards & Light*) accessible from Main Menu and Pause Menu.
+  - **In-Game HUD (`HUDPanel`)**: Top-left Stats Plaque (3 Hearts, Memory Shard counter with pop feedback, Timer), Top-center **District Objective + Sanctum Progress Bar (%)** plus the live **Boss Health & State Plaque** (`BossHudPlaque` shifting color across Patrol, Slam Warning, and Stunned Stomp Window), Top-right Audio Volume Slider + Mute + Pause buttons, Bottom-left **Aether Light Resonance (`[●○○] E/F | Tier | Shield`)** & **Cloak Status** badges, and Bottom-center Whisper/Tutorial Banner.
   - **Pause (`PausePanel`)**, **Dawn Restored Victory (`WinPanel` with S/A/B Courier Rank & epilogue)**, and **Game Over (`GameOverPanel`)**.
 - **Upgraded Unity Particle Systems**: Uses `TrailsModule`, `NoiseModule`, `VelocityOverLifetimeModule`, `RotationOverLifetimeModule`, `ColorOverLifetimeModule`, and `SizeOverLifetimeModule` across Glide shadow ribbons, swirling Updraft thermal columns, crackling spike-trap telegraph sparks, Canal Mist & dynamic Water Splashes, tumbling crumbling stone rubble, sentinel exhaust & stomp sparks, shard shimmer & pickup bursts, checkpoint ember flames, and Sanctum Beacon victory fireworks.
 
@@ -101,16 +109,16 @@ Level 1 (**Noctis Reach Rooftops**, ~244 world units across) is engineered with 
 
 ## Code Walkthrough (Study Reference for Check-Ins)
 
-- `Assets/Scripts/Player/PlayerController.cs`: Unity `InputSystem` controls with Legacy fallback, coyote time (`0.12s`), jump buffer (`0.12s`), variable jump cut (`0.5x`), Shadow-Cloak Glide clamp (`-2.2f`), gravity-suspended Thermal Updraft soaring with live `Physics2D.OverlapBox` + `OnTriggerStay2D` detection so updrafts always engage cleanly even if entered mid-glide, animator parameter sync, squash/stretch, footstep dust, and movement particles.
+- `Assets/Scripts/Player/PlayerController.cs` & `PlayerHealth.cs`: Unity `InputSystem` controls with Legacy fallback, coyote time (`0.12s`), jump buffer (`0.12s`), variable jump cut (`0.5x`), Shadow-Cloak Glide, gravity-suspended Thermal Updraft soaring (`+20%` at Light Tier II), `[E/F]` Aether Flash radial pulse, Aether Light Shield absorption, and silent `GrantBriefInvulnerability` post-stomp protection.
 - `Assets/Scripts/Level/UpdraftVent.cs`: Rising twilight wind vent supporting `OnTriggerEnter2D`, `OnTriggerStay2D`, and `OnTriggerExit2D`.
 - `Assets/Scripts/Level/PopUpSpikes.cs`: Ground-embedded retractable spike trap concealed inside `Tile_SpikeSlot` via custom-range `SpriteMask` with `ProximityAmbush` (spark telegraph -> fast eruption) and staggered `TimedCycle` surges.
 - `Assets/Scripts/Level/MovingPlatform.cs`: Smooth sine-eased ping-pong clockwork platform moving riding `Rigidbody2D`s cleanly in `FixedUpdate`.
 - `Assets/Scripts/Level/CrumblingPlatform.cs`: Shuddering cracked stone bridge emitting `RotationOverLifetime` debris before collapsing and reforming.
 - `Assets/Scripts/Level/WaterCanal.cs`: Dual-layer animated Twilight Canal water surface (`6`-frame wave animation) with splash burst respawn.
 - `Assets/Scripts/Level/TutorialTrigger.cs`: Triggers both HUD Whisper Banners and persistent District Objective transitions.
-- `Assets/Scripts/Level/FinalBossAI.cs` & `Assets/Scripts/Level/BossShockwave.cs`: 3-state Final Boss state machine (`Wandering`, `Attacking`, `Stunned`), overhead Eclipse Halberd cleave + `BossShockwave` sliding projectile, armored-helm safe deflection vs. exposed Aether Crown stomp damage, phase escalation, Retry reset, and Sanctum Beacon unsealing.
+- `Assets/Scripts/Level/FinalBossAI.cs` & `Assets/Scripts/Level/BossShockwave.cs`: Trigger-based 3-state Final Boss state machine (`Wandering`, `Attacking`, `Stunned`) with `postStompSafeTimer` bounce protection, overhead Eclipse Halberd cleave + `BossShockwave` sliding projectile, armored-helm safe deflection vs. exposed Aether Crown stomp (2x damage at Light Tier III) + `ForceStunFromAetherFlash()`, Retry reset, and Sanctum Beacon unsealing.
 - `Assets/Scripts/Level/LevelGoal.cs`: Sanctum Beacon goal with boss-controlled `isLockedByBoss` lock, `Prop_EclipseSeal` overlay, `UnlockBeacon()` seal-break burst particles, and Victory screen trigger.
-- `Assets/Scripts/Core/GameManager.cs` & `Assets/Scripts/UI/UIManager.cs`: Full 8-screen state machine (`Title`, `StoryIntro`, `Lore`, `Tutorial`, `Playing`, `Paused`, `GameOver`, `Victory`), live Sanctum Beacon progress percentage, live **Boss Health & State HUD**, Courier Rank calculation, persistent + fallback button listeners, and keyboard shortcuts.
+- `Assets/Scripts/Core/GameManager.cs` & `Assets/Scripts/UI/UIManager.cs`: Full 8-screen state machine (`Title`, `StoryIntro`, `Lore`, `Tutorial`, `Playing`, `Paused`, `GameOver`, `Victory`), **Aether Light Resonance** Shard upgrades/charges/shield tracking, live Sanctum Beacon progress percentage, **Boss Health & State HUD**, Courier Rank calculation, persistent + fallback button listeners, and keyboard shortcuts.
 - `Assets/Editor/LevelBuilder.cs`: Deterministic Editor pipeline configuring 9-sliced UI & pixel pivots, generating the 8-frame `Vesper_Run`, `BossWardenAnimator.controller` + entity animators, enforcing zero platform overlaps across all 21 footprints, assembling `SampleScene.unity`, rendering all 13 verification screenshots, and building `VesperTwilightCourier.exe`.
 
 ---
