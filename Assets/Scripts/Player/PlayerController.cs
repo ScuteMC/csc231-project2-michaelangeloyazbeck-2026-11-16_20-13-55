@@ -319,7 +319,9 @@ namespace VesperTwilightCourier
                     continue;
                 }
 
-                if (col.GetComponent<Hazard>() != null || col.GetComponent<PatrolEnemy>() != null)
+                if (col.GetComponent<Hazard>() != null ||
+                    col.GetComponent<PatrolEnemy>() != null ||
+                    col.GetComponent<FinalBossAI>() != null)
                 {
                     continue;
                 }

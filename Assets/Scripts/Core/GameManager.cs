@@ -36,7 +36,10 @@ namespace VesperTwilightCourier
         [Header("Level Progression")]
         public int totalShards = 25;
         public float levelStartX = 2f;
-        public float levelGoalX = 222.8f;
+        public float levelGoalX = 239.5f;
+
+        [Header("Boss Encounter")]
+        public FinalBossAI finalBoss;
 
         private bool tutorialOpenedFromPause;
 
@@ -67,6 +70,10 @@ namespace VesperTwilightCourier
             if (playerController == null && playerHealth != null)
             {
                 playerController = playerHealth.GetComponent<PlayerController>();
+            }
+            if (finalBoss == null)
+            {
+                finalBoss = Object.FindFirstObjectByType<FinalBossAI>();
             }
 
             if (playerController != null)
@@ -204,6 +211,7 @@ namespace VesperTwilightCourier
             {
                 UIManager.Instance.ShowOnlyPanel(GameState.Title);
                 UIManager.Instance.SyncAudioControls();
+                UIManager.Instance.UpdateBossHud(false, 0, 3, string.Empty);
             }
         }
 
@@ -286,6 +294,7 @@ namespace VesperTwilightCourier
                 UIManager.Instance.UpdateShards(CollectedShards, totalShards);
                 UIManager.Instance.UpdateSanctumProgress(0f);
                 UIManager.Instance.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Reclaim Memory Shards & ignite the Sanctum Beacon");
+                UIManager.Instance.UpdateBossHud(false, 0, 3, string.Empty);
                 if (playerHealth != null)
                 {
                     UIManager.Instance.UpdateHealth(playerHealth.CurrentHealth, playerHealth.maxHealth);
@@ -365,6 +374,11 @@ namespace VesperTwilightCourier
             if (playerHealth != null)
             {
                 playerHealth.ReviveAtCheckpoint(CurrentRespawnPosition);
+            }
+
+            if (finalBoss != null)
+            {
+                finalBoss.ResetForRetry();
             }
 
             if (UIManager.Instance != null)

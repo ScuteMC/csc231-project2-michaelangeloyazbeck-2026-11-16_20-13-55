@@ -45,6 +45,12 @@ namespace VesperTwilightCourier
         public GameObject bannerContainer;
         public Text bannerText;
 
+        [Header("Boss HUD Elements")]
+        public GameObject bossHudContainer;
+        public Text bossNameText;
+        public Text bossStateText;
+        public Image bossHealthFill;
+
         [Header("Audio Controls")]
         public Slider hudVolumeSlider;
         public Slider pauseVolumeSlider;
@@ -94,8 +100,8 @@ namespace VesperTwilightCourier
         private static readonly string[] StorySlideBodies =
         {
             "A crimson eclipse hangs frozen over Noctis Reach, draining every district lantern toward eternal frost.\nShould darkness claim the upper spires, the canal city beneath will never see another dawn.",
-            "The high Sanctum Beacon has shattered its Memory Shards across four perilous rooftop districts.\nCorrupted Clockwork Sentinels and concealed spike grates now guard every fractured crossing.",
-            "You are Vesper, a Shadow-Stitcher Courier sworn to restore the fallen light.\nSpread your dusk-woven cloak, ride the thermal chimneys, reclaim the shards, and reignite the Beacon!"
+            "The high Sanctum Beacon has shattered its Memory Shards across four perilous rooftop districts.\nAt the summit, Malakor the Eclipse Warden seals the Beacon behind his crimson Halberd and clockwork armor.",
+            "You are Vesper, a Shadow-Stitcher Courier sworn to restore the fallen light.\nRide thermal chimneys, bait Malakor's Halberd Slam, stomp his exposed Aether Crown, and ignite the Beacon!"
         };
 
         private void Awake()
@@ -454,6 +460,52 @@ namespace VesperTwilightCourier
             }
         }
 
+        public void UpdateBossHud(bool visible, int currentHp, int maxHp, string stateLabel)
+        {
+            if (bossHudContainer == null)
+            {
+                return;
+            }
+
+            bossHudContainer.SetActive(visible);
+            if (!visible)
+            {
+                return;
+            }
+
+            if (bossNameText != null)
+            {
+                bossNameText.text = $"MALAKOR, ECLIPSE WARDEN  ({currentHp} / {maxHp})";
+            }
+
+            if (bossHealthFill != null)
+            {
+                bossHealthFill.fillAmount = maxHp > 0 ? Mathf.Clamp01((float)currentHp / maxHp) : 0f;
+                if (stateLabel.Contains("STUNNED"))
+                {
+                    bossHealthFill.color = new Color(0.38f, 0.95f, 1f, 1f);
+                }
+                else if (stateLabel.Contains("SLAM"))
+                {
+                    bossHealthFill.color = new Color(1f, 0.45f, 0.25f, 1f);
+                }
+                else
+                {
+                    bossHealthFill.color = new Color(0.86f, 0.16f, 0.28f, 1f);
+                }
+            }
+
+            if (bossStateText != null)
+            {
+                bossStateText.text = stateLabel;
+                bossStateText.color = stateLabel.Contains("STUNNED")
+                    ? new Color(0.52f, 0.98f, 1f, 1f)
+                    : stateLabel.Contains("SLAM")
+                        ? new Color(1f, 0.72f, 0.36f, 1f)
+                        : new Color(0.95f, 0.86f, 0.78f, 1f);
+            }
+        }
+
         public void ShowBanner(string message, float duration = 4f)
         {
             if (bannerContainer == null || bannerText == null)
@@ -502,8 +554,8 @@ namespace VesperTwilightCourier
             }
 
             winSummaryText.text =
-                "The Sanctum Beacon blazes across Noctis Reach, shattering the Eternal Eclipse!\n" +
-                "Dawn breaks over the canal spires thanks to Vesper's delivery.\n\n" +
+                "Malakor the Eclipse Warden is shattered, and the Sanctum Beacon blazes across Noctis Reach!\n" +
+                "Dawn breaks over the canal spires thanks to Vesper's final delivery.\n\n" +
                 $"COURIER RANK:  {rank}\n" +
                 $"Memory Shards Restored:  {collectedShards} / {totalShards}    |    " +
                 $"Clear Time:  {mins:00}:{secs:00}    |    Retries:  {deaths}";

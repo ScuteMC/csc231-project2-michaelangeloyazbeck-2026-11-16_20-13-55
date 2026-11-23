@@ -13,12 +13,68 @@ namespace VesperTwilightCourier
         public ParticleSystem idleBeaconParticles;
         public ParticleSystem victoryBurstParticles;
 
+        [Header("Final Boss Seal")]
+        public bool isLockedByBoss;
+        public GameObject eclipseSealVisual;
+        public ParticleSystem sealBreakParticles;
+
         private bool completed;
+        private float lockNoticeCooldown;
+
+        private void Update()
+        {
+            if (lockNoticeCooldown > 0f)
+            {
+                lockNoticeCooldown -= Time.deltaTime;
+            }
+        }
+
+        public void UnlockBeacon()
+        {
+            isLockedByBoss = false;
+
+            if (eclipseSealVisual != null)
+            {
+                eclipseSealVisual.SetActive(false);
+            }
+
+            if (sealBreakParticles != null)
+            {
+                sealBreakParticles.Play();
+            }
+
+            if (idleBeaconParticles != null && !idleBeaconParticles.isPlaying)
+            {
+                idleBeaconParticles.Play();
+            }
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayCheckpoint();
+            }
+        }
 
         private void OnTriggerEnter2D(Collider2D other)
         {
             if (completed || !other.CompareTag("Player"))
             {
+                return;
+            }
+
+            if (isLockedByBoss)
+            {
+                if (lockNoticeCooldown <= 0f)
+                {
+                    lockNoticeCooldown = 2.0f;
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.PlayHurt();
+                    }
+                    if (UIManager.Instance != null)
+                    {
+                        UIManager.Instance.ShowBanner("SEALED BY MALAKOR! Defeat the Eclipse Warden to ignite the Beacon!", 3.2f);
+                    }
+                }
                 return;
             }
 

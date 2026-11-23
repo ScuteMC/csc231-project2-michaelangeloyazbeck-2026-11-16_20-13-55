@@ -18,7 +18,7 @@ namespace VesperTwilightCourier
 
         [Header("Bounds")]
         public float minX = 6f;
-        public float maxX = 221f;
+        public float maxX = 236f;
         public float minY = -2.5f;
 
         private Vector3 velocity;
