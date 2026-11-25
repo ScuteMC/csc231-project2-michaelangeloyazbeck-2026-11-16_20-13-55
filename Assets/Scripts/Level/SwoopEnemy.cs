@@ -186,6 +186,7 @@ namespace VesperTwilightCourier
             bool above = other.bounds.min.y >= transform.position.y - stompVerticalTolerance;
             if (fallingDown && above)
             {
+                health.GrantBriefInvulnerability(0.35f);
                 player.Bounce(stompBounceVelocity);
                 DefeatByLightning();
             }

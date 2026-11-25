@@ -187,6 +187,11 @@ namespace VesperTwilightCourier
 
         private void HandleZeroHealth()
         {
+            Vector3 respawnPos = GameManager.Instance != null
+                ? GameManager.Instance.CurrentRespawnPosition
+                : transform.position;
+            TeleportTo(respawnPos);
+
             bool triggerGameOver = GameManager.Instance == null || GameManager.Instance.ConsumeLifeAndCheckGameOver();
             if (triggerGameOver)
             {
@@ -209,9 +214,6 @@ namespace VesperTwilightCourier
                 spriteRenderer.color = baseColor;
             }
 
-            Vector3 respawnPos = GameManager.Instance != null
-                ? GameManager.Instance.CurrentRespawnPosition
-                : transform.position;
             TeleportTo(respawnPos);
             GrantBriefInvulnerability(1.4f);
 

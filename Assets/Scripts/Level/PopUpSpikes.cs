@@ -29,11 +29,11 @@ namespace VesperTwilightCourier
         [Header("Trap Behavior")]
         public TrapMode mode = TrapMode.ProximityAmbush;
         public int damageAmount = 25;
-        public float triggerHorizontalRange = 2.6f;
+        public float triggerHorizontalRange = 3.6f;
         public float triggerVerticalRange = 2.4f;
 
         [Header("Timing")]
-        public float telegraphDuration = 0.24f;
+        public float telegraphDuration = 0.42f;
         public float extendDuration = 0.08f;
         public float holdExtendedDuration = 1.05f;
         public float retractDuration = 0.34f;

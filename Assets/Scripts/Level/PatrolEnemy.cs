@@ -101,6 +101,7 @@ namespace VesperTwilightCourier
 
             if (fallingDown && aboveDrone)
             {
+                health.GrantBriefInvulnerability(0.35f);
                 DefeatEnemy(player);
             }
             else
@@ -144,6 +145,10 @@ namespace VesperTwilightCourier
             }
 
             defeated = true;
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayCollect();
+            }
             if (defeatParticles != null)
             {
                 defeatParticles.transform.SetParent(null, true);

@@ -222,7 +222,15 @@ namespace VesperTwilightCourier
             {
                 UIManager.Instance.ShowOnlyPanel(GameState.Title);
                 UIManager.Instance.SyncAudioControls();
-                UIManager.Instance.UpdateBossHud(false, 0, 120, 0, 4, 1, string.Empty);
+                UIManager.Instance.UpdateBossHud(false, 0, 100, 0, 3, 1, string.Empty);
+            }
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayLevelMusic();
+            }
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.SetBossArenaCamera(false, Vector2.zero);
             }
         }
 
@@ -315,11 +323,19 @@ namespace VesperTwilightCourier
                 UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
                 UIManager.Instance.UpdateSanctumProgress(0f);
                 UIManager.Instance.UpdateObjective("I · COURTYARDS", string.Empty);
-                UIManager.Instance.UpdateBossHud(false, 0, 120, 0, 3, 1, string.Empty);
+                UIManager.Instance.UpdateBossHud(false, 0, 100, 0, 3, 1, string.Empty);
                 if (playerHealth != null)
                 {
                     UIManager.Instance.UpdateHealth(playerHealth.CurrentHealth, playerHealth.maxHealth);
                 }
+            }
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayLevelMusic();
+            }
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.SetBossArenaCamera(false, Vector2.zero);
             }
         }
 
@@ -425,7 +441,7 @@ namespace VesperTwilightCourier
                 return true;
             }
 
-            LightningAmmo = Mathf.Max(LightningAmmo, Mathf.Max(4, checkpointLightningSnapshot));
+            LightningAmmo = Mathf.Max(LightningAmmo, Mathf.Max(6, checkpointLightningSnapshot));
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
@@ -486,7 +502,7 @@ namespace VesperTwilightCourier
             Time.timeScale = 1f;
             CurrentState = GameState.Playing;
             CurrentLives = startingLives;
-            LightningAmmo = Mathf.Max(5, checkpointLightningSnapshot);
+            LightningAmmo = Mathf.Max(6, checkpointLightningSnapshot);
 
             if (playerHealth != null)
             {

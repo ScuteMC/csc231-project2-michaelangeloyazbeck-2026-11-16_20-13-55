@@ -66,6 +66,14 @@ namespace VesperTwilightCourier
                     health.TakeDamage(damageAmount, transform.position);
                 }
                 Destroy(gameObject);
+                return;
+            }
+
+            if (!other.isTrigger &&
+                other.GetComponentInParent<MovingPlatform>() == null &&
+                other.GetComponentInParent<CrumblingPlatform>() == null)
+            {
+                Destroy(gameObject);
             }
         }
     }

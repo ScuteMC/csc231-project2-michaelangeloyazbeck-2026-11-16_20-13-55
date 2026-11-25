@@ -32,14 +32,14 @@ A 2D Gothic action-platformer built in **Unity 6000.5.1f1** (URP 2D, Unity Input
 
 ## Multi-Phase Final Boss: Malakor, The Eclipse Warden
 
-At the summit of District IV, **Malakor, The Eclipse Warden** (`FinalBossAI.cs` — **120 HP**, 20 AI-illustrated animation frames across 5 states: `Wandering`, `Attacking`, `Stunned`, `Dashing`, `Casting`) guards the sealed Sanctum Beacon behind escalating mechanics:
+At the summit of District IV, past a **safe Vestibule Checkpoint (`Arch_4_SanctumApproach` & `Checkpoint 4`)**, **Malakor, The Eclipse Warden** (`FinalBossAI.cs` — **100 HP**, 20 AI-illustrated animation frames across 5 states plus an intimidating `Intro` roar, dynamically escalating **150 BPM D Harmonic Minor pipe-organ boss theme** `bgm_boss_warden.wav`, closing `BossArenaGate`, and wide-framing arena camera) guards the Sanctum Beacon:
 
-1. **Break the Eclipse Ward with Lightning**: Malakor wears an active **Eclipse Ward Shield** (`3` pips in Phase I, `4` pips in Phases II–III). Shoot him with **Storm-Lightnings** (`E` / Click) — each bolt shatters one diamond until his shield breaks and exposes his **Aether Crown Core** (`Stunned`).
-2. **Stomp the Exposed Crown**: While `Stunned` (or after baiting heavy slams in earlier cycles), land cleanly on his glowing Crown for heavy **22+ damage** (zero contact recoil damage thanks to trigger colliders + post-stomp invulnerability).
-3. **Three Escalating Phases**:
-   - **Phase I (`120 -> 81 HP`)**: Armored patrol, **Halberd Slam + Shockwave**, and **Phantom Dash** lunges.
-   - **Phase II — Enraged (`80 -> 41 HP`)**: Unlocks **Sky Spear Barrage** (`BossSkyStrike.cs` telegraphed vertical crimson lightning pillars) and speeds up attacks.
-   - **Phase III — Berserk (`40 -> 0 HP`)**: Fires **2-attack combos** plus **3-way Eclipse Orb barrages**, spawning recharging arena Lightning Wisps (`ArenaAmmoSpawner.cs`) so you always have bolts to break his final Ward.
+1. **Fair Arena Entry**: Malakor stands stationary across the arena until Vesper crosses into the arena threshold (`x >= 219.0`), then locks the Crimson Eclipse Gate behind her, launches Boss Battle Music, and roars (`Intro`) before attacking.
+2. **Break the Eclipse Ward (`3` Pips)**: Shoot Malakor with **Storm-Lightnings** (`LMB` / `E` — swept `OverlapBox` physics with gentle smart-aim), land **Armored Helm Bounces** (`4` dmg + `-1` pip safely), or cleanly outlast heavy attacks: breaking his 3rd Ward pip shatters his shield (`sfx_ward_shatter.wav`) and stuns him.
+3. **Finish Him Across Three Escalating Phases (`100 -> 66 -> 33 -> 0 HP`)**:
+   - **Phase I (`100 -> 67 HP`)**: **Halberd Slam + Shockwave** and **Phantom Dash**.
+   - **Phase II — Enraged (`66 -> 34 HP`, `1.06x` music pitch)**: Unlocks **Sky Spear Barrage** (`BossSkyStrike.cs`) and bidirectional shockwaves.
+   - **Phase III — Berserk (`33 -> 0 HP`, `1.12x` music pitch)**: Fires **2-attack combos** plus **3-way Eclipse Orb fans**, backed by `4.5s`-respawning jump-height arena Lightning wisps (`ArenaAmmoSpawner.cs`). Both **Crown Stomps (`26–32 dmg`)** and **Lightning Bolts (`9–14 dmg` shielded, `12 dmg` stunned)** kill him cleanly and unseal the Sanctum Beacon.
 
 ---
 
@@ -95,7 +95,7 @@ At the summit of District IV, **Malakor, The Eclipse Warden** (`FinalBossAI.cs` 
 
 - **Executable**: `Builds/Windows/VesperTwilightCourier.exe` (`StandaloneWindows64`)
 - **Archived Distribution**: `Builds/VesperTwilightCourier_WindowsBuild.zip`
-- Automated validation in `LevelBuilder.BuildAll` passed cleanly with **0 overlapping platform footprints across all 23 footprints** and exit code `0`.
+- Automated validation in `LevelBuilder.BuildAll` passed cleanly with **0 overlapping platform footprints across all 23 footprints**, `VerifyCombatAndBossSystems()` passing (`25.6s` boss music, swept bolt hits across all 4 enemy classes, full `100->0 HP` boss kill cycle unsealing the Beacon), and exit code `0`.
 
 ---
 

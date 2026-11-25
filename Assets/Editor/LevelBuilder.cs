@@ -49,7 +49,7 @@ public static class LevelBuilder
         public PhysicsMaterial2D frictionlessMaterial;
         public RuntimeAnimatorController vesperAnimator, bossAnimator, gargoyleAnimator, casterAnimator;
         public RuntimeAnimatorController sentinelAnimator, shardAnimator, checkpointAnimator, goalBeaconAnimator, waterAnimator;
-        public AudioClip bgmClip, jumpClip, landClip, collectClip, hurtClip, checkpointClip, glideClip, winClip, zapClip, bossRoarClip;
+        public AudioClip bgmClip, jumpClip, landClip, collectClip, hurtClip, checkpointClip, glideClip, winClip, zapClip, bossRoarClip, bossBgmClip, wardShatterClip;
     }
 
     private struct PlatformFootprint
@@ -72,6 +72,8 @@ public static class LevelBuilder
 
         BuiltAssets assets = LoadAndCreateAssets();
         BuildLevelOneScene(assets);
+        VerifyCombatAndBossSystems();
+        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
         RenderVerificationScreenshots(assets);
         BuildWindowsPlayer();
 
@@ -398,6 +400,8 @@ public static class LevelBuilder
         a.winClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_win.wav");
         a.zapClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_zap.wav");
         a.bossRoarClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_boss_roar.wav");
+        a.bossBgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/bgm_boss_warden.wav");
+        a.wardShatterClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_ward_shatter.wav");
 
         // Particle Material using soft radial texture + Sprites/Default (unlit & transparent in URP 2D)
         string matPath = $"{ArtFolder}/VFX_ParticleMat.mat";
@@ -760,7 +764,7 @@ public static class LevelBuilder
         camGo.AddComponent<AudioListener>();
         camGo.AddComponent<UniversalAdditionalCameraData>();
         CameraController camController = camGo.AddComponent<CameraController>();
-        camController.maxX = 236f;
+        camController.maxX = 244f;
 
         CreateAmbientParticles(camGo.transform, a.particleMaterial);
 
@@ -771,6 +775,7 @@ public static class LevelBuilder
         GameObject audioGo = new GameObject("AudioManager");
         AudioManager audioMgr = audioGo.AddComponent<AudioManager>();
         audioMgr.bgmClip = a.bgmClip;
+        audioMgr.bossBgmClip = a.bossBgmClip;
         audioMgr.jumpClip = a.jumpClip;
         audioMgr.landClip = a.landClip;
         audioMgr.collectClip = a.collectClip;
@@ -780,6 +785,7 @@ public static class LevelBuilder
         audioMgr.winClip = a.winClip;
         audioMgr.zapClip = a.zapClip;
         audioMgr.bossRoarClip = a.bossRoarClip;
+        audioMgr.wardShatterClip = a.wardShatterClip;
 
         GameObject gmGo = new GameObject("GameManager");
         GameManager gm = gmGo.AddComponent<GameManager>();
@@ -793,7 +799,7 @@ public static class LevelBuilder
 
         // 6. Level Geometry, Hazards, Enemies, Updrafts, Collectibles, Checkpoints, Goal
         BuildLevelGeometryAndProps(a);
-        gm.levelGoalX = 239.5f;
+        gm.levelGoalX = 247.5f;
         gm.finalBoss = UnityEngine.Object.FindFirstObjectByType<FinalBossAI>();
 
         // 7. Complete UI Canvas (Title, HUD, Pause, Win, Game Over) + EventSystem
@@ -986,10 +992,10 @@ public static class LevelBuilder
         const float GroundBottomY = -9.0f;
 
         // ============================================================
-        // TWILIGHT CANAL WATER (x = -14 .. 260, surfaceY = -4.6)
+        // TWILIGHT CANAL WATER (x = -14 .. 268, surfaceY = -4.6)
         // Animated 6-frame moonlit canal water + mist + splash particles
         // ============================================================
-        CreateWaterCanal(-14f, 260f, -4.6f, a, levelRoot.transform);
+        CreateWaterCanal(-14f, 268f, -4.6f, a, levelRoot.transform);
 
         // ============================================================
         // ZONE 1: Courtyard of Whispers (x = -2 .. 56)
@@ -1165,20 +1171,20 @@ public static class LevelBuilder
         CreateBrokenArchCorbel("Corbel_4B_Right", 200.75f, 6.45f, flipX: false, a, levelRoot.transform);
         CreateCrumblingPlatform("Crumble_4B_Perch", 197.5f, 202.0f, 7.4f, 1.0f, a, levelRoot.transform, footprints);
         CreateCanalChimneyUpdraft("Updraft_5_AscentB", 205.5f, 0.8f, GroundBottomY, 3.6f, 11.7f, 10.8f, a, levelRoot.transform, footprints);
-        CreateGargoyle("Gargoyle_4B_Chimney", new Vector2(205.5f, 11.2f), 2.8f, 3.2f, a, levelRoot.transform);
 
-        // Final Sanctum Terrace, Multi-Phase Final Boss Arena (Malakor) & Sealed Sanctum Beacon
-        CreateGroundedPlatform("Roof_4C_Sanctum", 209.0f, 244.0f, 9.0f, GroundBottomY, a, levelRoot.transform, footprints);
-        CreateDistrictArch("Arch_4_SanctumApproach", new Vector2(210.0f, 9.0f), a, levelRoot.transform);
-        CreateCheckpoint(4, "Sanctum Threshold", new Vector2(211.6f, 9.0f), a, levelRoot.transform);
-        CreateStreetLamp("Lamp_4_ArenaL", new Vector2(213.2f, 9.0f), a, levelRoot.transform);
-        CreateRooftopUpdraft("Updraft_6_BossArenaLeft", new Vector2(214.8f, 9.0f), 2.8f, 5.8f, 9.4f, a, levelRoot.transform);
-        CreateArenaAmmoSpawner("ArenaLightning_Left", new Vector2(214.8f, 13.8f), a, levelRoot.transform);
-        CreateRooftopUpdraft("Updraft_7_BossArenaRight", new Vector2(233.2f, 9.0f), 2.8f, 5.8f, 9.4f, a, levelRoot.transform);
-        CreateArenaAmmoSpawner("ArenaLightning_Right", new Vector2(233.2f, 13.8f), a, levelRoot.transform);
-        CreateStreetLamp("Lamp_4_BeaconL", new Vector2(236.2f, 9.0f), a, levelRoot.transform);
-        CreateStreetLamp("Lamp_4_BeaconR", new Vector2(242.4f, 9.0f), a, levelRoot.transform);
-        CreateGothicRailing("Railing_4C_End", 241.0f, 243.6f, 9.0f, a, levelRoot.transform);
+        // Final Sanctum Vestibule (safe entry/checkpoint), Multi-Phase Final Boss Arena (218..242), & Beacon Terrace (242..252)
+        CreateGroundedPlatform("Roof_4C_Sanctum", 208.5f, 252.0f, 9.0f, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateDistrictArch("Arch_4_SanctumApproach", new Vector2(210.2f, 9.0f), a, levelRoot.transform);
+        CreateCheckpoint(4, "Sanctum Threshold", new Vector2(212.5f, 9.0f), a, levelRoot.transform);
+        CreateStreetLamp("Lamp_4_ArenaL", new Vector2(214.2f, 9.0f), a, levelRoot.transform);
+        CreateRooftopUpdraft("Updraft_6_BossArenaLeft", new Vector2(220.4f, 9.0f), 2.8f, 5.8f, 9.4f, a, levelRoot.transform);
+        CreateArenaAmmoSpawner("ArenaLightning_Left", new Vector2(220.4f, 10.8f), a, levelRoot.transform);
+        CreateArenaAmmoSpawner("ArenaLightning_Center", new Vector2(230.0f, 13.4f), a, levelRoot.transform);
+        CreateRooftopUpdraft("Updraft_7_BossArenaRight", new Vector2(239.6f, 9.0f), 2.8f, 5.8f, 9.4f, a, levelRoot.transform);
+        CreateArenaAmmoSpawner("ArenaLightning_Right", new Vector2(239.6f, 10.8f), a, levelRoot.transform);
+        CreateStreetLamp("Lamp_4_BeaconL", new Vector2(243.5f, 9.0f), a, levelRoot.transform);
+        CreateStreetLamp("Lamp_4_BeaconR", new Vector2(250.4f, 9.0f), a, levelRoot.transform);
+        CreateGothicRailing("Railing_4C_End", 249.2f, 251.6f, 9.0f, a, levelRoot.transform);
 
         // Shards 21..25 + 29..30
         CreateShard(29, new Vector2(183.2f, 6.4f), a, levelRoot.transform);
@@ -1186,19 +1192,19 @@ public static class LevelBuilder
         CreateShard(22, new Vector2(193.8f, 7.4f), a, levelRoot.transform);
         CreateShard(23, new Vector2(199.8f, 9.0f), a, levelRoot.transform);
         CreateShard(30, new Vector2(202.0f, 10.4f), a, levelRoot.transform);
-        CreateShard(24, new Vector2(219.5f, 12.6f), a, levelRoot.transform);
-        CreateShard(25, new Vector2(228.5f, 12.6f), a, levelRoot.transform);
+        CreateShard(24, new Vector2(214.3f, 10.3f), a, levelRoot.transform);
+        CreateShard(25, new Vector2(215.9f, 10.3f), a, levelRoot.transform);
 
-        LevelGoal sanctumGoal = CreateLevelGoal(new Vector2(239.5f, 9.0f), a, levelRoot.transform);
-        CreateFinalBoss(new Vector2(225.0f, 9.0f), sanctumGoal, a, levelRoot.transform);
+        LevelGoal sanctumGoal = CreateLevelGoal(new Vector2(247.5f, 9.0f), a, levelRoot.transform);
+        CreateFinalBoss(new Vector2(234.5f, 9.0f), sanctumGoal, a, levelRoot.transform);
 
         // Verify mathematically that zero static, chimney, crumbling, or moving platform swept envelopes overlap!
         ValidateNoPlatformOverlaps(footprints);
 
         // Invisible Solid World Boundaries (Left & Right) + Deep Backup Abyss Killzone
         CreateBoundaryWall("LeftWorldWall", new Vector2(-2.5f, 10f), new Vector2(1f, 40f), levelRoot.transform);
-        CreateBoundaryWall("RightWorldWall", new Vector2(244.5f, 10f), new Vector2(1f, 40f), levelRoot.transform);
-        CreateAbyssKillzone(new Vector2(120f, -11.5f), new Vector2(290f, 4f), levelRoot.transform);
+        CreateBoundaryWall("RightWorldWall", new Vector2(252.5f, 10f), new Vector2(1f, 40f), levelRoot.transform);
+        CreateAbyssKillzone(new Vector2(125f, -11.5f), new Vector2(300f, 4f), levelRoot.transform);
     }
 
     private static void ValidateNoPlatformOverlaps(List<PlatformFootprint> footprints)
@@ -2271,11 +2277,31 @@ public static class LevelBuilder
         wardSr.color = new Color(1f, 0.38f, 0.52f, 0.44f);
         wardSr.sortingOrder = 6;
 
+        GameObject gateGo = new GameObject("BossArenaGate");
+        gateGo.transform.SetParent(parent, false);
+        gateGo.transform.position = new Vector3(217.4f, 11.4f, 0f);
+        BoxCollider2D gateCol = gateGo.AddComponent<BoxCollider2D>();
+        gateCol.size = new Vector2(0.8f, 5.2f);
+        SpriteRenderer gateSr = gateGo.AddComponent<SpriteRenderer>();
+        gateSr.sprite = a.propGothicPillar;
+        gateSr.drawMode = SpriteDrawMode.Tiled;
+        gateSr.tileMode = SpriteTileMode.Continuous;
+        gateSr.size = new Vector2(0.8f, 5.2f);
+        gateSr.color = new Color(0.85f, 0.25f, 0.35f, 0.85f);
+        gateSr.sortingOrder = 5;
+        GameObject gateSeal = new GameObject("GateSealEmblem");
+        gateSeal.transform.SetParent(gateGo.transform, false);
+        SpriteRenderer gateSealSr = gateSeal.AddComponent<SpriteRenderer>();
+        gateSealSr.sprite = a.propEclipseSeal;
+        gateSealSr.sortingOrder = 6;
+        gateGo.SetActive(false);
+
         FinalBossAI boss = go.AddComponent<FinalBossAI>();
         boss.animator = anim;
         boss.spriteRenderer = sr;
         boss.linkedGoal = linkedGoal;
         boss.wardRingVisual = wardRingGo;
+        boss.arenaGateObject = gateGo;
         boss.shockwaveSprite = a.vfxBossShockwave;
         boss.skySpearSprite = a.vfxBossSkySpear;
         boss.skyBeamWhiteSprite = a.uiWhiteSprite;
@@ -2285,9 +2311,9 @@ public static class LevelBuilder
         boss.dashPreviewSprite = a.bossDashFrames[1];
         boss.castPreviewSprite = a.bossCastFrames[1];
         boss.stunnedPreviewSprite = a.bossStunnedFrames[1];
-        boss.arenaActivationX = 212.5f;
-        boss.minPatrolX = 215.5f;
-        boss.maxPatrolX = 232.8f;
+        boss.arenaActivationX = 219.0f;
+        boss.minPatrolX = 219.2f;
+        boss.maxPatrolX = 240.8f;
 
         boss.slamParticles = CreateOneShotBurstParticles(
             "BossSlamParticles", go.transform, new Vector3(-1.45f, 0.15f, 0f),
@@ -2933,7 +2959,7 @@ public static class LevelBuilder
             new Vector2(0.5f, 1f), new Vector2(-6f, -114f), new Vector2(468f, 82f));
         uiMgr.bossHudContainer = bossPlaque;
         uiMgr.bossNameText = CreateText("BossNameText", bossPlaque.transform, uiFont,
-            "MALAKOR  (120/120)", 14, FontStyle.Bold, new Color(1f, 0.86f, 0.65f, 1f), TextAnchor.MiddleLeft,
+            "MALAKOR  (100/100)", 14, FontStyle.Bold, new Color(1f, 0.86f, 0.65f, 1f), TextAnchor.MiddleLeft,
             new Vector2(0.5f, 0.5f), new Vector2(-128f, 22f), new Vector2(180f, 22f));
 
         uiMgr.bossPhaseText = CreateText("BossPhaseText", bossPlaque.transform, uiFont,
@@ -3522,6 +3548,89 @@ public static class LevelBuilder
         return slider;
     }
 
+    private static void VerifyCombatAndBossSystems()
+    {
+        AudioManager audioMgr = UnityEngine.Object.FindFirstObjectByType<AudioManager>();
+        if (audioMgr == null || audioMgr.bgmClip == null || audioMgr.bossBgmClip == null || audioMgr.bossBgmClip.length <= 20f || audioMgr.wardShatterClip == null)
+        {
+            throw new Exception("[LevelBuilder] Audio verification failed: bgmClip, bossBgmClip (>20s), and wardShatterClip must all be loaded.");
+        }
+
+        FinalBossAI boss = UnityEngine.Object.FindFirstObjectByType<FinalBossAI>();
+        if (boss == null || boss.transform.position.x < 233f || boss.arenaActivationX < 218.5f || boss.arenaGateObject == null || boss.arenaGateObject.activeSelf)
+        {
+            throw new Exception("[LevelBuilder] Boss arena layout verification failed: expected boss x >= 233, activationX >= 218.5, and inactive ArenaGate before entry.");
+        }
+
+        Physics2D.SyncTransforms();
+
+        Collider2D bossCol = boss.GetComponent<Collider2D>();
+        if (!CheckOverlapFinds<FinalBossAI>(bossCol.bounds.center))
+        {
+            throw new Exception("[LevelBuilder] Bolt OverlapBox sweep missed FinalBossAI collider!");
+        }
+
+        PatrolEnemy patrol = UnityEngine.Object.FindFirstObjectByType<PatrolEnemy>();
+        if (patrol == null || !CheckOverlapFinds<PatrolEnemy>(patrol.GetComponent<Collider2D>().bounds.center))
+        {
+            throw new Exception("[LevelBuilder] Bolt OverlapBox sweep missed PatrolEnemy collider!");
+        }
+
+        SwoopEnemy swoop = UnityEngine.Object.FindFirstObjectByType<SwoopEnemy>();
+        if (swoop == null || !CheckOverlapFinds<SwoopEnemy>(swoop.GetComponent<Collider2D>().bounds.center))
+        {
+            throw new Exception("[LevelBuilder] Bolt OverlapBox sweep missed SwoopEnemy collider!");
+        }
+
+        AetherShooterEnemy caster = UnityEngine.Object.FindFirstObjectByType<AetherShooterEnemy>();
+        if (caster == null || !CheckOverlapFinds<AetherShooterEnemy>(caster.GetComponent<Collider2D>().bounds.center))
+        {
+            throw new Exception("[LevelBuilder] Bolt OverlapBox sweep missed AetherShooterEnemy collider!");
+        }
+
+        // Simulate full Boss Ward break -> Phase II -> Phase III -> Defeat kill cycle
+        boss.InitializeForEditorVerification();
+        for (int i = 0; i < 3; i++)
+        {
+            boss.TakeLightningHit(boss.transform.position);
+        }
+        if (boss.currentState != FinalBossAI.BossState.Stunned)
+        {
+            throw new Exception($"[LevelBuilder] Expected BossState.Stunned after 3 Ward hits, got {boss.currentState}");
+        }
+
+        int safety = 0;
+        bool sawPhase2 = false;
+        bool sawPhase3 = false;
+        while (!boss.IsDefeated && safety < 30)
+        {
+            safety++;
+            boss.TakeLightningHit(boss.transform.position);
+            if (boss.CurrentPhase == 2) sawPhase2 = true;
+            if (boss.CurrentPhase == 3) sawPhase3 = true;
+        }
+
+        if (!boss.IsDefeated || !sawPhase2 || !sawPhase3 || (boss.linkedGoal != null && boss.linkedGoal.isLockedByBoss))
+        {
+            throw new Exception($"[LevelBuilder] Boss defeat flow failed: defeated={boss.IsDefeated}, p2={sawPhase2}, p3={sawPhase3}, locked={boss.linkedGoal?.isLockedByBoss}");
+        }
+
+        Debug.Log($"[LevelBuilder] Combat & Boss Verification PASSED (bossBgm={audioMgr.bossBgmClip.length:F1}s, bolt sweeps hit all 4 enemy classes, Malakor 100->0 HP defeated in {safety + 3} hits, Beacon unsealed).");
+    }
+
+    private static bool CheckOverlapFinds<T>(Vector2 center) where T : Component
+    {
+        Collider2D[] hits = Physics2D.OverlapBoxAll(center, new Vector2(1.4f, 1.0f), 0f);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (hits[i] != null && hits[i].GetComponentInParent<T>() != null)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void RenderVerificationScreenshots(BuiltAssets assets)
     {
         Camera cam = Camera.main;
@@ -3661,18 +3770,18 @@ public static class LevelBuilder
             uiMgr.UpdateLightningAmmo(9, 30, 30);
             uiMgr.UpdateObjective("IV · SANCTUM", string.Empty);
             uiMgr.UpdateSanctumProgress(0.96f);
-            uiMgr.UpdateBossHud(true, 120, 120, 4, 4, 1, "BREAK WARD WITH ⚡");
+            uiMgr.UpdateBossHud(true, 100, 100, 3, 3, 1, "WARD UP — ZAP!");
         }
         if (zone4Trap != null)
         {
             zone4Trap.SetPreviewExtension(0.0f);
         }
-        CaptureCameraView(cam, new Vector3(231.5f, 11.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/level_goal_preview.png");
+        CaptureCameraView(cam, new Vector3(238.0f, 11.4f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/level_goal_preview.png");
 
         // 8C. Capture Final Boss Phase II Enraged Attack + Sky Spears + Vesper Shooting Lightning Bolt
         if (boss != null && player != null && playerSr != null && assets != null)
         {
-            boss.SetEditorPreviewPose(FinalBossAI.BossState.Casting, -1f, new Vector3(227.5f, 9.0f, 0f), true);
+            boss.SetEditorPreviewPose(FinalBossAI.BossState.Casting, -1f, new Vector3(234.5f, 9.0f, 0f), true);
             if (boss.slamParticles != null)
             {
                 boss.slamParticles.Play();
@@ -3680,41 +3789,41 @@ public static class LevelBuilder
             }
 
             GameObject previewWave = new GameObject("PreviewBossShockwave");
-            previewWave.transform.position = new Vector3(222.0f, 9.05f, 0f);
+            previewWave.transform.position = new Vector3(228.5f, 9.05f, 0f);
             previewWave.transform.localScale = new Vector3(-1f, 1f, 1f);
             SpriteRenderer waveSr = previewWave.AddComponent<SpriteRenderer>();
             waveSr.sprite = assets.vfxBossShockwave;
             waveSr.sortingOrder = 6;
 
             GameObject previewSpear1 = new GameObject("PreviewSkySpear1");
-            previewSpear1.transform.position = new Vector3(219.5f, 12.8f, 0f);
+            previewSpear1.transform.position = new Vector3(224.0f, 12.8f, 0f);
             SpriteRenderer sp1Sr = previewSpear1.AddComponent<SpriteRenderer>();
             sp1Sr.sprite = assets.vfxBossSkySpear;
             sp1Sr.sortingOrder = 6;
 
             GameObject previewSpear2 = new GameObject("PreviewSkySpear2");
-            previewSpear2.transform.position = new Vector3(231.0f, 11.9f, 0f);
+            previewSpear2.transform.position = new Vector3(237.8f, 11.9f, 0f);
             SpriteRenderer sp2Sr = previewSpear2.AddComponent<SpriteRenderer>();
             sp2Sr.sprite = assets.vfxBossSkySpear;
             sp2Sr.sortingOrder = 6;
 
             GameObject previewBolt = new GameObject("PreviewPlayerBolt");
-            previewBolt.transform.position = new Vector3(222.6f, 11.8f, 0f);
+            previewBolt.transform.position = new Vector3(228.8f, 11.8f, 0f);
             SpriteRenderer boltSr = previewBolt.AddComponent<SpriteRenderer>();
             boltSr.sprite = assets.vfxPlayerLightningBolt;
             boltSr.sortingOrder = 7;
 
-            player.transform.position = new Vector3(218.2f, 11.8f, 0f);
+            player.transform.position = new Vector3(223.4f, 11.8f, 0f);
             playerSr.sprite = assets.vesperGlideFrames != null && assets.vesperGlideFrames.Length > 1 ? assets.vesperGlideFrames[1] : assets.vesperGlide;
 
             if (uiMgr != null)
             {
-                uiMgr.UpdateHealth(72, 100);
+                uiMgr.UpdateHealth(76, 100);
                 uiMgr.UpdateLightningAmmo(7, 30, 30);
-                uiMgr.UpdateBossHud(true, 62, 120, 2, 4, 2, "ENRAGED · SKY SPEARS!");
+                uiMgr.UpdateBossHud(true, 62, 100, 2, 3, 2, "SKY LIGHTNING");
                 if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
             }
-            CaptureCameraView(cam, new Vector3(224.0f, 11.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/boss_attack_preview.png");
+            CaptureCameraView(cam, new Vector3(230.0f, 11.4f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/boss_attack_preview.png");
 
             UnityEngine.Object.DestroyImmediate(previewWave);
             UnityEngine.Object.DestroyImmediate(previewSpear1);
@@ -3726,23 +3835,23 @@ public static class LevelBuilder
             }
 
             // 8D. Capture Final Boss Phase III Stunned State + Exposed Crown + Vesper Diving for Stomp
-            boss.SetEditorPreviewPose(FinalBossAI.BossState.Stunned, -1f, new Vector3(225.0f, 9.0f, 0f), false);
+            boss.SetEditorPreviewPose(FinalBossAI.BossState.Stunned, -1f, new Vector3(231.0f, 9.0f, 0f), false);
             if (boss.stunLoopParticles != null)
             {
                 boss.stunLoopParticles.Play();
                 boss.stunLoopParticles.Simulate(0.45f, true, true);
             }
-            player.transform.position = new Vector3(225.0f, 12.6f, 0f);
+            player.transform.position = new Vector3(231.0f, 12.6f, 0f);
             playerSr.sprite = assets.vesperFallFrames != null && assets.vesperFallFrames.Length > 1 ? assets.vesperFallFrames[1] : assets.vesperFall;
 
             if (uiMgr != null)
             {
                 uiMgr.UpdateHealth(65, 100);
                 uiMgr.UpdateLightningAmmo(4, 30, 30);
-                uiMgr.UpdateBossHud(true, 34, 120, 0, 4, 3, "STUNNED! STOMP CROWN!");
+                uiMgr.UpdateBossHud(true, 28, 100, 0, 3, 3, "STUNNED — STOMP!");
                 if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
             }
-            CaptureCameraView(cam, new Vector3(224.0f, 11.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/boss_stunned_preview.png");
+            CaptureCameraView(cam, new Vector3(230.0f, 11.4f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/boss_stunned_preview.png");
 
             if (boss.stunLoopParticles != null)
             {
@@ -3754,7 +3863,7 @@ public static class LevelBuilder
         }
         if (uiMgr != null)
         {
-            uiMgr.UpdateBossHud(false, 120, 120, 4, 4, 1, string.Empty);
+            uiMgr.UpdateBossHud(false, 100, 100, 3, 3, 1, string.Empty);
         }
 
         // 9. Capture Dawn Restored Victory Screen Epilogue
@@ -3763,7 +3872,7 @@ public static class LevelBuilder
             uiMgr.PopulateWinStats(30, 30, 142f, 0);
             uiMgr.ShowOnlyPanel(GameState.Victory);
         }
-        CaptureCameraView(cam, new Vector3(236.0f, 10.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/win_screen_preview.png");
+        CaptureCameraView(cam, new Vector3(244.0f, 10.4f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/win_screen_preview.png");
 
         // Also recapture Zone 1 Glide action with Vesper_Glide ribbon trail
         if (player != null && playerSr != null && assets != null)

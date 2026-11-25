@@ -27,10 +27,27 @@ namespace VesperTwilightCourier
         private float shakeDuration;
         private float shakeMagnitude;
         private PlayerController cachedPlayer;
+        private Camera cam;
+        private float baseOrthoSize = 6.5f;
+        private bool arenaLocked;
+        private Vector2 arenaFocus;
+        private float arenaOrthoSize = 7.7f;
 
         private void Awake()
         {
             Instance = this;
+            cam = GetComponent<Camera>();
+            if (cam != null && cam.orthographic)
+            {
+                baseOrthoSize = cam.orthographicSize;
+            }
+        }
+
+        public void SetBossArenaCamera(bool locked, Vector2 focus, float orthoSize = 7.7f)
+        {
+            arenaLocked = locked;
+            arenaFocus = focus;
+            arenaOrthoSize = orthoSize;
         }
 
         private void Start()
@@ -74,8 +91,23 @@ namespace VesperTwilightCourier
             float targetLookAhead = facingDir * lookAheadDistance;
             currentLookAhead = Mathf.Lerp(currentLookAhead, targetLookAhead, Time.unscaledDeltaTime * 4f);
 
-            float targetX = Mathf.Clamp(target.position.x + currentLookAhead, minX, maxX);
-            float targetY = Mathf.Max(target.position.y + baseOffset.y, minY);
+            if (cam != null && cam.orthographic && Application.isPlaying)
+            {
+                cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, arenaLocked ? arenaOrthoSize : baseOrthoSize, Time.unscaledDeltaTime * 3.8f);
+            }
+
+            float targetX;
+            float targetY;
+            if (arenaLocked)
+            {
+                targetX = Mathf.Clamp(Mathf.Lerp(target.position.x, arenaFocus.x, 0.62f), arenaFocus.x - 2.2f, arenaFocus.x + 2.2f);
+                targetY = Mathf.Max(arenaFocus.y, target.position.y * 0.35f + arenaFocus.y * 0.65f);
+            }
+            else
+            {
+                targetX = Mathf.Clamp(target.position.x + currentLookAhead, minX, maxX);
+                targetY = Mathf.Max(target.position.y + baseOffset.y, minY);
+            }
             Vector3 desiredPosition = new Vector3(targetX, targetY, baseOffset.z);
 
             Vector3 smoothed = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);

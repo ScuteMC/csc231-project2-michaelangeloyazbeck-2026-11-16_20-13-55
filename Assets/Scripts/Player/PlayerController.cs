@@ -43,7 +43,7 @@ namespace VesperTwilightCourier
 
         [Header("Combat")]
         public Sprite lightningBoltSprite;
-        public float lightningCooldown = 0.24f;
+        public float lightningCooldown = 0.20f;
 
         public float FacingDirection { get; private set; } = 1f;
         public bool IsGrounded => isGrounded;
@@ -491,16 +491,70 @@ namespace VesperTwilightCourier
                 CameraController.Instance.TriggerShake(0.08f, 0.12f);
             }
 
+            Vector3 spawnPos = transform.position + new Vector3(FacingDirection * 0.72f, 0.96f, 0f);
+            Vector2? smartAim = FindSmartLightningAimDirection(spawnPos, FacingDirection);
+
             GameObject boltGo = new GameObject("PlayerLightningBolt");
-            boltGo.transform.position = transform.position + new Vector3(FacingDirection * 0.72f, 0.96f, 0f);
+            boltGo.transform.position = spawnPos;
             SpriteRenderer sr = boltGo.AddComponent<SpriteRenderer>();
             sr.sortingOrder = 9;
             BoxCollider2D col = boltGo.AddComponent<BoxCollider2D>();
             col.isTrigger = true;
-            col.size = new Vector2(1.2f, 0.56f);
+            col.size = new Vector2(1.25f, 0.65f);
+
+            Rigidbody2D boltRb = boltGo.AddComponent<Rigidbody2D>();
+            boltRb.bodyType = RigidbodyType2D.Kinematic;
+            boltRb.gravityScale = 0f;
+            boltRb.useFullKinematicContacts = true;
 
             PlayerLightningBolt bolt = boltGo.AddComponent<PlayerLightningBolt>();
-            bolt.Initialize(FacingDirection, lightningBoltSprite);
+            bolt.Initialize(FacingDirection, lightningBoltSprite, smartAim);
+        }
+
+        private static Vector2? FindSmartLightningAimDirection(Vector2 origin, float facingDir)
+        {
+            Vector2 scanCenter = origin + new Vector2(facingDir * 7.5f, 0f);
+            Collider2D[] hits = Physics2D.OverlapBoxAll(scanCenter, new Vector2(15.0f, 8.4f), 0f);
+            float bestDistSq = float.MaxValue;
+            Vector2? bestDir = null;
+
+            for (int i = 0; i < hits.Length; i++)
+            {
+                Collider2D col = hits[i];
+                if (col == null)
+                {
+                    continue;
+                }
+
+                bool validTarget = col.GetComponentInParent<FinalBossAI>() != null ||
+                                   col.GetComponentInParent<SwoopEnemy>() != null ||
+                                   col.GetComponentInParent<AetherShooterEnemy>() != null ||
+                                   col.GetComponentInParent<PatrolEnemy>() != null;
+                if (!validTarget)
+                {
+                    continue;
+                }
+
+                Vector2 targetPos = col.bounds.center;
+                Vector2 delta = targetPos - origin;
+                if (delta.x * facingDir <= 0.1f)
+                {
+                    continue;
+                }
+
+                float angleDeg = Mathf.Abs(Mathf.Atan2(delta.y, Mathf.Abs(delta.x)) * Mathf.Rad2Deg);
+                if (angleDeg <= 20.0f)
+                {
+                    float dSq = delta.sqrMagnitude;
+                    if (dSq < bestDistSq)
+                    {
+                        bestDistSq = dSq;
+                        bestDir = delta.normalized;
+                    }
+                }
+            }
+
+            return bestDir;
         }
 
         private void HandleFootstepDust()

@@ -10,7 +10,7 @@ namespace VesperTwilightCourier
     public class AetherShooterEnemy : MonoBehaviour
     {
         [Header("Combat & Casting")]
-        public float detectRangeX = 13.0f;
+        public float detectRangeX = 10.5f;
         public float detectRangeY = 4.5f;
         public float fireInterval = 2.35f;
         public float projectileSpeed = 8.8f;
@@ -24,10 +24,15 @@ namespace VesperTwilightCourier
         private bool defeated;
         private SpriteRenderer sr;
         private Transform playerTransform;
+        private Color baseColor = Color.white;
 
         private void Awake()
         {
             sr = GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                baseColor = sr.color;
+            }
         }
 
         private void Update()
@@ -59,12 +64,16 @@ namespace VesperTwilightCourier
             if (sr != null)
             {
                 sr.flipX = facingDir < 0f;
+                sr.color = fireTimer <= 0.35f
+                    ? new Color(1f, 0.42f, 0.92f, 1f)
+                    : baseColor;
             }
 
             fireTimer -= Time.deltaTime;
             if (fireTimer <= 0f)
             {
                 fireTimer = fireInterval;
+                if (sr != null) sr.color = baseColor;
                 FireOrb();
             }
         }
@@ -117,6 +126,7 @@ namespace VesperTwilightCourier
             bool above = other.bounds.min.y >= transform.position.y + 0.75f;
             if (fallingDown && above)
             {
+                health.GrantBriefInvulnerability(0.35f);
                 player.Bounce(stompBounceVelocity);
                 DefeatByLightning();
             }

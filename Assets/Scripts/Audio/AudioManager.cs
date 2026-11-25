@@ -27,14 +27,19 @@ namespace VesperTwilightCourier
         public AudioClip winClip;
         public AudioClip zapClip;
         public AudioClip bossRoarClip;
+        public AudioClip wardShatterClip;
 
         [Header("Music")]
         public AudioClip bgmClip;
+        public AudioClip bossBgmClip;
 
         [Header("Levels")]
         [Range(0f, 1f)] public float masterVolume = 0.75f;
-        [Range(0f, 1f)] public float bgmRelativeVolume = 0.5f;
+        [Range(0f, 1f)] public float bgmRelativeVolume = 0.68f;
         public bool isMuted;
+
+        private float musicBoost = 1f;
+        private bool bossMusicActive;
 
         private void Awake()
         {
@@ -105,7 +110,7 @@ namespace VesperTwilightCourier
             float effective = isMuted ? 0f : masterVolume;
             if (bgmSource != null)
             {
-                bgmSource.volume = effective * bgmRelativeVolume;
+                bgmSource.volume = Mathf.Clamp01(effective * bgmRelativeVolume * musicBoost);
                 bgmSource.mute = isMuted;
             }
 
@@ -114,6 +119,44 @@ namespace VesperTwilightCourier
                 sfxSource.volume = effective;
                 sfxSource.mute = isMuted;
             }
+        }
+
+        public void PlayBossMusic(int phase = 1)
+        {
+            if (bgmSource == null || bossBgmClip == null)
+            {
+                return;
+            }
+
+            bossMusicActive = true;
+            musicBoost = 1.22f;
+            bgmSource.pitch = phase >= 3 ? 1.12f : (phase == 2 ? 1.06f : 1.0f);
+            if (bgmSource.clip != bossBgmClip || !bgmSource.isPlaying)
+            {
+                bgmSource.clip = bossBgmClip;
+                bgmSource.loop = true;
+                bgmSource.Play();
+            }
+            ApplyAudioSettings();
+        }
+
+        public void PlayLevelMusic()
+        {
+            bossMusicActive = false;
+            musicBoost = 1.0f;
+            if (bgmSource == null)
+            {
+                return;
+            }
+
+            bgmSource.pitch = 1.0f;
+            if (bgmClip != null && (bgmSource.clip != bgmClip || !bgmSource.isPlaying))
+            {
+                bgmSource.clip = bgmClip;
+                bgmSource.loop = true;
+                bgmSource.Play();
+            }
+            ApplyAudioSettings();
         }
 
         public void PlaySfx(AudioClip clip, float volumeScale = 1f)
@@ -135,5 +178,6 @@ namespace VesperTwilightCourier
         public void PlayWin() => PlaySfx(winClip, 1f);
         public void PlayZap() => PlaySfx(zapClip, 0.88f);
         public void PlayBossRoar() => PlaySfx(bossRoarClip, 1f);
+        public void PlayWardShatter() => PlaySfx(wardShatterClip != null ? wardShatterClip : zapClip, 1f);
     }
 }

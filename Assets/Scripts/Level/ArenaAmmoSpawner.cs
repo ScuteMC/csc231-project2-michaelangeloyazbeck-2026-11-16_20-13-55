@@ -10,9 +10,9 @@ namespace VesperTwilightCourier
     [RequireComponent(typeof(Collider2D), typeof(SpriteRenderer))]
     public class ArenaAmmoSpawner : MonoBehaviour
     {
-        public float respawnInterval = 9.0f;
-        public int ammoGranted = 2;
-        public int healAmount = 10;
+        public float respawnInterval = 4.5f;
+        public int ammoGranted = 3;
+        public int healAmount = 15;
         public float bobAmplitude = 0.2f;
         public ParticleSystem idleParticles;
         public ParticleSystem collectBurstParticles;
