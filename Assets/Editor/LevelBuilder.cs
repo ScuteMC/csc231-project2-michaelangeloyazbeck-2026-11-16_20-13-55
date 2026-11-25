@@ -49,7 +49,7 @@ public static class LevelBuilder
         public PhysicsMaterial2D frictionlessMaterial;
         public RuntimeAnimatorController vesperAnimator, bossAnimator, gargoyleAnimator, casterAnimator;
         public RuntimeAnimatorController sentinelAnimator, shardAnimator, checkpointAnimator, goalBeaconAnimator, waterAnimator;
-        public AudioClip bgmClip, jumpClip, landClip, collectClip, hurtClip, checkpointClip, glideClip, winClip, zapClip, bossRoarClip, bossBgmClip, wardShatterClip;
+        public AudioClip bgmClip, jumpClip, landClip, hardLandClip, collectClip, hurtClip, checkpointClip, glideClip, winClip, zapClip, bossRoarClip, bossBgmClip, wardShatterClip, uiHoverClip, uiClickClip, footstepClip, bossTelegraphClip;
     }
 
     private struct PlatformFootprint
@@ -402,6 +402,11 @@ public static class LevelBuilder
         a.bossRoarClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_boss_roar.wav");
         a.bossBgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/bgm_boss_warden.wav");
         a.wardShatterClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_ward_shatter.wav");
+        a.uiHoverClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_ui_hover.wav");
+        a.uiClickClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_ui_click.wav");
+        a.footstepClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_footstep.wav");
+        a.bossTelegraphClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_boss_telegraph.wav");
+        a.hardLandClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_hard_land.wav");
 
         // Particle Material using soft radial texture + Sprites/Default (unlit & transparent in URP 2D)
         string matPath = $"{ArtFolder}/VFX_ParticleMat.mat";
@@ -786,9 +791,15 @@ public static class LevelBuilder
         audioMgr.zapClip = a.zapClip;
         audioMgr.bossRoarClip = a.bossRoarClip;
         audioMgr.wardShatterClip = a.wardShatterClip;
+        audioMgr.uiHoverClip = a.uiHoverClip;
+        audioMgr.uiClickClip = a.uiClickClip;
+        audioMgr.footstepClip = a.footstepClip;
+        audioMgr.bossTelegraphClip = a.bossTelegraphClip;
+        audioMgr.hardLandClip = a.hardLandClip;
 
         GameObject gmGo = new GameObject("GameManager");
         GameManager gm = gmGo.AddComponent<GameManager>();
+        gmGo.AddComponent<GameFeelManager>();
         gm.totalShards = 30;
 
         // 5. Player (Vesper)
@@ -1022,7 +1033,6 @@ public static class LevelBuilder
             "I · COURTYARDS", string.Empty,
             levelRoot.transform);
         CreateSentinel("Sentinel_0_Courtyard", new Vector2(18.5f, 2.25f), -2.2f, 2.2f, 2.6f, a, levelRoot.transform);
-        CreateGargoyle("Gargoyle_1_Chasm", new Vector2(35.5f, 5.4f), 3.2f, 2.8f, a, levelRoot.transform);
         CreatePlagueCaster("Caster_1_Landing", new Vector2(49.5f, 1.2f), a, levelRoot.transform);
         CreateTutorialTrigger("Tut_2_Glide", new Vector2(28.5f, 4.5f), new Vector2(4f, 4f),
             "HOLD SHIFT TO GLIDE",
@@ -1060,6 +1070,7 @@ public static class LevelBuilder
         CreateGothicRailing("Railing_2B_R", 68.6f, 73.0f, 5.4f, a, levelRoot.transform);
         CreateStreetLamp("Lamp_2B", new Vector2(60.2f, 5.4f), a, levelRoot.transform);
         CreatePendulumScythe("Pendulum_2_Aqueduct", new Vector2(63.2f, 10.6f), 3.65f, 44f, 2.4f, 0f, a, levelRoot.transform);
+        CreateGargoyle("Gargoyle_2A_Aqueduct", new Vector2(68.5f, 9.8f), 3.4f, 2.9f, a, levelRoot.transform);
         CreateElevatedPlatform("Roof_2_RelicPerch", 70.6f, 74.0f, 9.0f, 2.0f, a, levelRoot.transform, footprints);
         CreateSoulLifeRelic("SoulRelic_1_Aqueduct", new Vector2(72.3f, 9.9f), a, levelRoot.transform);
 
@@ -3207,6 +3218,17 @@ public static class LevelBuilder
         uiMgr.gameOverTitleButton = goTitleBtn;
         UnityEventTools.AddPersistentListener(goTitleBtn.onClick, gm.ReturnToTitle);
 
+        // Fullscreen Polish Overlays (Damage Vignette + Respawn Transition Fade, alpha 0 by default)
+        GameObject vignetteGo = CreateFullScreenPanel("DamageVignetteOverlay", canvasGo.transform, a.uiWhiteSprite, new Color(0.85f, 0.08f, 0.18f, 0f));
+        Image vignetteImg = vignetteGo.GetComponent<Image>();
+        vignetteImg.raycastTarget = false;
+        uiMgr.damageVignetteImage = vignetteImg;
+
+        GameObject fadeGo = CreateFullScreenPanel("ScreenFadeOverlay", canvasGo.transform, a.uiWhiteSprite, new Color(0.03f, 0.04f, 0.11f, 0f));
+        Image fadeImg = fadeGo.GetComponent<Image>();
+        fadeImg.raycastTarget = false;
+        uiMgr.screenFadeImage = fadeImg;
+
         // Initial visible panel in Scene (Title active, others inactive)
         titlePanel.SetActive(true);
         storyIntroPanel.SetActive(false);
@@ -3307,6 +3329,7 @@ public static class LevelBuilder
         Text labelTxt = CreateText("Label", go.transform, font, label, fontSize, FontStyle.Bold, textColor,
             TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, sizeDelta);
         AddUiShadow(labelTxt, new Color(0f, 0f, 0f, 0.85f), new Vector2(1.5f, -1.5f));
+        go.AddComponent<UiButtonJuice>();
 
         return btn;
     }
@@ -3551,9 +3574,27 @@ public static class LevelBuilder
     private static void VerifyCombatAndBossSystems()
     {
         AudioManager audioMgr = UnityEngine.Object.FindFirstObjectByType<AudioManager>();
-        if (audioMgr == null || audioMgr.bgmClip == null || audioMgr.bossBgmClip == null || audioMgr.bossBgmClip.length <= 20f || audioMgr.wardShatterClip == null)
+        if (audioMgr == null || audioMgr.bgmClip == null || audioMgr.bossBgmClip == null || audioMgr.bossBgmClip.length <= 20f || audioMgr.wardShatterClip == null ||
+            audioMgr.uiHoverClip == null || audioMgr.uiClickClip == null || audioMgr.footstepClip == null || audioMgr.bossTelegraphClip == null || audioMgr.hardLandClip == null)
         {
-            throw new Exception("[LevelBuilder] Audio verification failed: bgmClip, bossBgmClip (>20s), and wardShatterClip must all be loaded.");
+            throw new Exception("[LevelBuilder] Audio verification failed: bgmClip, bossBgmClip (>20s), wardShatterClip, and all 5 polish SFX must be loaded.");
+        }
+
+        GameFeelManager feelMgr = UnityEngine.Object.FindFirstObjectByType<GameFeelManager>();
+        UIManager uiMgr = UnityEngine.Object.FindFirstObjectByType<UIManager>();
+        if (feelMgr == null || uiMgr == null || uiMgr.damageVignetteImage == null || uiMgr.screenFadeImage == null)
+        {
+            throw new Exception("[LevelBuilder] Polish verification failed: expected GameFeelManager and UIManager overlays in scene.");
+        }
+
+        SwoopEnemy[] allSwoops = UnityEngine.Object.FindObjectsByType<SwoopEnemy>(FindObjectsSortMode.None);
+        for (int i = 0; i < allSwoops.Length; i++)
+        {
+            float sx = allSwoops[i].transform.position.x;
+            if (sx >= 31.5f && sx <= 42.0f)
+            {
+                throw new Exception($"[LevelBuilder] Kishotenketsu check failed: found Gargoyle '{allSwoops[i].name}' at x={sx:F2} inside Zone 1 safe glide tutorial chasm!");
+            }
         }
 
         FinalBossAI boss = UnityEngine.Object.FindFirstObjectByType<FinalBossAI>();

@@ -212,6 +212,11 @@ namespace VesperTwilightCourier
             {
                 CameraController.Instance.TriggerShake(0.14f, 0.2f);
             }
+            if (GameFeelManager.Instance != null)
+            {
+                GameFeelManager.Instance.TriggerHitStop(0.035f);
+                GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 0.8f, 0f), "KO!", new Color(0.55f, 0.98f, 1f, 1f), 0.95f);
+            }
             if (defeatParticles != null)
             {
                 defeatParticles.transform.SetParent(null, true);

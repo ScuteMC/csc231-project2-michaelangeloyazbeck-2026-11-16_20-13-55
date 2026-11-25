@@ -75,6 +75,11 @@ namespace VesperTwilightCourier
         private float jumpBufferTimer;
         private float knockbackLockTimer;
         private float footstepDustTimer;
+        private float peakFallSpeed;
+        private Vector2 storedLiftVelocity;
+        private float liftMomentumTimer;
+        private float fireBufferTimer;
+        private float skidDustCooldown;
 
         private readonly List<UpdraftVent> activeUpdrafts = new List<UpdraftVent>();
         private readonly Collider2D[] groundOverlapBuffer = new Collider2D[12];
@@ -132,6 +137,11 @@ namespace VesperTwilightCourier
             }
             if (aetherFlashPressedThisFrame)
             {
+                fireBufferTimer = 0.10f;
+            }
+            if (fireBufferTimer > 0f && fireCooldownTimer <= 0f)
+            {
+                fireBufferTimer = 0f;
                 TriggerAetherFlash();
             }
             UpdateTimers();
@@ -230,7 +240,9 @@ namespace VesperTwilightCourier
             }
             else
             {
-                rb.gravityScale = baseGravityScale;
+                // Celeste-style halved gravity near jump apex while holding Jump for smoother air readability
+                bool nearApex = !isGrounded && !isGliding && jumpHeld && Mathf.Abs(nextVelY) < 2.25f;
+                rb.gravityScale = nearApex ? baseGravityScale * 0.52f : baseGravityScale;
                 if (isGliding)
                 {
                     if (nextVelY < glideFallSpeed)
@@ -241,6 +253,24 @@ namespace VesperTwilightCourier
                 else if (nextVelY < maxFallSpeed)
                 {
                     nextVelY = maxFallSpeed;
+                }
+            }
+
+            if (!isGrounded)
+            {
+                peakFallSpeed = Mathf.Min(peakFallSpeed, nextVelY);
+                if (nextVelY > 0.6f)
+                {
+                    TryJumpCornerCorrection();
+                }
+            }
+            else if (Mathf.Abs(horizontalInput) > 0.1f && horizontalInput * rb.linearVelocity.x < -3.5f && skidDustCooldown <= 0f)
+            {
+                skidDustCooldown = 0.18f;
+                transform.localScale = new Vector3(1.08f, 0.94f, 1f);
+                if (landingDustParticles != null)
+                {
+                    landingDustParticles.Emit(4);
                 }
             }
 
@@ -322,6 +352,18 @@ namespace VesperTwilightCourier
             {
                 jumpBufferTimer -= Time.deltaTime;
             }
+            if (liftMomentumTimer > 0f)
+            {
+                liftMomentumTimer -= Time.deltaTime;
+            }
+            if (fireBufferTimer > 0f)
+            {
+                fireBufferTimer -= Time.deltaTime;
+            }
+            if (skidDustCooldown > 0f)
+            {
+                skidDustCooldown -= Time.deltaTime;
+            }
 
             if (isGrounded)
             {
@@ -364,6 +406,12 @@ namespace VesperTwilightCourier
                 if (rb.linearVelocity.y <= 0.15f)
                 {
                     isGrounded = true;
+                    MovingPlatform mp = col.GetComponentInParent<MovingPlatform>();
+                    if (mp != null)
+                    {
+                        storedLiftVelocity = mp.CurrentVelocity;
+                        liftMomentumTimer = 0.14f;
+                    }
                     break;
                 }
             }
@@ -371,16 +419,40 @@ namespace VesperTwilightCourier
             if (isGrounded && !wasGrounded)
             {
                 SetGlidingState(false);
-                transform.localScale = new Vector3(1.14f, 0.86f, 1f);
-                if (landingDustParticles != null)
+                bool hardLanding = peakFallSpeed < -13.5f;
+                if (hardLanding)
                 {
-                    landingDustParticles.Play();
+                    transform.localScale = new Vector3(1.26f, 0.76f, 1f);
+                    if (landingDustParticles != null)
+                    {
+                        landingDustParticles.Emit(16);
+                    }
+                    if (CameraController.Instance != null)
+                    {
+                        CameraController.Instance.TriggerShake(0.08f, 0.10f);
+                    }
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.PlayHardLand();
+                    }
                 }
+                else
+                {
+                    transform.localScale = new Vector3(1.14f, 0.86f, 1f);
+                    if (landingDustParticles != null)
+                    {
+                        landingDustParticles.Play();
+                    }
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.PlayLand();
+                    }
+                }
+            }
 
-                if (AudioManager.Instance != null)
-                {
-                    AudioManager.Instance.PlayLand();
-                }
+            if (isGrounded)
+            {
+                peakFallSpeed = 0f;
             }
         }
 
@@ -391,7 +463,14 @@ namespace VesperTwilightCourier
             isGrounded = false;
             jumpHoldEligibleForGlide = true;
 
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            Vector2 jumpVel = new Vector2(rb.linearVelocity.x, jumpForce);
+            if (liftMomentumTimer > 0f)
+            {
+                jumpVel.x += Mathf.Clamp(storedLiftVelocity.x * 0.72f, -5.2f, 5.2f);
+                jumpVel.y += Mathf.Clamp(storedLiftVelocity.y * 0.45f, 0f, 3.8f);
+                liftMomentumTimer = 0f;
+            }
+            rb.linearVelocity = jumpVel;
             transform.localScale = new Vector3(0.90f, 1.12f, 1f);
 
             if (jumpDustParticles != null)
@@ -403,6 +482,41 @@ namespace VesperTwilightCourier
             {
                 AudioManager.Instance.PlayJump();
             }
+        }
+
+        private void TryJumpCornerCorrection()
+        {
+            float headY = transform.position.y + 1.58f;
+            bool leftOuterBlocked = HasSolidAtPoint(new Vector2(transform.position.x - 0.31f, headY));
+            bool leftInnerClear = !HasSolidAtPoint(new Vector2(transform.position.x - 0.12f, headY));
+            if (leftOuterBlocked && leftInnerClear)
+            {
+                rb.position += new Vector2(0.28f, 0f);
+                return;
+            }
+
+            bool rightOuterBlocked = HasSolidAtPoint(new Vector2(transform.position.x + 0.31f, headY));
+            bool rightInnerClear = !HasSolidAtPoint(new Vector2(transform.position.x + 0.12f, headY));
+            if (rightOuterBlocked && rightInnerClear)
+            {
+                rb.position -= new Vector2(0.28f, 0f);
+            }
+        }
+
+        private bool HasSolidAtPoint(Vector2 center)
+        {
+            ContactFilter2D filter = new ContactFilter2D();
+            filter.useTriggers = false;
+            int count = Physics2D.OverlapBox(center, new Vector2(0.10f, 0.14f), 0f, filter, groundOverlapBuffer);
+            for (int i = 0; i < count; i++)
+            {
+                Collider2D col = groundOverlapBuffer[i];
+                if (col != null && !col.isTrigger && col.gameObject != gameObject)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void Bounce(float upwardSpeed)
@@ -572,6 +686,10 @@ namespace VesperTwilightCourier
                 if (landingDustParticles != null)
                 {
                     landingDustParticles.Emit(2);
+                }
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlayFootstep();
                 }
             }
         }

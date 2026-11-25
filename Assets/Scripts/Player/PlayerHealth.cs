@@ -122,6 +122,18 @@ namespace VesperTwilightCourier
                 hurtBurstParticles.Play();
             }
 
+            if (GameFeelManager.Instance != null)
+            {
+                GameFeelManager.Instance.TriggerHitStop(0.055f);
+                GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 1.55f, 0f), $"-{amount}", new Color(1f, 0.34f, 0.46f, 1f), 1.05f);
+            }
+
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.FlashDamageVignette(0.75f);
+                UIManager.Instance.SetLowHealthPulse(CurrentHealth > 0 && CurrentHealth <= 30);
+            }
+
             if (CurrentHealth <= 0)
             {
                 HandleZeroHealth();
@@ -225,6 +237,8 @@ namespace VesperTwilightCourier
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.UpdateHealth(CurrentHealth, maxHealth);
+                UIManager.Instance.SetLowHealthPulse(false);
+                UIManager.Instance.PlayScreenTransitionFlash(0.28f);
                 UIManager.Instance.ShowBanner("-1 LIFE", 1.8f);
             }
         }
@@ -262,6 +276,8 @@ namespace VesperTwilightCourier
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.UpdateHealth(CurrentHealth, maxHealth);
+                UIManager.Instance.SetLowHealthPulse(false);
+                UIManager.Instance.PlayScreenTransitionFlash(0.28f);
             }
             if (GameManager.Instance != null)
             {
@@ -276,7 +292,9 @@ namespace VesperTwilightCourier
                 return false;
             }
 
+            int before = CurrentHealth;
             CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + Mathf.Max(1, amount));
+            int healed = CurrentHealth - before;
             if (aetherHealParticles != null)
             {
                 aetherHealParticles.Play();
@@ -284,6 +302,11 @@ namespace VesperTwilightCourier
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.UpdateHealth(CurrentHealth, maxHealth);
+                UIManager.Instance.SetLowHealthPulse(CurrentHealth > 0 && CurrentHealth <= 30);
+            }
+            if (healed >= 10 && GameFeelManager.Instance != null)
+            {
+                GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 1.6f, 0f), $"+{healed} HP", new Color(0.38f, 0.98f, 0.72f, 1f), 0.95f);
             }
             return true;
         }

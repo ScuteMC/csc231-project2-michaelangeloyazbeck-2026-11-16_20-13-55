@@ -96,6 +96,8 @@ namespace VesperTwilightCourier
         private float dashTargetX;
         private Vector3 spawnPosition;
         private Color baseColor = Color.white;
+        private SpriteRenderer dashTelegraphSr;
+        private SpriteRenderer slamTelegraphSr;
 
         public int CurrentPhase => currentPhase;
         public int CurrentWardPips => currentWardPips;
@@ -123,6 +125,41 @@ namespace VesperTwilightCourier
             currentHealth = maxHealth;
             currentPhase = 1;
             currentWardPips = GetMaxWardPipsForPhase(1);
+            EnsureTelegraphVisuals();
+        }
+
+        private void EnsureTelegraphVisuals()
+        {
+            if (skyBeamWhiteSprite == null)
+            {
+                return;
+            }
+
+            if (dashTelegraphSr == null)
+            {
+                GameObject dashTelGo = new GameObject("DashFloorTelegraph");
+                dashTelGo.transform.position = transform.position;
+                dashTelegraphSr = dashTelGo.AddComponent<SpriteRenderer>();
+                dashTelegraphSr.sprite = skyBeamWhiteSprite;
+                dashTelegraphSr.sortingOrder = 5;
+                dashTelegraphSr.enabled = false;
+            }
+
+            if (slamTelegraphSr == null)
+            {
+                GameObject slamTelGo = new GameObject("SlamZoneTelegraph");
+                slamTelGo.transform.position = transform.position;
+                slamTelegraphSr = slamTelGo.AddComponent<SpriteRenderer>();
+                slamTelegraphSr.sprite = skyBeamWhiteSprite;
+                slamTelegraphSr.sortingOrder = 5;
+                slamTelegraphSr.enabled = false;
+            }
+        }
+
+        private void HideAllTelegraphs()
+        {
+            if (dashTelegraphSr != null) dashTelegraphSr.enabled = false;
+            if (slamTelegraphSr != null) slamTelegraphSr.enabled = false;
         }
 
         public void InitializeForEditorVerification()
@@ -383,9 +420,19 @@ namespace VesperTwilightCourier
         {
             stateTimer += Time.deltaTime * speedMult;
 
+            if (!actionExecuted && slamTelegraphSr != null)
+            {
+                float pulse = 0.25f + 0.50f * Mathf.Abs(Mathf.Sin(stateTimer * 18f));
+                slamTelegraphSr.enabled = true;
+                slamTelegraphSr.color = new Color(1f, 0.24f, 0.36f, pulse);
+                slamTelegraphSr.transform.position = transform.position + new Vector3(facingDirection * 1.95f, 0.32f, 0f);
+                slamTelegraphSr.transform.localScale = new Vector3(3.2f, 0.45f, 1f);
+            }
+
             if (!actionExecuted && stateTimer >= 0.68f)
             {
                 actionExecuted = true;
+                if (slamTelegraphSr != null) slamTelegraphSr.enabled = false;
                 ExecuteHalberdSlam();
             }
 
@@ -457,12 +504,22 @@ namespace VesperTwilightCourier
 
             if (stateTimer < windup)
             {
+                if (dashTelegraphSr != null)
+                {
+                    float pulse = 0.28f + 0.52f * Mathf.Abs(Mathf.Sin(stateTimer * 20f));
+                    dashTelegraphSr.enabled = true;
+                    dashTelegraphSr.color = new Color(1f, 0.22f, 0.42f, pulse);
+                    float midX = (dashStartX + dashTargetX) * 0.5f;
+                    dashTelegraphSr.transform.position = new Vector3(midX, transform.position.y + 0.35f, 0f);
+                    dashTelegraphSr.transform.localScale = new Vector3(Mathf.Max(1.8f, Mathf.Abs(dashTargetX - dashStartX)), 0.36f, 1f);
+                }
                 return;
             }
 
             if (!actionExecuted)
             {
                 actionExecuted = true;
+                if (dashTelegraphSr != null) dashTelegraphSr.enabled = false;
                 if (slamParticles != null)
                 {
                     slamParticles.transform.position = transform.position + new Vector3(0f, 0.25f, 0f);
@@ -637,6 +694,10 @@ namespace VesperTwilightCourier
                     hitSparkParticles.Play();
                 }
                 if (AudioManager.Instance != null) AudioManager.Instance.PlayZap();
+                if (GameFeelManager.Instance != null)
+                {
+                    GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 2.75f, 0f), $"-{helmBounceDamage}", new Color(0.75f, 0.96f, 1f, 1f), 0.9f);
+                }
 
                 ApplyBossDamage(helmBounceDamage);
                 if (defeated)
@@ -652,7 +713,16 @@ namespace VesperTwilightCourier
                     {
                         ClearArenaHazards();
                         if (AudioManager.Instance != null) AudioManager.Instance.PlayWardShatter();
-                        if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.28f, 0.34f);
+                        if (CameraController.Instance != null)
+                        {
+                            CameraController.Instance.TriggerShake(0.28f, 0.34f);
+                            CameraController.Instance.TriggerZoomPunch(-0.55f, 0.25f);
+                        }
+                        if (GameFeelManager.Instance != null)
+                        {
+                            GameFeelManager.Instance.TriggerHitStop(0.08f);
+                            GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 3.1f, 0f), "WARD SHATTER!", new Color(1f, 0.88f, 0.38f, 1f), 1.35f);
+                        }
                         SetState(BossState.Stunned);
                         if (UIManager.Instance != null) UIManager.Instance.ShowBanner("WARD BROKEN — STOMP!", 2.0f);
                         return;
@@ -701,12 +771,28 @@ namespace VesperTwilightCourier
 
             if (currentState == BossState.Stunned)
             {
+                if (GameFeelManager.Instance != null)
+                {
+                    GameFeelManager.Instance.TriggerHitStop(0.032f);
+                    GameFeelManager.Instance.SpawnFloatingText(hitPos + new Vector2(0f, 0.45f), $"-{lightningStunCritDamage}", new Color(1f, 0.90f, 0.42f, 1f), 1.05f);
+                }
                 ApplyBossDamage(lightningStunCritDamage);
                 return;
             }
 
             bool willBreak = currentWardPips == 1;
-            ApplyBossDamage(lightningWardChipDamage + (willBreak ? lightningWardShatterBonus : 0));
+            int totalBoltDmg = lightningWardChipDamage + (willBreak ? lightningWardShatterBonus : 0);
+            if (GameFeelManager.Instance != null)
+            {
+                GameFeelManager.Instance.TriggerHitStop(willBreak ? 0.08f : 0.032f);
+                GameFeelManager.Instance.SpawnFloatingText(
+                    hitPos + new Vector2(0f, 0.45f),
+                    $"-{totalBoltDmg}",
+                    willBreak ? new Color(1f, 0.90f, 0.42f, 1f) : new Color(0.45f, 0.98f, 1f, 1f),
+                    willBreak ? 1.15f : 0.95f
+                );
+            }
+            ApplyBossDamage(totalBoltDmg);
             if (defeated)
             {
                 return;
@@ -721,7 +807,15 @@ namespace VesperTwilightCourier
                 {
                     ClearArenaHazards();
                     if (AudioManager.Instance != null) AudioManager.Instance.PlayWardShatter();
-                    if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.28f, 0.34f);
+                    if (CameraController.Instance != null)
+                    {
+                        CameraController.Instance.TriggerShake(0.28f, 0.34f);
+                        CameraController.Instance.TriggerZoomPunch(-0.55f, 0.25f);
+                    }
+                    if (GameFeelManager.Instance != null)
+                    {
+                        GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 2.9f, 0f), "WARD SHATTER!", new Color(1f, 0.88f, 0.38f, 1f), 1.35f);
+                    }
                     SetState(BossState.Stunned);
                     if (UIManager.Instance != null) UIManager.Instance.ShowBanner("WARD BROKEN — STOMP!", 2.0f);
                     return;
@@ -742,11 +836,21 @@ namespace VesperTwilightCourier
                 hitSparkParticles.transform.position = transform.position + new Vector3(0f, 2.0f, 0f);
                 hitSparkParticles.Play();
             }
-            if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.26f, 0.32f);
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.TriggerShake(0.26f, 0.32f);
+                CameraController.Instance.TriggerZoomPunch(-0.6f, 0.24f);
+            }
             if (AudioManager.Instance != null) AudioManager.Instance.PlayWardShatter();
 
             int bonusDmg = (GameManager.Instance != null && GameManager.Instance.HasCrownBreakerPower) ? 6 : 0;
-            ApplyBossDamage(stompCrownDamage + bonusDmg);
+            int totalDmg = stompCrownDamage + bonusDmg;
+            if (GameFeelManager.Instance != null)
+            {
+                GameFeelManager.Instance.TriggerHitStop(0.085f);
+                GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 2.9f, 0f), $"-{totalDmg} CRIT!", new Color(1f, 0.90f, 0.36f, 1f), 1.4f);
+            }
+            ApplyBossDamage(totalDmg);
             if (defeated)
             {
                 return;
@@ -836,11 +940,22 @@ namespace VesperTwilightCourier
         private void DefeatBoss()
         {
             defeated = true;
+            HideAllTelegraphs();
             ClearArenaHazards();
             UpdateWardVisual();
 
             if (arenaGateObject != null) arenaGateObject.SetActive(false);
-            if (CameraController.Instance != null) CameraController.Instance.SetBossArenaCamera(false, Vector2.zero);
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.SetBossArenaCamera(false, Vector2.zero);
+                CameraController.Instance.TriggerZoomPunch(-0.85f, 0.45f);
+                CameraController.Instance.TriggerShake(0.45f, 0.45f);
+            }
+            if (GameFeelManager.Instance != null)
+            {
+                GameFeelManager.Instance.TriggerHitStop(0.22f, 0.08f);
+                GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 2.8f, 0f), "ECLIPSE BROKEN!", new Color(1f, 0.90f, 0.40f, 1f), 1.55f);
+            }
 
             if (stunLoopParticles != null) stunLoopParticles.Stop();
             if (rageAuraParticles != null) rageAuraParticles.Stop();
@@ -868,6 +983,7 @@ namespace VesperTwilightCourier
 
         public void ResetForRetry()
         {
+            HideAllTelegraphs();
             ClearArenaHazards();
             if (arenaGateObject != null) arenaGateObject.SetActive(false);
             if (CameraController.Instance != null) CameraController.Instance.SetBossArenaCamera(false, Vector2.zero);
@@ -910,10 +1026,17 @@ namespace VesperTwilightCourier
 
         private void SetState(BossState nextState)
         {
+            HideAllTelegraphs();
             currentState = nextState;
             stateTimer = 0f;
             actionExecuted = false;
             playerDamagedDuringAttack = false;
+
+            if (arenaEngaged && Application.isPlaying && AudioManager.Instance != null &&
+                (nextState == BossState.Attacking || nextState == BossState.Dashing || nextState == BossState.Casting))
+            {
+                AudioManager.Instance.PlayBossTelegraph();
+            }
 
             if (bossCollider != null)
             {
@@ -1013,6 +1136,7 @@ namespace VesperTwilightCourier
         // ============================================================
         public void SetEditorPreviewPose(BossState poseState, float facingDir, Vector3 previewPos, bool showWard = true)
         {
+            HideAllTelegraphs();
             facingDirection = facingDir >= 0f ? 1f : -1f;
             transform.position = previewPos;
             ApplyFacingScale();

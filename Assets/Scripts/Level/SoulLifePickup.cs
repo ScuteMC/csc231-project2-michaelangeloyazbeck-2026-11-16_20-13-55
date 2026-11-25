@@ -56,6 +56,11 @@ namespace VesperTwilightCourier
             {
                 AudioManager.Instance.PlayCheckpoint();
             }
+            if (GameFeelManager.Instance != null)
+            {
+                GameFeelManager.Instance.TriggerHitStop(0.045f);
+                GameFeelManager.Instance.SpawnFloatingText(transform.position + new Vector3(0f, 0.85f, 0f), "+1 LIFE", new Color(1f, 0.90f, 0.42f, 1f), 1.3f);
+            }
 
             if (UIManager.Instance != null)
             {

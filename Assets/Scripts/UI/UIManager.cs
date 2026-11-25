@@ -70,6 +70,10 @@ namespace VesperTwilightCourier
         public Color activeWardColor = new Color(1f, 0.35f, 0.48f, 1f);
         public Color brokenWardColor = new Color(0.22f, 0.16f, 0.24f, 0.32f);
 
+        [Header("Screen Polish Overlays")]
+        public Image damageVignetteImage;
+        public Image screenFadeImage;
+
         [Header("Audio Controls")]
         public Slider hudVolumeSlider;
         public Slider pauseVolumeSlider;
@@ -106,8 +110,14 @@ namespace VesperTwilightCourier
 
         private Coroutine bannerRoutine;
         private Coroutine ammoPopRoutine;
+        private Coroutine panelAnimRoutine;
         private bool syncingAudioUi;
         private int currentStorySlide;
+
+        private float damageFlashAlpha;
+        private bool lowHealthPulseActive;
+        private float screenFadeAlpha;
+        private float screenFadeSpeed = 1.6f;
 
         private float targetHpNorm = 1f;
         private float trailHpNorm = 1f;
@@ -167,6 +177,50 @@ namespace VesperTwilightCourier
                     : targetBossHpNorm;
                 bossHealthTrailFill.fillAmount = trailBossHpNorm;
             }
+
+            if (damageVignetteImage != null)
+            {
+                if (damageFlashAlpha > 0f)
+                {
+                    damageFlashAlpha = Mathf.MoveTowards(damageFlashAlpha, 0f, Time.unscaledDeltaTime * 2.1f);
+                }
+                float pulseAlpha = lowHealthPulseActive ? (0.14f + 0.10f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 5.2f))) : 0f;
+                Color vc = damageVignetteImage.color;
+                vc.a = Mathf.Clamp(Mathf.Max(damageFlashAlpha * 0.36f, pulseAlpha), 0f, 0.38f);
+                damageVignetteImage.color = vc;
+            }
+
+            if (screenFadeImage != null && screenFadeAlpha > 0.001f)
+            {
+                screenFadeAlpha = Mathf.MoveTowards(screenFadeAlpha, 0f, Time.unscaledDeltaTime * screenFadeSpeed);
+                Color fc = screenFadeImage.color;
+                fc.a = screenFadeAlpha;
+                screenFadeImage.color = fc;
+            }
+        }
+
+        public void FlashDamageVignette(float intensity = 0.75f)
+        {
+            damageFlashAlpha = Mathf.Max(damageFlashAlpha, Mathf.Clamp01(intensity));
+        }
+
+        public void SetLowHealthPulse(bool active)
+        {
+            lowHealthPulseActive = active;
+        }
+
+        public void PlayScreenTransitionFlash(float duration = 0.28f)
+        {
+            if (!Application.isPlaying || screenFadeImage == null)
+            {
+                return;
+            }
+
+            screenFadeAlpha = 0.85f;
+            screenFadeSpeed = 0.85f / Mathf.Max(0.08f, duration);
+            Color fc = screenFadeImage.color;
+            fc.a = screenFadeAlpha;
+            screenFadeImage.color = fc;
         }
 
         private void RegisterAudioListeners()
@@ -289,6 +343,11 @@ namespace VesperTwilightCourier
                 return;
             }
 
+            if (field.GetComponent<UiButtonJuice>() == null)
+            {
+                field.gameObject.AddComponent<UiButtonJuice>();
+            }
+
             if (field.onClick.GetPersistentEventCount() == 0)
             {
                 field.onClick.RemoveAllListeners();
@@ -306,6 +365,58 @@ namespace VesperTwilightCourier
             if (pausePanel != null) pausePanel.SetActive(state == GameState.Paused);
             if (winPanel != null) winPanel.SetActive(state == GameState.Victory);
             if (gameOverPanel != null) gameOverPanel.SetActive(state == GameState.GameOver);
+
+            GameObject activeModalPanel = state switch
+            {
+                GameState.Title => titlePanel,
+                GameState.StoryIntro => storyIntroPanel,
+                GameState.Lore => lorePanel,
+                GameState.Tutorial => tutorialPanel,
+                GameState.Paused => pausePanel,
+                GameState.Victory => winPanel,
+                GameState.GameOver => gameOverPanel,
+                _ => null
+            };
+
+            if (activeModalPanel != null)
+            {
+                CanvasGroup cg = activeModalPanel.GetComponent<CanvasGroup>();
+                if (cg == null) cg = activeModalPanel.AddComponent<CanvasGroup>();
+
+                Transform modalChild = activeModalPanel.transform.childCount > 0 ? activeModalPanel.transform.GetChild(0) : null;
+                if (!Application.isPlaying)
+                {
+                    cg.alpha = 1f;
+                    if (modalChild != null) modalChild.localScale = Vector3.one;
+                }
+                else
+                {
+                    if (panelAnimRoutine != null) StopCoroutine(panelAnimRoutine);
+                    panelAnimRoutine = StartCoroutine(AnimateModalInRoutine(cg, modalChild));
+                }
+            }
+        }
+
+        private IEnumerator AnimateModalInRoutine(CanvasGroup cg, Transform modalChild)
+        {
+            const float dur = 0.18f;
+            float elapsed = 0f;
+            while (elapsed < dur)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float u = Mathf.Clamp01(elapsed / dur);
+                float ease = 1f - Mathf.Pow(1f - u, 3f);
+                if (cg != null) cg.alpha = ease;
+                if (modalChild != null)
+                {
+                    float s = Mathf.Lerp(0.94f, 1.0f, ease);
+                    modalChild.localScale = new Vector3(s, s, 1f);
+                }
+                yield return null;
+            }
+            if (cg != null) cg.alpha = 1f;
+            if (modalChild != null) modalChild.localScale = Vector3.one;
+            panelAnimRoutine = null;
         }
 
         public void OpenStoryIntro()

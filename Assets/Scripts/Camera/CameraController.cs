@@ -3,8 +3,9 @@ using UnityEngine;
 namespace VesperTwilightCourier
 {
     /// <summary>
-    /// Smooth 2D follow camera with horizontal look-ahead, minimum altitude clamp,
-    /// and trauma-based screen shake for hits and sentinel stomps.
+    /// Smooth 2D follow camera implementing Itay Keren's "Scroll Back" principles:
+    /// horizontal dead-zone window, look-ahead direction hysteresis, vertical platform snapping,
+    /// Boss Arena wide-framing lock, zoom punches, and trauma-based screen shake.
     /// </summary>
     public class CameraController : MonoBehaviour
     {
@@ -16,19 +17,32 @@ namespace VesperTwilightCourier
         public float smoothTime = 0.14f;
         public float lookAheadDistance = 2.0f;
 
+        [Header("Scroll-Back Camera Principles")]
+        public float deadZoneX = 0.75f;
+        public float lookAheadSwitchDelay = 0.16f;
+        public float airUpperSnapLimit = 2.5f;
+        public float airLowerSnapLimit = 1.5f;
+
         [Header("Bounds")]
         public float minX = 6f;
-        public float maxX = 236f;
+        public float maxX = 244f;
         public float minY = -2.5f;
 
         private Vector3 velocity;
         private float currentLookAhead;
+        private float pendingLookDir = 1f;
+        private float lookDirHoldTimer;
+        private float cameraFocusX;
+        private float anchoredGroundY;
         private float shakeTimer;
         private float shakeDuration;
         private float shakeMagnitude;
         private PlayerController cachedPlayer;
         private Camera cam;
         private float baseOrthoSize = 6.5f;
+        private float zoomPunchDelta;
+        private float zoomPunchTimer;
+        private float zoomPunchDuration;
         private bool arenaLocked;
         private Vector2 arenaFocus;
         private float arenaOrthoSize = 7.7f;
@@ -50,6 +64,13 @@ namespace VesperTwilightCourier
             arenaOrthoSize = orthoSize;
         }
 
+        public void TriggerZoomPunch(float deltaOrtho, float duration = 0.25f)
+        {
+            zoomPunchDelta = deltaOrtho;
+            zoomPunchDuration = Mathf.Max(0.05f, duration);
+            zoomPunchTimer = zoomPunchDuration;
+        }
+
         private void Start()
         {
             if (target != null)
@@ -66,9 +87,15 @@ namespace VesperTwilightCourier
                 return;
             }
 
+            cameraFocusX = target.position.x;
+            anchoredGroundY = target.position.y;
+            pendingLookDir = cachedPlayer != null ? cachedPlayer.FacingDirection : 1f;
+            currentLookAhead = pendingLookDir * lookAheadDistance;
+            lookDirHoldTimer = 0f;
+
             Vector3 desired = new Vector3(
-                Mathf.Clamp(target.position.x + baseOffset.x, minX, maxX),
-                Mathf.Max(target.position.y + baseOffset.y, minY),
+                Mathf.Clamp(cameraFocusX + currentLookAhead, minX, maxX),
+                Mathf.Max(anchoredGroundY + baseOffset.y, minY),
                 baseOffset.z
             );
             transform.position = desired;
@@ -82,18 +109,41 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            float facingDir = 1f;
-            if (cachedPlayer != null)
-            {
-                facingDir = cachedPlayer.FacingDirection;
-            }
+            float dt = Time.unscaledDeltaTime;
 
-            float targetLookAhead = facingDir * lookAheadDistance;
-            currentLookAhead = Mathf.Lerp(currentLookAhead, targetLookAhead, Time.unscaledDeltaTime * 4f);
+            // Handle orthographic zoom punch + smooth arena camera size transitions
+            if (zoomPunchTimer > 0f)
+            {
+                zoomPunchTimer -= dt;
+                if (zoomPunchTimer <= 0f)
+                {
+                    zoomPunchDelta = 0f;
+                }
+            }
 
             if (cam != null && cam.orthographic && Application.isPlaying)
             {
-                cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, arenaLocked ? arenaOrthoSize : baseOrthoSize, Time.unscaledDeltaTime * 3.8f);
+                float targetOrtho = arenaLocked ? arenaOrthoSize : baseOrthoSize;
+                float punch = zoomPunchTimer > 0f ? zoomPunchDelta * (zoomPunchTimer / zoomPunchDuration) : 0f;
+                cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, targetOrtho + punch, dt * 4.5f);
+            }
+
+            // Look-ahead hysteresis so rapid left-right micro-adjustments never flip the camera
+            float facingDir = cachedPlayer != null ? cachedPlayer.FacingDirection : 1f;
+            if (!Mathf.Approximately(Mathf.Sign(facingDir), Mathf.Sign(pendingLookDir)))
+            {
+                pendingLookDir = facingDir;
+                lookDirHoldTimer = 0f;
+            }
+            else
+            {
+                lookDirHoldTimer += dt;
+            }
+
+            if (lookDirHoldTimer >= lookAheadSwitchDelay)
+            {
+                float targetLookAhead = pendingLookDir * lookAheadDistance;
+                currentLookAhead = Mathf.Lerp(currentLookAhead, targetLookAhead, dt * 4.2f);
             }
 
             float targetX;
@@ -105,16 +155,44 @@ namespace VesperTwilightCourier
             }
             else
             {
-                targetX = Mathf.Clamp(target.position.x + currentLookAhead, minX, maxX);
-                targetY = Mathf.Max(target.position.y + baseOffset.y, minY);
-            }
-            Vector3 desiredPosition = new Vector3(targetX, targetY, baseOffset.z);
+                // Horizontal Dead-Zone Window
+                float dx = target.position.x - cameraFocusX;
+                if (dx > deadZoneX)
+                {
+                    cameraFocusX = target.position.x - deadZoneX;
+                }
+                else if (dx < -deadZoneX)
+                {
+                    cameraFocusX = target.position.x + deadZoneX;
+                }
 
-            Vector3 smoothed = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);
+                // Vertical Platform Snapping (avoids jump-height camera jitter)
+                if (cachedPlayer == null || cachedPlayer.IsGrounded)
+                {
+                    anchoredGroundY = Mathf.Lerp(anchoredGroundY, target.position.y, dt * 8.0f);
+                }
+                else
+                {
+                    if (target.position.y > anchoredGroundY + airUpperSnapLimit)
+                    {
+                        anchoredGroundY = target.position.y - airUpperSnapLimit;
+                    }
+                    else if (target.position.y < anchoredGroundY - airLowerSnapLimit)
+                    {
+                        anchoredGroundY = target.position.y + airLowerSnapLimit;
+                    }
+                }
+
+                targetX = Mathf.Clamp(cameraFocusX + currentLookAhead, minX, maxX);
+                targetY = Mathf.Max(anchoredGroundY + baseOffset.y, minY);
+            }
+
+            Vector3 desiredPosition = new Vector3(targetX, targetY, baseOffset.z);
+            Vector3 smoothed = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime, Mathf.Infinity, dt);
 
             if (shakeTimer > 0f)
             {
-                shakeTimer -= Time.unscaledDeltaTime;
+                shakeTimer -= dt;
                 float normalized = shakeDuration > 0f ? Mathf.Clamp01(shakeTimer / shakeDuration) : 0f;
                 Vector2 offset2D = Random.insideUnitCircle * (shakeMagnitude * normalized);
                 smoothed.x += offset2D.x;

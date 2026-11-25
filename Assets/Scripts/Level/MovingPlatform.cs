@@ -24,6 +24,8 @@ namespace VesperTwilightCourier
         [Header("VFX")]
         public ParticleSystem thrusterParticles;
 
+        public Vector2 CurrentVelocity { get; private set; }
+
         private float elapsed;
         private Vector3 lastPosition;
         private readonly HashSet<Rigidbody2D> riders = new HashSet<Rigidbody2D>();
@@ -41,12 +43,14 @@ namespace VesperTwilightCourier
         {
             if (GameManager.Instance != null && !GameManager.Instance.IsPlaying)
             {
+                CurrentVelocity = Vector2.zero;
                 return;
             }
 
             elapsed += Time.fixedDeltaTime;
             Vector3 target = EvaluatePosition(elapsed);
             Vector2 delta = (Vector2)(target - lastPosition);
+            CurrentVelocity = Time.fixedDeltaTime > 0f ? delta / Time.fixedDeltaTime : Vector2.zero;
 
             transform.position = target;
             lastPosition = target;

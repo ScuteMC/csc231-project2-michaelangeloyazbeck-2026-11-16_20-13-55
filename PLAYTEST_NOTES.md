@@ -1,6 +1,15 @@
 # Playtest Notes — Vesper: Twilight Courier (Level 1)
 
-**Latest Verification**: Full combat & boss overhaul built and verified in Unity `6000.5.1f1` (`LevelBuilder.BuildAll` exit code `0`, `0` platform overlaps across `23` footprints, `VerifyCombatAndBossSystems()` PASSED — `bgm_boss_warden.wav` `25.6s` loaded, swept bolt checks hitting all 4 enemy types, and full `100 -> 0 HP` Malakor kill flow unsealing the Sanctum Beacon).
+**Latest Verification**: Research-backed Game Feel & Polish overhaul built and verified in Unity `6000.5.1f1` (`LevelBuilder.BuildAll` exit code `0`, `0` platform overlaps across `23` footprints, `VerifyCombatAndBossSystems()` PASSED — `bgm_boss_warden.wav` `25.6s` + all 5 polish SFX verified, swept bolt checks hitting all 4 enemy types, Zone 1 glide chasm verified clear of Gargoyles, and full `100 -> 0 HP` Malakor kill flow unsealing the Sanctum Beacon).
+
+## Research-Backed Game Feel & Polish Changes (`GAME_DESIGN_RULES.md`)
+1. **Hit-Stop, Floating Popups & Heavy Landing Weight (`GameFeelManager.cs`, `PlayerController.cs`)**: Added unscaled hit-stop micro-freezes (`0.032s–0.22s`), eased world-space floating combat/pickup popups (`-9`, `-26 CRIT!`, `WARD SHATTER!`, `+10 HP`, `+1 LIFE`, `KO!`), skid turn dust, stone footsteps, and velocity-scaled hard landings (`sfx_hard_land.wav`).
+2. ***Celeste* Platformer Forgiveness (`PlayerController.cs`, `MovingPlatform.cs`)**: Added halved-gravity jump apex hangtime (`0.52x` near peak), upward jump corner correction (`0.28u` slide around ceiling edges), moving-platform lift momentum storage (`0.14s`), and a `0.10s` lightning fire input buffer.
+3. ***Scroll Back* 2D Camera (`CameraController.cs`)**: Added horizontal dead-zone (`±0.75u`), look-ahead direction hysteresis (`0.16s`), vertical platform snapping, and orthographic zoom punches on Ward Shatters and Boss Defeat.
+4. **Pooled Audio & Dynamic Mixing (`AudioManager.cs`)**: Added a 6-voice SFX pool with pitch randomization (`0.88–1.14`), a 7-step pentatonic pitch ladder on rapid collectible streaks, BGM ducking on heavy boss impacts, plus 5 synthesized SFX (`sfx_ui_hover`, `sfx_ui_click`, `sfx_footstep`, `sfx_boss_telegraph`, `sfx_hard_land`).
+5. **Boss Telegraphs, *Kishōtenketsu* Chasm Cleanup & Premium UI (`FinalBossAI.cs`, `UIManager.cs`, `UiButtonJuice.cs`, `LevelBuilder.cs`)**: Relocated `Gargoyle_1_Chasm` out of Zone 1's safe glide tutorial chasm into Zone 2 (`Gargoyle_2A_Aqueduct`), added pulsing crimson floor telegraph strips + warning SFX before Malakor's Slam/Dash, added button spring hover/click juice + `CanvasGroup` panel fades, and added a crimson damage border vignette + low-HP heartbeat pulse.
+
+---
 
 ## Boss Fight, Combat & Arena Overhaul Changes
 1. **Fixed Unkillable Boss / Non-Hitting Lightning Bolts (`PlayerLightningBolt.cs`, `PlayerController.cs`)**: Added active per-frame swept `Physics2D.OverlapBoxAll` collision detection (plus Kinematic `Rigidbody2D` & gentle smart-aim up to `±20°`) so Storm-Lightnings connect reliably against Malakor, flying Gargoyles, Plague Casters, Sentinels, shockwaves, and projectiles.

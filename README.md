@@ -91,6 +91,17 @@ At the summit of District IV, past a **safe Vestibule Checkpoint (`Arch_4_Sanctu
 
 ---
 
+## Research-Backed Game Design & Feel (`GAME_DESIGN_RULES.md`)
+
+A deep design synthesis in [`GAME_DESIGN_RULES.md`](GAME_DESIGN_RULES.md) documents the core rules applied throughout the game:
+- **Steve Swink *Game Feel* & Juice (`GameFeelManager.cs`)**: Hit-stop freeze frames (`0.032s..0.22s`), floating damage/heal popups (`-9`, `-26 CRIT!`, `WARD SHATTER!`, `+10 HP`), velocity-scaled hard landings (`sfx_hard_land.wav`), and skid turn dust.
+- ***Celeste* Forgiveness (`PlayerController.cs`)**: `0.12s` coyote time & jump buffer, `0.10s` lightning fire buffer, `0.52x` halved-gravity jump apex hangtime, ceiling corner correction (`0.28u` slide), and moving-platform lift momentum storage (`0.14s`).
+- **Itay Keren *Scroll Back* Camera (`CameraController.cs`)**: Horizontal dead-zone (`±0.75u`), look-ahead hysteresis (`0.16s`), vertical platform snapping, boss arena framing (`ortho = 7.7f`), and zoom punches.
+- **Boss Readability & *Kishōtenketsu* Pacing (`FinalBossAI.cs`, `LevelBuilder.cs`)**: Zone 1's glide chasm is a threat-free onboarding space (*Ki*), and Malakor's attacks feature pulsing crimson floor telegraphs + audio cues (`sfx_boss_telegraph.wav`).
+- **Pooled Adaptive Audio & UI Polish (`AudioManager.cs`, `UiButtonJuice.cs`, `UIManager.cs`)**: 6-voice pitched SFX pool (`sfx_footstep.wav`, `sfx_ui_hover.wav`, `sfx_ui_click.wav`), pentatonic collectible pitch ladder, BGM ducking, `CanvasGroup` panel fades, crimson hit vignette, and low-HP pulse.
+
+---
+
 ## Standalone Build
 
 - **Executable**: `Builds/Windows/VesperTwilightCourier.exe` (`StandaloneWindows64`)
