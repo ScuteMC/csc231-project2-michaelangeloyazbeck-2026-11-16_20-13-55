@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -40,6 +41,10 @@ namespace VesperTwilightCourier
         public ParticleSystem glideTrailParticles;
         public ParticleSystem aetherFlashParticles;
 
+        [Header("Combat")]
+        public Sprite lightningBoltSprite;
+        public float lightningCooldown = 0.24f;
+
         public float FacingDirection { get; private set; } = 1f;
         public bool IsGrounded => isGrounded;
         public bool IsGliding => isGliding;
@@ -58,6 +63,7 @@ namespace VesperTwilightCourier
         private bool glideButtonHeld;
         private bool jumpHoldEligibleForGlide;
         private bool aetherFlashPressedThisFrame;
+        private float fireCooldownTimer;
 
         private bool isGrounded;
         private bool wasGrounded;
@@ -120,6 +126,10 @@ namespace VesperTwilightCourier
             }
 
             ReadInput();
+            if (fireCooldownTimer > 0f)
+            {
+                fireCooldownTimer -= Time.deltaTime;
+            }
             if (aetherFlashPressedThisFrame)
             {
                 TriggerAetherFlash();
@@ -262,7 +272,8 @@ namespace VesperTwilightCourier
             Mouse mouse = Mouse.current;
             if (mouse != null)
             {
-                flashDown |= mouse.rightButton.wasPressedThisFrame;
+                bool overUi = IsPointerOverUi();
+                flashDown |= mouse.rightButton.wasPressedThisFrame || (mouse.leftButton.wasPressedThisFrame && !overUi);
             }
 
             Gamepad gp = Gamepad.current;
@@ -283,7 +294,8 @@ namespace VesperTwilightCourier
             jumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
             jumpCurrentlyHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
             glideShiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-            flashDown = Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F) || Input.GetMouseButtonDown(1);
+            flashDown = Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F) ||
+                        Input.GetMouseButtonDown(1) || (Input.GetMouseButtonDown(0) && !IsPointerOverUi());
 #endif
 
             horizontalInput = Mathf.Clamp(moveX, -1f, 1f);
@@ -342,6 +354,8 @@ namespace VesperTwilightCourier
 
                 if (col.GetComponent<Hazard>() != null ||
                     col.GetComponent<PatrolEnemy>() != null ||
+                    col.GetComponent<SwoopEnemy>() != null ||
+                    col.GetComponent<AetherShooterEnemy>() != null ||
                     col.GetComponent<FinalBossAI>() != null)
                 {
                     continue;
@@ -441,12 +455,28 @@ namespace VesperTwilightCourier
             }
         }
 
+        private static bool IsPointerOverUi()
+        {
+            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        }
+
         private void TriggerAetherFlash()
         {
-            if (GameManager.Instance == null || !GameManager.Instance.TryConsumeAetherFlashCharge())
+            if (fireCooldownTimer > 0f)
             {
                 return;
             }
+
+            if (GameManager.Instance == null || !GameManager.Instance.TrySpendLightningAmmo())
+            {
+                if (UIManager.Instance != null)
+                {
+                    UIManager.Instance.ShowBanner("NO LIGHTNING", 1.0f);
+                }
+                return;
+            }
+
+            fireCooldownTimer = lightningCooldown;
 
             if (aetherFlashParticles != null)
             {
@@ -454,41 +484,23 @@ namespace VesperTwilightCourier
             }
             if (AudioManager.Instance != null)
             {
-                AudioManager.Instance.PlayCollect();
+                AudioManager.Instance.PlayZap();
             }
             if (CameraController.Instance != null)
             {
-                CameraController.Instance.TriggerShake(0.18f, 0.22f);
+                CameraController.Instance.TriggerShake(0.08f, 0.12f);
             }
 
-            Vector2 origin = transform.position;
-            PatrolEnemy[] sentinels = Object.FindObjectsByType<PatrolEnemy>(FindObjectsSortMode.None);
-            for (int i = 0; i < sentinels.Length; i++)
-            {
-                if (sentinels[i] != null && sentinels[i].gameObject.activeInHierarchy &&
-                    Vector2.Distance(origin, sentinels[i].transform.position) <= 6.5f)
-                {
-                    sentinels[i].DefeatByAetherFlash();
-                }
-            }
+            GameObject boltGo = new GameObject("PlayerLightningBolt");
+            boltGo.transform.position = transform.position + new Vector3(FacingDirection * 0.72f, 0.96f, 0f);
+            SpriteRenderer sr = boltGo.AddComponent<SpriteRenderer>();
+            sr.sortingOrder = 9;
+            BoxCollider2D col = boltGo.AddComponent<BoxCollider2D>();
+            col.isTrigger = true;
+            col.size = new Vector2(1.2f, 0.56f);
 
-            BossShockwave[] waves = Object.FindObjectsByType<BossShockwave>(FindObjectsSortMode.None);
-            for (int i = 0; i < waves.Length; i++)
-            {
-                if (waves[i] != null && Vector2.Distance(origin, waves[i].transform.position) <= 9.0f)
-                {
-                    Destroy(waves[i].gameObject);
-                }
-            }
-
-            FinalBossAI boss = Object.FindFirstObjectByType<FinalBossAI>();
-            if (boss != null && Vector2.Distance(origin, boss.transform.position) <= 8.0f && boss.ForceStunFromAetherFlash())
-            {
-                if (UIManager.Instance != null)
-                {
-                    UIManager.Instance.ShowBanner("AETHER FLASH! Malakor's guard is shattered — STOMP HIS CROWN!", 3.5f);
-                }
-            }
+            PlayerLightningBolt bolt = boltGo.AddComponent<PlayerLightningBolt>();
+            bolt.Initialize(FacingDirection, lightningBoltSprite);
         }
 
         private void HandleFootstepDust()

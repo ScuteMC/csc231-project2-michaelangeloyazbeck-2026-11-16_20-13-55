@@ -34,22 +34,28 @@ namespace VesperTwilightCourier
         public PlayerHealth playerHealth;
 
         [Header("Level Progression")]
-        public int totalShards = 25;
+        public int totalShards = 30;
         public float levelStartX = 2f;
         public float levelGoalX = 239.5f;
+
+        [Header("Lives & Storm Lightning")]
+        public int startingLives = 3;
+        public int maxLives = 5;
+        public int startingLightningAmmo = 3;
 
         [Header("Boss Encounter")]
         public FinalBossAI finalBoss;
 
         private bool tutorialOpenedFromPause;
-
-        public const int MaxAetherFlashCharges = 3;
+        private int checkpointLightningSnapshot = 3;
 
         public GameState CurrentState { get; private set; } = GameState.Title;
         public bool IsPlaying => CurrentState == GameState.Playing;
         public int CollectedShards { get; private set; }
-        public int AetherFlashCharges { get; private set; }
-        public int LightTier { get; private set; }
+        public int CurrentLives { get; private set; } = 3;
+        public int LightningAmmo { get; private set; } = 3;
+        public int AetherFlashCharges => LightningAmmo;
+        public int LightTier => CollectedShards >= 18 ? 3 : CollectedShards >= 12 ? 2 : CollectedShards >= 5 ? 1 : 0;
         public bool HasCrownBreakerPower => CollectedShards >= 18;
         public float ElapsedTime { get; private set; }
         public int DeathsCount { get; private set; }
@@ -216,7 +222,7 @@ namespace VesperTwilightCourier
             {
                 UIManager.Instance.ShowOnlyPanel(GameState.Title);
                 UIManager.Instance.SyncAudioControls();
-                UIManager.Instance.UpdateBossHud(false, 0, 3, string.Empty);
+                UIManager.Instance.UpdateBossHud(false, 0, 120, 0, 4, 1, string.Empty);
             }
         }
 
@@ -292,6 +298,10 @@ namespace VesperTwilightCourier
             tutorialOpenedFromPause = false;
             CurrentState = GameState.Playing;
             Time.timeScale = 1f;
+            CurrentLives = startingLives;
+            LightningAmmo = startingLightningAmmo;
+            checkpointLightningSnapshot = startingLightningAmmo;
+
             if (playerController != null)
             {
                 playerController.ApplyLightTier(LightTier);
@@ -301,15 +311,15 @@ namespace VesperTwilightCourier
                 UIManager.Instance.ShowOnlyPanel(GameState.Playing);
                 UIManager.Instance.SyncAudioControls();
                 UIManager.Instance.UpdateShards(CollectedShards, totalShards);
+                UIManager.Instance.UpdateLives(CurrentLives, maxLives);
+                UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
                 UIManager.Instance.UpdateSanctumProgress(0f);
-                UIManager.Instance.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Reclaim Memory Shards & ignite the Sanctum Beacon");
-                UIManager.Instance.UpdateBossHud(false, 0, 3, string.Empty);
-                RefreshAetherLightHud();
+                UIManager.Instance.UpdateObjective("I · COURTYARDS", string.Empty);
+                UIManager.Instance.UpdateBossHud(false, 0, 120, 0, 3, 1, string.Empty);
                 if (playerHealth != null)
                 {
                     UIManager.Instance.UpdateHealth(playerHealth.CurrentHealth, playerHealth.maxHealth);
                 }
-                UIManager.Instance.ShowBanner("Collect Shards to Heal/Shield (every 5), Upgrade Cloak (5/12/18), and Charge [E/F] Aether Flash (every 4)!", 5.0f);
             }
         }
 
@@ -345,70 +355,88 @@ namespace VesperTwilightCourier
         public void CollectShard()
         {
             CollectedShards++;
-            string specialBanner = null;
+            LightningAmmo++;
 
-            // Every 4 Memory Shards grants +1 [E/F] Aether Flash charge (up to 3)
-            if (CollectedShards % 4 == 0 && AetherFlashCharges < MaxAetherFlashCharges)
+            if (playerHealth != null)
             {
-                AetherFlashCharges++;
-                specialBanner = $"AETHER FLASH CHARGED ({AetherFlashCharges}/{MaxAetherFlashCharges})! Press [E/F] to shatter Sentinels or STUN Malakor!";
+                playerHealth.Heal(10);
             }
 
-            // Tier upgrades at 5, 12, 18 Shards
-            int newTier = CollectedShards >= 18 ? 3 : CollectedShards >= 12 ? 2 : CollectedShards >= 5 ? 1 : 0;
-            bool tierJustUpgraded = newTier > LightTier;
-            LightTier = newTier;
             if (playerController != null)
             {
                 playerController.ApplyLightTier(LightTier);
             }
 
-            // Every 5 Shards restores +1 Heart (or activates an Aether Shield if at full Hearts!)
-            if (CollectedShards % 5 == 0 && playerHealth != null)
-            {
-                if (playerHealth.Heal(1))
-                {
-                    specialBanner = $"AETHER SURGE ({CollectedShards} Shards): +1 Heart Restored!";
-                }
-                else
-                {
-                    playerHealth.GrantAetherShield();
-                    specialBanner = $"AETHER SURGE ({CollectedShards} Shards): Aether Light Shield Activated!";
-                }
-            }
-
-            if (tierJustUpgraded)
-            {
-                specialBanner = LightTier switch
-                {
-                    1 => "LIGHT TIER I — DAWN STRIDE: +12% Speed! (+1 Aether Surge)",
-                    2 => "LIGHT TIER II — GALE-WOVEN CLOAK: Enhanced Glide & +20% Updraft Lift!",
-                    3 => "LIGHT TIER III — CROWN-BREAKER: Aerial Stomps deal DOUBLE damage to Malakor!",
-                    _ => specialBanner
-                };
-            }
-
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.UpdateShards(CollectedShards, totalShards);
-                if (!string.IsNullOrEmpty(specialBanner))
-                {
-                    UIManager.Instance.ShowBanner(specialBanner, 4.2f);
-                }
+                UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
             }
-            RefreshAetherLightHud();
         }
 
-        public bool TryConsumeAetherFlashCharge()
+        public void GrantArenaLightning(int ammoGain, int healAmount)
         {
-            if (AetherFlashCharges <= 0)
+            LightningAmmo += Mathf.Max(1, ammoGain);
+            if (playerHealth != null && healAmount > 0)
+            {
+                playerHealth.Heal(healAmount);
+            }
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
+                UIManager.Instance.ShowBanner($"+{ammoGain} LIGHTNING", 1.2f);
+            }
+        }
+
+        public bool TrySpendLightningAmmo()
+        {
+            if (LightningAmmo <= 0)
             {
                 return false;
             }
 
-            AetherFlashCharges--;
-            RefreshAetherLightHud();
+            LightningAmmo--;
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
+            }
             return true;
+        }
+
+        public void AddLife(int count = 1)
+        {
+            CurrentLives = Mathf.Clamp(CurrentLives + count, 1, maxLives);
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateLives(CurrentLives, maxLives);
+            }
+        }
+
+        public bool ConsumeLifeAndCheckGameOver()
+        {
+            CurrentLives = Mathf.Max(0, CurrentLives - 1);
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateLives(CurrentLives, maxLives);
+            }
+
+            if (CurrentLives <= 0)
+            {
+                return true;
+            }
+
+            LightningAmmo = Mathf.Max(LightningAmmo, Mathf.Max(4, checkpointLightningSnapshot));
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
+            }
+
+            if (finalBoss != null)
+            {
+                finalBoss.ResetForRetry();
+            }
+
+            return false;
         }
 
         public void RefreshAetherLightHud()
@@ -418,8 +446,8 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            bool hasShield = playerHealth != null && playerHealth.HasAetherShield;
-            UIManager.Instance.UpdateAetherLightHud(AetherFlashCharges, MaxAetherFlashCharges, LightTier, hasShield);
+            UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
+            UIManager.Instance.UpdateLives(CurrentLives, maxLives);
         }
 
         public void ActivateCheckpoint(int index, Vector3 respawnPos, string checkpointName)
@@ -430,9 +458,15 @@ namespace VesperTwilightCourier
                 CurrentRespawnPosition = respawnPos;
             }
 
+            checkpointLightningSnapshot = Mathf.Max(checkpointLightningSnapshot, LightningAmmo);
+            if (playerHealth != null)
+            {
+                playerHealth.Heal(35);
+            }
+
             if (UIManager.Instance != null)
             {
-                UIManager.Instance.ShowBanner($"CHECKPOINT ACTIVATED: {checkpointName}", 3.5f);
+                UIManager.Instance.ShowBanner("CHECKPOINT", 1.5f);
             }
         }
 
@@ -451,6 +485,8 @@ namespace VesperTwilightCourier
         {
             Time.timeScale = 1f;
             CurrentState = GameState.Playing;
+            CurrentLives = startingLives;
+            LightningAmmo = Mathf.Max(5, checkpointLightningSnapshot);
 
             if (playerHealth != null)
             {
@@ -465,7 +501,9 @@ namespace VesperTwilightCourier
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.ShowOnlyPanel(GameState.Playing);
-                UIManager.Instance.ShowBanner("Respawned at Watchtower Lantern", 2.5f);
+                UIManager.Instance.UpdateLives(CurrentLives, maxLives);
+                UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
+                UIManager.Instance.ShowBanner("LANTERN REVIVE", 1.5f);
             }
         }
 

@@ -4,15 +4,16 @@ using UnityEngine;
 namespace VesperTwilightCourier
 {
     /// <summary>
-    /// Tracks Vesper's health, handles invulnerability frames, crimson hit-flash feedback,
-    /// hazard recoil, checkpoint respawning, and Game Over triggers.
+    /// Tracks Vesper's Health Points (0..100), handles invulnerability frames,
+    /// crimson hit-flash, multi-life checkpoint respawns, and Game Over triggers.
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer), typeof(PlayerController))]
     public class PlayerHealth : MonoBehaviour
     {
         [Header("Health Settings")]
-        public int maxHealth = 3;
-        public float invulnerabilityDuration = 1.2f;
+        public int maxHealth = 100;
+        public int abyssFallDamage = 30;
+        public float invulnerabilityDuration = 1.05f;
         public float hurtStateDuration = 0.25f;
 
         [Header("Feedback")]
@@ -94,7 +95,7 @@ namespace VesperTwilightCourier
                 }
                 if (UIManager.Instance != null)
                 {
-                    UIManager.Instance.ShowBanner("AETHER SHIELD ABSORBED THE BLOW!", 2.8f);
+                    UIManager.Instance.ShowBanner("SHIELD SAVED", 1.6f);
                 }
                 return;
             }
@@ -113,7 +114,7 @@ namespace VesperTwilightCourier
 
             if (CameraController.Instance != null)
             {
-                CameraController.Instance.TriggerShake(0.24f, 0.36f);
+                CameraController.Instance.TriggerShake(0.24f, 0.34f);
             }
 
             if (hurtBurstParticles != null)
@@ -123,7 +124,7 @@ namespace VesperTwilightCourier
 
             if (CurrentHealth <= 0)
             {
-                Die();
+                HandleZeroHealth();
                 return;
             }
 
@@ -139,7 +140,7 @@ namespace VesperTwilightCourier
 
         /// <summary>
         /// Triggered when falling into an abyss pit between rooftops.
-        /// Deals 1 damage and teleports Vesper back to the last safe Watchtower Lantern.
+        /// Deals abyssFallDamage HP and teleports back to the active checkpoint (or consumes a life).
         /// </summary>
         public void HandleAbyssFall()
         {
@@ -148,7 +149,7 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            CurrentHealth = Mathf.Max(0, CurrentHealth - 1);
+            CurrentHealth = Mathf.Max(0, CurrentHealth - abyssFallDamage);
 
             if (UIManager.Instance != null)
             {
@@ -162,12 +163,12 @@ namespace VesperTwilightCourier
 
             if (CameraController.Instance != null)
             {
-                CameraController.Instance.TriggerShake(0.25f, 0.4f);
+                CameraController.Instance.TriggerShake(0.25f, 0.38f);
             }
 
             if (CurrentHealth <= 0)
             {
-                Die();
+                HandleZeroHealth();
                 return;
             }
 
@@ -184,11 +185,54 @@ namespace VesperTwilightCourier
             invulnRoutine = StartCoroutine(InvulnerabilityFlashRoutine());
         }
 
+        private void HandleZeroHealth()
+        {
+            bool triggerGameOver = GameManager.Instance == null || GameManager.Instance.ConsumeLifeAndCheckGameOver();
+            if (triggerGameOver)
+            {
+                Die();
+                return;
+            }
+
+            if (invulnRoutine != null)
+            {
+                StopCoroutine(invulnRoutine);
+                invulnRoutine = null;
+            }
+
+            IsHurting = false;
+            IsDead = false;
+            CurrentHealth = maxHealth;
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = baseColor;
+            }
+
+            Vector3 respawnPos = GameManager.Instance != null
+                ? GameManager.Instance.CurrentRespawnPosition
+                : transform.position;
+            TeleportTo(respawnPos);
+            GrantBriefInvulnerability(1.4f);
+
+            if (aetherHealParticles != null)
+            {
+                aetherHealParticles.Play();
+            }
+
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateHealth(CurrentHealth, maxHealth);
+                UIManager.Instance.ShowBanner("-1 LIFE", 1.8f);
+            }
+        }
+
         public void ReviveAtCheckpoint(Vector3 checkpointPosition)
         {
             if (invulnRoutine != null)
             {
                 StopCoroutine(invulnRoutine);
+                invulnRoutine = null;
             }
             if (briefInvulnRoutine != null)
             {

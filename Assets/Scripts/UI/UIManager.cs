@@ -5,9 +5,9 @@ using UnityEngine.UI;
 namespace VesperTwilightCourier
 {
     /// <summary>
-    /// Manages all eight UI screens (Title, Story Intro Prologue, Lore Briefing, Visual Tutorial,
-    /// HUD, Pause, Level Complete Epilogue, Game Over) along with live HUD counters, mission objective,
-    /// Sanctum progress gauge, heart indicators, glide status badge, banner tips, and audio controls.
+    /// Minimal-text Gothic HUD & UI state manager with delayed-drain HP bars,
+    /// Life Soul emblems, Storm-Lightning ammo counter, compact zone progress gauge,
+    /// Boss Phase + Ward Diamond shield pips, and concise story/rank screens.
     /// </summary>
     public class UIManager : MonoBehaviour
     {
@@ -31,27 +31,44 @@ namespace VesperTwilightCourier
         public Text storyNextButtonText;
         public Sprite[] storyCardSprites;
 
-        [Header("HUD Elements")]
-        public Image[] heartIcons;
-        public Color fullHeartColor = new Color(0.96f, 0.25f, 0.42f, 1f);
-        public Color emptyHeartColor = new Color(0.22f, 0.22f, 0.28f, 0.45f);
+        [Header("Player Crest HUD (HP, Lives, Lightning)")]
+        public Image hpFillImage;
+        public Image hpTrailFillImage;
+        public Text hpValueText;
+        public Image[] lifeIcons;
+        public Color fullLifeColor = new Color(0.98f, 0.92f, 0.72f, 1f);
+        public Color emptyLifeColor = new Color(0.18f, 0.20f, 0.30f, 0.35f);
+        public Text lightningAmmoText;
+        public Image lightningBadgeBackground;
         public Text shardCounterText;
         public Text timerText;
+
+        [Header("Mission & Cloak HUD")]
         public Text districtObjectiveText;
         public Image sanctumProgressFill;
         public Text sanctumProgressPercentText;
         public Text glideBadgeText;
         public Image glideBadgeBackground;
-        public Text aetherLightBadgeText;
-        public Image aetherLightBadgeBackground;
         public GameObject bannerContainer;
         public Text bannerText;
+
+        [Header("Legacy Aliases")]
+        public Image[] heartIcons;
+        public Color fullHeartColor = new Color(0.96f, 0.25f, 0.42f, 1f);
+        public Color emptyHeartColor = new Color(0.22f, 0.22f, 0.28f, 0.45f);
+        public Text aetherLightBadgeText;
+        public Image aetherLightBadgeBackground;
 
         [Header("Boss HUD Elements")]
         public GameObject bossHudContainer;
         public Text bossNameText;
+        public Text bossPhaseText;
         public Text bossStateText;
         public Image bossHealthFill;
+        public Image bossHealthTrailFill;
+        public Image[] bossWardIcons;
+        public Color activeWardColor = new Color(1f, 0.35f, 0.48f, 1f);
+        public Color brokenWardColor = new Color(0.22f, 0.16f, 0.24f, 0.32f);
 
         [Header("Audio Controls")]
         public Slider hudVolumeSlider;
@@ -88,22 +105,27 @@ namespace VesperTwilightCourier
         public Button gameOverTitleButton;
 
         private Coroutine bannerRoutine;
-        private Coroutine shardPopRoutine;
+        private Coroutine ammoPopRoutine;
         private bool syncingAudioUi;
         private int currentStorySlide;
 
+        private float targetHpNorm = 1f;
+        private float trailHpNorm = 1f;
+        private float targetBossHpNorm = 1f;
+        private float trailBossHpNorm = 1f;
+
         private static readonly string[] StorySlideTitles =
         {
-            "I. THE FALLING ECLIPSE",
-            "II. SHATTERED LIGHT",
-            "III. THE COURIER'S OATH"
+            "I · ECLIPSE",
+            "II · MALAKOR",
+            "III · STORM OATH"
         };
 
         private static readonly string[] StorySlideBodies =
         {
-            "A crimson eclipse hangs frozen over Noctis Reach, draining every district lantern toward eternal frost.\nShould darkness claim the upper spires, the canal city beneath will never see another dawn.",
-            "The high Sanctum Beacon has shattered its Memory Shards across four perilous rooftop districts.\nAt the summit, Malakor the Eclipse Warden seals the Beacon behind his crimson Halberd and clockwork armor.",
-            "You are Vesper, a Shadow-Stitcher Courier sworn to restore the fallen light.\nRide thermal chimneys, bait Malakor's Halberd Slam, stomp his exposed Aether Crown, and ignite the Beacon!"
+            "Endless night froze Noctis Reach.",
+            "The Eclipse Warden seals the Beacon.",
+            "Shoot Lightning. Shatter his dark."
         };
 
         private void Awake()
@@ -127,21 +149,44 @@ namespace VesperTwilightCourier
             }
         }
 
+        private void Update()
+        {
+            // Delayed white/gold damage drain bars
+            if (hpTrailFillImage != null)
+            {
+                trailHpNorm = trailHpNorm > targetHpNorm
+                    ? Mathf.MoveTowards(trailHpNorm, targetHpNorm, Time.unscaledDeltaTime * 0.48f)
+                    : targetHpNorm;
+                hpTrailFillImage.fillAmount = trailHpNorm;
+            }
+
+            if (bossHealthTrailFill != null)
+            {
+                trailBossHpNorm = trailBossHpNorm > targetBossHpNorm
+                    ? Mathf.MoveTowards(trailBossHpNorm, targetBossHpNorm, Time.unscaledDeltaTime * 0.42f)
+                    : targetBossHpNorm;
+                bossHealthTrailFill.fillAmount = trailBossHpNorm;
+            }
+        }
+
         private void RegisterAudioListeners()
         {
             if (hudVolumeSlider != null)
             {
+                hudVolumeSlider.onValueChanged.RemoveAllListeners();
                 hudVolumeSlider.onValueChanged.AddListener(OnVolumeSliderChanged);
             }
+
             if (pauseVolumeSlider != null)
             {
+                pauseVolumeSlider.onValueChanged.RemoveAllListeners();
                 pauseVolumeSlider.onValueChanged.AddListener(OnVolumeSliderChanged);
             }
         }
 
         private void RegisterButtonListeners()
         {
-            Button[] allButtons = GetComponentsInChildren<Button>(true);
+            Button[] allButtons = Resources.FindObjectsOfTypeAll<Button>();
 
             BindButton(ref startRunButton, "StartRunButton", allButtons, () =>
             {
@@ -244,7 +289,6 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            // Avoid double-invoking when a persistent scene listener is already wired on this button
             if (field.onClick.GetPersistentEventCount() == 0)
             {
                 field.onClick.RemoveAllListeners();
@@ -319,8 +363,8 @@ namespace VesperTwilightCourier
             if (storyNextButtonText != null)
             {
                 storyNextButtonText.text = currentStorySlide == StorySlideTitles.Length - 1
-                    ? "BEGIN DELIVERY"
-                    : "NEXT PAGE";
+                    ? "PLAY"
+                    : "NEXT";
             }
 
             if (storyBackButton != null)
@@ -338,7 +382,7 @@ namespace VesperTwilightCourier
 
             if (!string.IsNullOrEmpty(district) && !string.IsNullOrEmpty(objective))
             {
-                districtObjectiveText.text = $"{district}\n{objective}";
+                districtObjectiveText.text = $"{district} · {objective}";
             }
             else if (!string.IsNullOrEmpty(district))
             {
@@ -367,18 +411,86 @@ namespace VesperTwilightCourier
 
         public void UpdateHealth(int current, int max)
         {
-            if (heartIcons == null)
+            targetHpNorm = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+            if (!Application.isPlaying)
+            {
+                trailHpNorm = targetHpNorm;
+            }
+
+            if (hpFillImage != null)
+            {
+                hpFillImage.fillAmount = targetHpNorm;
+                if (targetHpNorm > 0.55f)
+                {
+                    hpFillImage.color = new Color(0.28f, 0.92f, 1f, 1f);
+                }
+                else if (targetHpNorm > 0.25f)
+                {
+                    hpFillImage.color = new Color(1f, 0.72f, 0.26f, 1f);
+                }
+                else
+                {
+                    hpFillImage.color = new Color(1f, 0.24f, 0.38f, 1f);
+                }
+            }
+
+            if (hpTrailFillImage != null && !Application.isPlaying)
+            {
+                hpTrailFillImage.fillAmount = targetHpNorm;
+            }
+
+            if (hpValueText != null)
+            {
+                hpValueText.text = $"{current} / {max}";
+            }
+        }
+
+        public void UpdateLives(int currentLives, int maxLives)
+        {
+            Image[] slots = lifeIcons != null && lifeIcons.Length > 0 ? lifeIcons : heartIcons;
+            if (slots == null)
             {
                 return;
             }
 
-            for (int i = 0; i < heartIcons.Length; i++)
+            for (int i = 0; i < slots.Length; i++)
             {
-                if (heartIcons[i] != null)
-                {
-                    heartIcons[i].color = i < current ? fullHeartColor : emptyHeartColor;
-                }
+                if (slots[i] == null) continue;
+                bool active = i < currentLives;
+                slots[i].color = active ? fullLifeColor : emptyLifeColor;
+                slots[i].transform.localScale = active ? Vector3.one : new Vector3(0.82f, 0.82f, 1f);
             }
+        }
+
+        public void UpdateLightningAmmo(int ammo, int collectedShards, int totalShards)
+        {
+            if (lightningAmmoText != null)
+            {
+                lightningAmmoText.text = $"{ammo}  [E / CLICK]";
+                lightningAmmoText.color = ammo > 0
+                    ? new Color(0.55f, 0.98f, 1f, 1f)
+                    : new Color(0.75f, 0.50f, 0.58f, 1f);
+            }
+
+            if (lightningBadgeBackground != null)
+            {
+                lightningBadgeBackground.color = ammo > 0
+                    ? new Color(0.95f, 0.92f, 0.75f, 1f)
+                    : new Color(0.70f, 0.60f, 0.65f, 0.9f);
+            }
+
+            if (aetherLightBadgeText != null)
+            {
+                aetherLightBadgeText.text = $"⚡ {ammo}  [CLICK / E]";
+            }
+
+            if (Application.isPlaying && ammo > 0 && lightningAmmoText != null && gameObject.activeInHierarchy)
+            {
+                if (ammoPopRoutine != null) StopCoroutine(ammoPopRoutine);
+                ammoPopRoutine = StartCoroutine(PopTransformRoutine(lightningAmmoText.transform));
+            }
+
+            UpdateShards(collectedShards, totalShards);
         }
 
         public void UpdateShards(int collected, int total)
@@ -388,40 +500,27 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            shardCounterText.text = $"MEMORY SHARDS: {collected} / {total}";
-
-            if (Application.isPlaying && collected > 0 && gameObject.activeInHierarchy)
-            {
-                if (shardPopRoutine != null)
-                {
-                    StopCoroutine(shardPopRoutine);
-                }
-                shardPopRoutine = StartCoroutine(PopShardCounterRoutine());
-            }
+            shardCounterText.text = $"{collected}/{total}";
         }
 
-        private IEnumerator PopShardCounterRoutine()
+        private IEnumerator PopTransformRoutine(Transform target)
         {
-            Transform rt = shardCounterText.transform;
-            rt.localScale = Vector3.one;
-            const float halfDuration = 0.09f;
-
-            for (float t = 0f; t < halfDuration; t += Time.unscaledDeltaTime)
+            target.localScale = Vector3.one;
+            const float half = 0.08f;
+            for (float t = 0f; t < half; t += Time.unscaledDeltaTime)
             {
-                float s = Mathf.Lerp(1.0f, 1.22f, t / halfDuration);
-                rt.localScale = new Vector3(s, s, 1f);
+                float s = Mathf.Lerp(1f, 1.25f, t / half);
+                target.localScale = new Vector3(s, s, 1f);
                 yield return null;
             }
-
-            for (float t = 0f; t < halfDuration; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < half; t += Time.unscaledDeltaTime)
             {
-                float s = Mathf.Lerp(1.22f, 1.0f, t / halfDuration);
-                rt.localScale = new Vector3(s, s, 1f);
+                float s = Mathf.Lerp(1.25f, 1f, t / half);
+                target.localScale = new Vector3(s, s, 1f);
                 yield return null;
             }
-
-            rt.localScale = Vector3.one;
-            shardPopRoutine = null;
+            target.localScale = Vector3.one;
+            ammoPopRoutine = null;
         }
 
         public void UpdateTimer(float seconds)
@@ -433,7 +532,7 @@ namespace VesperTwilightCourier
 
             int mins = Mathf.FloorToInt(seconds / 60f);
             int secs = Mathf.FloorToInt(seconds % 60f);
-            timerText.text = $"TIME: {mins:00}:{secs:00}";
+            timerText.text = $"{mins:00}:{secs:00}";
         }
 
         public void UpdateGlideStatus(bool isGliding, bool isAirborne)
@@ -442,15 +541,15 @@ namespace VesperTwilightCourier
             {
                 if (isGliding)
                 {
-                    glideBadgeText.text = "CLOAK: GLIDING";
+                    glideBadgeText.text = "GLIDING";
                 }
                 else if (isAirborne)
                 {
-                    glideBadgeText.text = "HOLD SPACE/SHIFT: GLIDE";
+                    glideBadgeText.text = "SHIFT: GLIDE";
                 }
                 else
                 {
-                    glideBadgeText.text = "CLOAK: READY";
+                    glideBadgeText.text = "CLOAK OK";
                 }
             }
 
@@ -462,38 +561,7 @@ namespace VesperTwilightCourier
             }
         }
 
-        public void UpdateAetherLightHud(int charges, int maxCharges, int lightTier, bool hasShield)
-        {
-            if (aetherLightBadgeText != null)
-            {
-                string pips = string.Empty;
-                for (int i = 0; i < maxCharges; i++)
-                {
-                    pips += i < charges ? "●" : "○";
-                }
-
-                string tierStr = lightTier switch
-                {
-                    >= 3 => "T3 2x BOSS",
-                    2 => "T2 GLIDE+",
-                    1 => "T1 SPEED+",
-                    _ => "NEED SHARDS"
-                };
-                string shieldSuffix = hasShield ? " | SHIELD" : string.Empty;
-                aetherLightBadgeText.text = $"LIGHT [{pips}] E/F | {tierStr}{shieldSuffix}";
-            }
-
-            if (aetherLightBadgeBackground != null)
-            {
-                aetherLightBadgeBackground.color = hasShield
-                    ? new Color(0.56f, 0.95f, 1f, 0.96f)
-                    : charges > 0
-                        ? new Color(0.95f, 0.88f, 0.62f, 0.96f)
-                        : Color.white;
-            }
-        }
-
-        public void UpdateBossHud(bool visible, int currentHp, int maxHp, string stateLabel)
+        public void UpdateBossHud(bool visible, int currentHp, int maxHp, int currentWard, int maxWard, int phase, string stateLabel)
         {
             if (bossHudContainer == null)
             {
@@ -508,23 +576,56 @@ namespace VesperTwilightCourier
 
             if (bossNameText != null)
             {
-                bossNameText.text = $"MALAKOR, ECLIPSE WARDEN  ({currentHp} / {maxHp})";
+                bossNameText.text = $"MALAKOR   {currentHp}/{maxHp}";
+            }
+
+            if (bossPhaseText != null)
+            {
+                bossPhaseText.text = phase switch
+                {
+                    3 => "PHASE III · FURY",
+                    2 => "PHASE II · RAGE",
+                    _ => "PHASE I"
+                };
+                bossPhaseText.color = phase switch
+                {
+                    3 => new Color(1f, 0.36f, 0.65f, 1f),
+                    2 => new Color(1f, 0.60f, 0.25f, 1f),
+                    _ => new Color(1f, 0.86f, 0.55f, 1f)
+                };
+            }
+
+            targetBossHpNorm = maxHp > 0 ? Mathf.Clamp01((float)currentHp / maxHp) : 0f;
+            if (!Application.isPlaying)
+            {
+                trailBossHpNorm = targetBossHpNorm;
             }
 
             if (bossHealthFill != null)
             {
-                bossHealthFill.fillAmount = maxHp > 0 ? Mathf.Clamp01((float)currentHp / maxHp) : 0f;
-                if (stateLabel.Contains("STUNNED"))
+                bossHealthFill.fillAmount = targetBossHpNorm;
+                bossHealthFill.color = stateLabel.Contains("STUNNED")
+                    ? new Color(0.36f, 0.96f, 1f, 1f)
+                    : phase >= 3
+                        ? new Color(0.95f, 0.14f, 0.45f, 1f)
+                        : phase == 2
+                            ? new Color(1f, 0.36f, 0.18f, 1f)
+                            : new Color(0.86f, 0.16f, 0.28f, 1f);
+            }
+
+            if (bossHealthTrailFill != null && !Application.isPlaying)
+            {
+                bossHealthTrailFill.fillAmount = targetBossHpNorm;
+            }
+
+            if (bossWardIcons != null)
+            {
+                for (int i = 0; i < bossWardIcons.Length; i++)
                 {
-                    bossHealthFill.color = new Color(0.38f, 0.95f, 1f, 1f);
-                }
-                else if (stateLabel.Contains("SLAM"))
-                {
-                    bossHealthFill.color = new Color(1f, 0.45f, 0.25f, 1f);
-                }
-                else
-                {
-                    bossHealthFill.color = new Color(0.86f, 0.16f, 0.28f, 1f);
+                    if (bossWardIcons[i] == null) continue;
+                    bool showSlot = i < maxWard;
+                    bossWardIcons[i].gameObject.SetActive(showSlot);
+                    bossWardIcons[i].color = i < currentWard ? activeWardColor : brokenWardColor;
                 }
             }
 
@@ -533,13 +634,13 @@ namespace VesperTwilightCourier
                 bossStateText.text = stateLabel;
                 bossStateText.color = stateLabel.Contains("STUNNED")
                     ? new Color(0.52f, 0.98f, 1f, 1f)
-                    : stateLabel.Contains("SLAM")
+                    : stateLabel.Contains("DASH") || stateLabel.Contains("SLAM") || stateLabel.Contains("SKY")
                         ? new Color(1f, 0.72f, 0.36f, 1f)
-                        : new Color(0.95f, 0.86f, 0.78f, 1f);
+                        : new Color(0.95f, 0.88f, 0.80f, 1f);
             }
         }
 
-        public void ShowBanner(string message, float duration = 4f)
+        public void ShowBanner(string message, float duration = 2.0f)
         {
             if (bannerContainer == null || bannerText == null)
             {
@@ -572,26 +673,15 @@ namespace VesperTwilightCourier
 
             int mins = Mathf.FloorToInt(elapsedSeconds / 60f);
             int secs = Mathf.FloorToInt(elapsedSeconds % 60f);
-            string rank;
-            if (collectedShards >= 22 && deaths <= 1)
-            {
-                rank = "S  -  MASTER OF THE TWILIGHT";
-            }
-            else if (collectedShards >= 15)
-            {
-                rank = "A  -  SANCTUM VANGUARD";
-            }
-            else
-            {
-                rank = "B  -  SHADOW COURIER";
-            }
+            string rank = (collectedShards >= 24 && deaths == 0)
+                ? "RANK S · TWILIGHT LEGEND"
+                : collectedShards >= 16
+                    ? "RANK A · SANCTUM VANGUARD"
+                    : "RANK B · SHADOW COURIER";
 
             winSummaryText.text =
-                "Malakor the Eclipse Warden is shattered, and the Sanctum Beacon blazes across Noctis Reach!\n" +
-                "Dawn breaks over the canal spires thanks to Vesper's final delivery.\n\n" +
-                $"COURIER RANK:  {rank}\n" +
-                $"Memory Shards Restored:  {collectedShards} / {totalShards}    |    " +
-                $"Clear Time:  {mins:00}:{secs:00}    |    Retries:  {deaths}";
+                $"{rank}\n\n" +
+                $"⚡ {collectedShards}/{totalShards}    ·    ⏱ {mins:00}:{secs:00}    ·    ♥ ×{Mathf.Max(0, deaths)} RETRIES";
         }
 
         public void OnVolumeSliderChanged(float value)
@@ -630,7 +720,7 @@ namespace VesperTwilightCourier
             if (hudVolumeSlider != null) hudVolumeSlider.value = vol;
             if (pauseVolumeSlider != null) pauseVolumeSlider.value = vol;
 
-            string muteLabel = muted ? "AUDIO: MUTED" : "MUTE AUDIO";
+            string muteLabel = muted ? "MUTED" : "AUDIO";
             if (hudMuteButtonText != null) hudMuteButtonText.text = muteLabel;
             if (pauseMuteButtonText != null) pauseMuteButtonText.text = muteLabel;
 

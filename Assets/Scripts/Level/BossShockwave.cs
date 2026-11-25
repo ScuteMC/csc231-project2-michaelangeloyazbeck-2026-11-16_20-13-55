@@ -11,9 +11,9 @@ namespace VesperTwilightCourier
     public class BossShockwave : MonoBehaviour
     {
         [Header("Shockwave Motion")]
-        public float moveSpeed = 9.5f;
-        public float lifetime = 2.4f;
-        public int damageAmount = 1;
+        public float moveSpeed = 10.5f;
+        public float lifetime = 2.6f;
+        public int damageAmount = 25;
         public float minArenaX = 210.5f;
         public float maxArenaX = 238.5f;
 

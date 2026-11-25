@@ -40,7 +40,10 @@ namespace VesperTwilightCourier
                 {
                     UIManager.Instance.UpdateObjective(districtLabel, objectiveText);
                 }
-                UIManager.Instance.ShowBanner(tutorialMessage, displayDuration);
+                if (!string.IsNullOrEmpty(tutorialMessage))
+                {
+                    UIManager.Instance.ShowBanner(tutorialMessage, displayDuration);
+                }
             }
         }
     }

@@ -18,6 +18,7 @@ namespace VesperTwilightCourier
         public float hoverFrequency = 2.8f;
 
         [Header("Combat")]
+        public int contactDamage = 20;
         public float stompBounceVelocity = 12.5f;
         public float stompVerticalTolerance = 0.35f;
         public ParticleSystem defeatParticles;
@@ -104,7 +105,7 @@ namespace VesperTwilightCourier
             }
             else
             {
-                health.TakeDamage(1, transform.position);
+                health.TakeDamage(contactDamage, transform.position);
             }
         }
 

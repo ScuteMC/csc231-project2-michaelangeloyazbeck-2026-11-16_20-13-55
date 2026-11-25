@@ -33,20 +33,23 @@ public static class LevelBuilder
         public Sprite vesperIdle, vesperRun1, vesperRun2, vesperJump, vesperFall, vesperGlide, vesperHurt;
         public Sprite[] vesperIdleFrames, vesperRunFrames, vesperJumpFrames, vesperFallFrames, vesperGlideFrames, vesperHurtFrames;
         public Sprite[] sentinelFrames, shardFrames, checkpointFrames, goalBeaconFrames, waterFrames;
-        public Sprite[] bossWanderFrames, bossAttackFrames, bossStunnedFrames;
-        public Sprite propEclipseSeal, vfxBossShockwave;
+        public Sprite[] bossWanderFrames, bossAttackFrames, bossDashFrames, bossCastFrames, bossStunnedFrames;
+        public Sprite[] gargoyleFrames, casterFrames;
+        public Sprite propEclipseSeal, vfxBossShockwave, vfxBossSkySpear, vfxPlayerLightningBolt, vfxEclipseOrb;
+        public Sprite propIronChain, hazardPendulumBlade, propSoulLifeRelic;
         public Sprite tileRooftop, tileRooftopBody, hazardSpikes, enemySentinel, collectibleShard, propCheckpoint, propGoalBeacon;
         public Sprite tileSpikeSlot, propGothicPillar, tileMovingPlatform, tileCrumblePlatform;
         public Sprite propUpdraftVent, propSteamChimney, propChimneyCap, propBrokenArch, propTrackPylon, propGothicRailing, propDistrictArch, propStreetLamp;
         public Sprite bgFarSky, bgMidCity, bgNearSilhouettes;
         public Sprite uiWhiteSprite, uiHeartSprite, softParticleSprite;
         public Sprite uiBtnPrimary, uiBtnSecondary, uiBtnDanger, uiPanelOrnate, uiHudBar, uiKeycap, uiTitleCrest, uiDivider;
+        public Sprite uiPortraitVesper, uiHpBarFrame, uiHpBarFill, uiLifeSoulIcon, uiWardDiamond, uiLightningIcon;
         public Sprite[] storyCardSprites;
         public Material particleMaterial;
         public PhysicsMaterial2D frictionlessMaterial;
-        public RuntimeAnimatorController vesperAnimator, bossAnimator;
+        public RuntimeAnimatorController vesperAnimator, bossAnimator, gargoyleAnimator, casterAnimator;
         public RuntimeAnimatorController sentinelAnimator, shardAnimator, checkpointAnimator, goalBeaconAnimator, waterAnimator;
-        public AudioClip bgmClip, jumpClip, landClip, collectClip, hurtClip, checkpointClip, glideClip, winClip;
+        public AudioClip bgmClip, jumpClip, landClip, collectClip, hurtClip, checkpointClip, glideClip, winClip, zapClip, bossRoarClip;
     }
 
     private struct PlatformFootprint
@@ -209,9 +212,19 @@ public static class LevelBuilder
 
         ConfigureSpriteSequence("Boss_Warden_Wander", 4, 85f, new Vector2(0.5f, 0.01f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSpriteSequence("Boss_Warden_Attack", 4, 85f, new Vector2(0.5f, 0.01f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSpriteSequence("Boss_Warden_Dash", 4, 85f, new Vector2(0.5f, 0.01f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSpriteSequence("Boss_Warden_Cast", 4, 85f, new Vector2(0.5f, 0.01f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSpriteSequence("Boss_Warden_Stunned", 4, 85f, new Vector2(0.5f, 0.01f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSpriteSequence("Enemy_Gargoyle", 4, 96f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSpriteSequence("Enemy_Caster", 4, 96f, new Vector2(0.5f, 0.02f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/Prop_EclipseSeal.png", 95f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{SpriteFolder}/VFX_BossShockwave.png", 95f, new Vector2(0.5f, 0.04f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/VFX_BossSkySpear.png", 48f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/VFX_PlayerLightningBolt.png", 96f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/VFX_EclipseOrb.png", 96f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Prop_IronChain.png", 64f, new Vector2(0.5f, 0.5f), TextureWrapMode.Repeat, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Hazard_PendulumBlade.png", 85f, new Vector2(0.5f, 0.65f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{SpriteFolder}/Prop_SoulLifeRelic.png", 110f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.Tight);
 
         ConfigureSlicedUiSprite($"{UiFolder}/UI_Btn_Primary.png", 100f, new Vector4(24f, 24f, 24f, 24f));
         ConfigureSlicedUiSprite($"{UiFolder}/UI_Btn_Secondary.png", 100f, new Vector4(24f, 24f, 24f, 24f));
@@ -221,6 +234,12 @@ public static class LevelBuilder
         ConfigureSlicedUiSprite($"{UiFolder}/UI_Keycap.png", 100f, new Vector4(12f, 12f, 12f, 12f));
         ConfigureSingleSprite($"{UiFolder}/UI_TitleCrest.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{UiFolder}/UI_Divider.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{UiFolder}/UI_Portrait_Vesper.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{UiFolder}/UI_HpBar_Frame.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{UiFolder}/UI_HpBar_Fill.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{UiFolder}/UI_LifeSoulIcon.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{UiFolder}/UI_WardDiamond.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
+        ConfigureSingleSprite($"{UiFolder}/UI_LightningIcon.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{UiFolder}/UI_StoryCard_1.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{UiFolder}/UI_StoryCard_2.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
         ConfigureSingleSprite($"{UiFolder}/UI_StoryCard_3.png", 100f, new Vector2(0.5f, 0.5f), TextureWrapMode.Clamp, SpriteMeshType.FullRect);
@@ -327,9 +346,19 @@ public static class LevelBuilder
         a.waterFrames = LoadSpriteSequence("Water", 6);
         a.bossWanderFrames = LoadSpriteSequence("Boss_Warden_Wander", 4);
         a.bossAttackFrames = LoadSpriteSequence("Boss_Warden_Attack", 4);
+        a.bossDashFrames = LoadSpriteSequence("Boss_Warden_Dash", 4);
+        a.bossCastFrames = LoadSpriteSequence("Boss_Warden_Cast", 4);
         a.bossStunnedFrames = LoadSpriteSequence("Boss_Warden_Stunned", 4);
+        a.gargoyleFrames = LoadSpriteSequence("Enemy_Gargoyle", 4);
+        a.casterFrames = LoadSpriteSequence("Enemy_Caster", 4);
         a.propEclipseSeal = LoadSprite($"{SpriteFolder}/Prop_EclipseSeal.png");
         a.vfxBossShockwave = LoadSprite($"{SpriteFolder}/VFX_BossShockwave.png");
+        a.vfxBossSkySpear = LoadSprite($"{SpriteFolder}/VFX_BossSkySpear.png");
+        a.vfxPlayerLightningBolt = LoadSprite($"{SpriteFolder}/VFX_PlayerLightningBolt.png");
+        a.vfxEclipseOrb = LoadSprite($"{SpriteFolder}/VFX_EclipseOrb.png");
+        a.propIronChain = LoadSprite($"{SpriteFolder}/Prop_IronChain.png");
+        a.hazardPendulumBlade = LoadSprite($"{SpriteFolder}/Hazard_PendulumBlade.png");
+        a.propSoulLifeRelic = LoadSprite($"{SpriteFolder}/Prop_SoulLifeRelic.png");
 
         a.bgFarSky = LoadSprite($"{SpriteFolder}/BG_FarSky.png");
         a.bgMidCity = LoadSprite($"{SpriteFolder}/BG_MidCity.png");
@@ -346,6 +375,12 @@ public static class LevelBuilder
         a.uiKeycap = LoadSprite($"{UiFolder}/UI_Keycap.png");
         a.uiTitleCrest = LoadSprite($"{UiFolder}/UI_TitleCrest.png");
         a.uiDivider = LoadSprite($"{UiFolder}/UI_Divider.png");
+        a.uiPortraitVesper = LoadSprite($"{UiFolder}/UI_Portrait_Vesper.png");
+        a.uiHpBarFrame = LoadSprite($"{UiFolder}/UI_HpBar_Frame.png");
+        a.uiHpBarFill = LoadSprite($"{UiFolder}/UI_HpBar_Fill.png");
+        a.uiLifeSoulIcon = LoadSprite($"{UiFolder}/UI_LifeSoulIcon.png");
+        a.uiWardDiamond = LoadSprite($"{UiFolder}/UI_WardDiamond.png");
+        a.uiLightningIcon = LoadSprite($"{UiFolder}/UI_LightningIcon.png");
         a.storyCardSprites = new[]
         {
             LoadSprite($"{UiFolder}/UI_StoryCard_1.png"),
@@ -361,6 +396,8 @@ public static class LevelBuilder
         a.checkpointClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_checkpoint.wav");
         a.glideClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_glide.wav");
         a.winClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_win.wav");
+        a.zapClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_zap.wav");
+        a.bossRoarClip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/sfx_boss_roar.wav");
 
         // Particle Material using soft radial texture + Sprites/Default (unlit & transparent in URP 2D)
         string matPath = $"{ArtFolder}/VFX_ParticleMat.mat";
@@ -391,6 +428,8 @@ public static class LevelBuilder
 
         a.vesperAnimator = BuildVesperAnimatorController(a);
         a.bossAnimator = BuildBossAnimatorController(a);
+        a.gargoyleAnimator = BuildLoopingPropAnimator("GargoyleAnimator", "Enemy_Gargoyle_Swoop", a.gargoyleFrames, 0.12f);
+        a.casterAnimator = BuildLoopingPropAnimator("CasterAnimator", "Enemy_Caster_Idle", a.casterFrames, 0.16f);
         a.sentinelAnimator = BuildLoopingPropAnimator("SentinelAnimator", "Enemy_Sentinel_Hover", a.sentinelFrames, 0.11f);
         a.shardAnimator = BuildLoopingPropAnimator("ShardAnimator", "Collectible_Shard_Shimmer", a.shardFrames, 0.13f);
         a.checkpointAnimator = BuildLoopingPropAnimator("CheckpointAnimator", "Prop_Checkpoint_Flicker", a.checkpointFrames, 0.16f);
@@ -566,6 +605,8 @@ public static class LevelBuilder
         AnimationClip wanderClip = CreateSpriteClip("Boss_Warden_Wander", a.bossWanderFrames, 0.16f, true);
         AnimationClip attackClip = CreateSpriteClip("Boss_Warden_Attack", a.bossAttackFrames, 0.20f, false);
         AnimationClip stunnedClip = CreateSpriteClip("Boss_Warden_Stunned", a.bossStunnedFrames, 0.14f, true);
+        AnimationClip dashClip = CreateSpriteClip("Boss_Warden_Dash", a.bossDashFrames, 0.09f, true);
+        AnimationClip castClip = CreateSpriteClip("Boss_Warden_Cast", a.bossCastFrames, 0.16f, false);
 
         AnimatorStateMachine sm = controller.layers[0].stateMachine;
         AnimatorState wanderState = sm.AddState("Wandering");
@@ -574,6 +615,10 @@ public static class LevelBuilder
         attackState.motion = attackClip;
         AnimatorState stunnedState = sm.AddState("Stunned");
         stunnedState.motion = stunnedClip;
+        AnimatorState dashState = sm.AddState("Dashing");
+        dashState.motion = dashClip;
+        AnimatorState castState = sm.AddState("Casting");
+        castState.motion = castClip;
         sm.defaultState = wanderState;
 
         AnimatorStateTransition toWander = sm.AddAnyStateTransition(wanderState);
@@ -593,6 +638,18 @@ public static class LevelBuilder
         toStunned.duration = 0f;
         toStunned.canTransitionToSelf = false;
         toStunned.AddCondition(AnimatorConditionMode.Equals, 2, "State");
+
+        AnimatorStateTransition toDash = sm.AddAnyStateTransition(dashState);
+        toDash.hasExitTime = false;
+        toDash.duration = 0f;
+        toDash.canTransitionToSelf = false;
+        toDash.AddCondition(AnimatorConditionMode.Equals, 3, "State");
+
+        AnimatorStateTransition toCast = sm.AddAnyStateTransition(castState);
+        toCast.hasExitTime = false;
+        toCast.duration = 0f;
+        toCast.canTransitionToSelf = false;
+        toCast.AddCondition(AnimatorConditionMode.Equals, 4, "State");
 
         EditorUtility.SetDirty(controller);
         return controller;
@@ -721,9 +778,12 @@ public static class LevelBuilder
         audioMgr.checkpointClip = a.checkpointClip;
         audioMgr.glideClip = a.glideClip;
         audioMgr.winClip = a.winClip;
+        audioMgr.zapClip = a.zapClip;
+        audioMgr.bossRoarClip = a.bossRoarClip;
 
         GameObject gmGo = new GameObject("GameManager");
         GameManager gm = gmGo.AddComponent<GameManager>();
+        gm.totalShards = 30;
 
         // 5. Player (Vesper)
         GameObject playerGo = CreatePlayer(a);
@@ -863,6 +923,7 @@ public static class LevelBuilder
         col.sharedMaterial = a.frictionlessMaterial;
 
         PlayerController pc = playerGo.AddComponent<PlayerController>();
+        pc.lightningBoltSprite = a.vfxPlayerLightningBolt;
         PlayerHealth ph = playerGo.AddComponent<PlayerHealth>();
 
         pc.jumpDustParticles = CreateOneShotBurstParticles(
@@ -951,18 +1012,22 @@ public static class LevelBuilder
         CreateStreetLamp("Lamp_1D", new Vector2(49.0f, 1.2f), a, levelRoot.transform);
 
         CreateTutorialTrigger("Tut_1_Controls", new Vector2(3.5f, 1.5f), new Vector2(4f, 4f),
-            "SHARDS FUEL YOUR LIGHT: Every 5 Shards Heals/Shields, 5/12/18 Upgrade Cloak, & 4 Charge [E/F] Aether Flash!",
-            "DISTRICT I: COURTYARD OF WHISPERS", "Gather Shards for Light powers & reach Gale-Draft Aqueduct",
+            string.Empty,
+            "I · COURTYARDS", string.Empty,
             levelRoot.transform);
+        CreateSentinel("Sentinel_0_Courtyard", new Vector2(18.5f, 2.25f), -2.2f, 2.2f, 2.6f, a, levelRoot.transform);
+        CreateGargoyle("Gargoyle_1_Chasm", new Vector2(35.5f, 5.4f), 3.2f, 2.8f, a, levelRoot.transform);
+        CreatePlagueCaster("Caster_1_Landing", new Vector2(49.5f, 1.2f), a, levelRoot.transform);
         CreateTutorialTrigger("Tut_2_Glide", new Vector2(28.5f, 4.5f), new Vector2(4f, 4f),
-            "SHADOW-CLOAK GLIDE: Hold SPACE or SHIFT in mid-air to glide across the chasm!",
-            "", "",
+            "HOLD SHIFT TO GLIDE",
+            string.Empty, string.Empty,
             levelRoot.transform);
 
-        // Shards 1..7
+        // Shards 1..7 + bonus Shard 26
         CreateShard(1, new Vector2(8f, 1.1f), a, levelRoot.transform);
         CreateShard(2, new Vector2(12f, 1.1f), a, levelRoot.transform);
         CreateShard(3, new Vector2(19.8f, 2.5f), a, levelRoot.transform);
+        CreateShard(26, new Vector2(25.8f, 4.4f), a, levelRoot.transform);
         CreateShard(4, new Vector2(28.5f, 4.1f), a, levelRoot.transform);
         CreateShard(5, new Vector2(34.0f, 3.9f), a, levelRoot.transform);
         CreateShard(6, new Vector2(36.8f, 3.3f), a, levelRoot.transform);
@@ -971,12 +1036,12 @@ public static class LevelBuilder
         // ============================================================
         // ZONE 2: Gale-Draft Aqueduct (x = 45 .. 127)
         // Grounded Rooftop Thermal Vent & Canal Steam Chimney Updrafts,
-        // Gothic Pillar Aqueducts, Pop-Up Floor Grates, and Gantry Moving Lifts
+        // Gothic Pillar Aqueducts, Pop-Up Floor Grates, Pendulum Scythe & Relics
         // ============================================================
         CreateCheckpoint(1, "Gale-Draft Overlook", new Vector2(45.5f, 1.2f), a, levelRoot.transform);
         CreateTutorialTrigger("Tut_3_Updraft", new Vector2(50.0f, 2.8f), new Vector2(4f, 4f),
-            "THERMAL VENTS: Hold SPACE or SHIFT inside cyan steam columns (even mid-glide!) to soar upward!",
-            "DISTRICT II: GALE-DRAFT AQUEDUCT", "Ride Thermal Vents & cross the Clockwork Shuttle",
+            string.Empty,
+            "II · AQUEDUCT", string.Empty,
             levelRoot.transform);
 
         CreateRooftopUpdraft("Updraft_1_Intro", new Vector2(53.5f, 1.2f), 3.4f, 8.2f, 9.8f, a, levelRoot.transform);
@@ -985,24 +1050,29 @@ public static class LevelBuilder
         CreateElevatedPlatform("Roof_2B_Upper", 58.0f, 74.0f, 5.4f, 2.0f, a, levelRoot.transform, footprints);
         CreateGothicPillar("Pillar_2B_Left", 60.5f, 3.45f, GroundBottomY, 1.6f, a, levelRoot.transform);
         CreateGothicPillar("Pillar_2B_Right", 71.5f, 3.45f, GroundBottomY, 1.6f, a, levelRoot.transform);
-        CreateGothicRailing("Railing_2B_L", 58.6f, 63.8f, 5.4f, a, levelRoot.transform);
+        CreateGothicRailing("Railing_2B_L", 58.6f, 61.5f, 5.4f, a, levelRoot.transform);
         CreateGothicRailing("Railing_2B_R", 68.6f, 73.0f, 5.4f, a, levelRoot.transform);
         CreateStreetLamp("Lamp_2B", new Vector2(60.2f, 5.4f), a, levelRoot.transform);
+        CreatePendulumScythe("Pendulum_2_Aqueduct", new Vector2(63.2f, 10.6f), 3.65f, 44f, 2.4f, 0f, a, levelRoot.transform);
+        CreateElevatedPlatform("Roof_2_RelicPerch", 70.6f, 74.0f, 9.0f, 2.0f, a, levelRoot.transform, footprints);
+        CreateSoulLifeRelic("SoulRelic_1_Aqueduct", new Vector2(72.3f, 9.9f), a, levelRoot.transform);
 
         CreateTutorialTrigger("Tut_4_Spikes", new Vector2(61.0f, 7.0f), new Vector2(3.5f, 4f),
-            "AMBUSH TRAPS: Watch recessed stone grates - concealed spikes spark briefly before erupting!",
-            "", "",
+            string.Empty,
+            string.Empty, string.Empty,
             levelRoot.transform);
         CreatePopUpSpikes("Spikes_2_Ambush", new Vector2(66.2f, 5.4f), 2.0f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
 
-        // Horizontal Moving Clockwork Lift spanning 74.0 .. 87.0 with >= 1.2u clearance on both ends & grounded canal pylons
+        // Horizontal Moving Gothic Bridge spanning 74.0 .. 87.0 with >= 1.2u clearance on both ends & chained canal piers
         CreateMovingPlatform("MovingPlat_2A_Shuttle", new Vector3(77.0f, 3.72f, 0f), new Vector3(84.0f, 3.72f, 0f),
             3.6f, 0.95f, 2.4f, 0.45f, 0.0f, true, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateGargoyle("Gargoyle_2_Shuttle", new Vector2(80.5f, 7.6f), 3.4f, 3.1f, a, levelRoot.transform);
 
         CreateGroundedPlatform("Roof_2C_Mid", 87.0f, 99.0f, 3.2f, GroundBottomY, a, levelRoot.transform, footprints);
         CreateStreetLamp("Lamp_2C", new Vector2(89.2f, 3.2f), a, levelRoot.transform);
         CreateGothicRailing("Railing_2C", 95.0f, 98.0f, 3.2f, a, levelRoot.transform);
         CreatePopUpSpikes("Spikes_2C_Timed", new Vector2(92.6f, 3.2f), 2.2f, PopUpSpikes.TrapMode.TimedCycle, 0.5f, a, levelRoot.transform);
+        CreatePlagueCaster("Caster_2_Mid", new Vector2(96.6f, 3.2f), a, levelRoot.transform);
 
         // Grounded Canal Steam Chimney rising from canal water to launch Vesper up to Roof_2D_High
         CreateCanalChimneyUpdraft("Updraft_2_Chasm", 102.2f, -1.8f, GroundBottomY, 3.8f, 11.6f, 10.6f, a, levelRoot.transform, footprints);
@@ -1021,17 +1091,16 @@ public static class LevelBuilder
 
         // ============================================================
         // ZONE 3: Clockwork Foundry Roofs (x = 113 .. 178.5)
-        // Clockwork Sentinels, Broken-Arch Crumbling Stone Bridges, and
-        // Dual Grounded-Gantry Moving Platforms
+        // Sentinels, Plague Casters, Gargoyles, Pendulum Scythe & Dual Gothic Lifts
         // ============================================================
         CreateCheckpoint(2, "Clockwork Foundry Watch", new Vector2(113.5f, 6.0f), a, levelRoot.transform);
         CreateDistrictArch("Arch_3_FoundryGate", new Vector2(115.6f, 6.0f), a, levelRoot.transform);
         CreateTutorialTrigger("Tut_5_Sentinels", new Vector2(116.5f, 7.5f), new Vector2(3.5f, 4f),
-            "CLOCKWORK FOUNDRY: Stomp Sentinels from above and dash quickly across fractured stone spans!",
-            "DISTRICT III: CLOCKWORK FOUNDRY", "Defeat Sentinel Drones & traverse the Gantry Canal",
+            string.Empty,
+            "III · FOUNDRY", string.Empty,
             levelRoot.transform);
 
-        CreateSentinel("Sentinel_1_Intro", new Vector2(121.5f, 6.95f), -3.0f, 3.0f, 2.3f, a, levelRoot.transform);
+        CreateSentinel("Sentinel_1_Intro", new Vector2(121.5f, 6.95f), -3.0f, 3.0f, 2.5f, a, levelRoot.transform);
 
         // Fragile crumbling bridge inside canal gap 127.0 .. 136.0 framed by weathered stone arch corbels on both cliffs
         CreateBrokenArchCorbel("Corbel_3A_Left", 127.0f, 6.0f, flipX: false, a, levelRoot.transform);
@@ -1039,69 +1108,84 @@ public static class LevelBuilder
         CreateCrumblingPlatform("Crumble_3A_Span", 129.5f, 133.5f, 5.2f, 1.0f, a, levelRoot.transform, footprints);
 
         CreateGroundedPlatform("Roof_3A_Foundry", 136.0f, 148.5f, 4.6f, GroundBottomY, a, levelRoot.transform, footprints);
-        CreatePopUpSpikes("Spikes_3A_Ambush", new Vector2(139.2f, 4.6f), 1.8f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
+        CreatePlagueCaster("Caster_3A_CrumbleGuard", new Vector2(137.0f, 4.6f), a, levelRoot.transform);
+        CreatePopUpSpikes("Spikes_3A_Ambush", new Vector2(139.8f, 4.6f), 1.8f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
         CreateStreetLamp("Lamp_3A", new Vector2(141.4f, 4.6f), a, levelRoot.transform);
-        CreateSentinel("Sentinel_2_Foundry", new Vector2(144.6f, 5.55f), -2.4f, 2.4f, 2.7f, a, levelRoot.transform);
+        CreateSentinel("Sentinel_2_Foundry", new Vector2(144.6f, 5.55f), -2.4f, 2.4f, 2.8f, a, levelRoot.transform);
+        CreateGargoyle("Gargoyle_3A_Foundry", new Vector2(144.6f, 8.6f), 3.4f, 3.2f, a, levelRoot.transform);
 
-        // Wide Foundry Canal (148.5 .. 164.5): Dual strictly non-colliding Moving Platforms anchored into canal piers
+        // Wide Foundry Canal (148.5 .. 164.5): Dual strictly non-colliding Gothic Stone Platforms on chain piers + high Soul Relic perch
         CreateMovingPlatform("MovingPlat_3A_VerticalLift", new Vector3(152.5f, 2.8f, 0f), new Vector3(152.5f, 6.2f, 0f),
             3.4f, 0.95f, 2.3f, 0.45f, 0.0f, true, GroundBottomY, a, levelRoot.transform, footprints);
+        CreatePendulumScythe("Pendulum_3_Gantry", new Vector2(155.4f, 10.2f), 4.1f, 46f, 2.5f, 0.6f, a, levelRoot.transform);
         CreateMovingPlatform("MovingPlat_3B_Shuttle", new Vector3(157.8f, 4.2f, 0f), new Vector3(161.2f, 4.2f, 0f),
             3.4f, 0.95f, 2.1f, 0.40f, 0.35f, true, GroundBottomY, a, levelRoot.transform, footprints);
+        CreateElevatedPlatform("Roof_3_RelicPerch", 158.0f, 162.0f, 8.6f, 2.0f, a, levelRoot.transform, footprints);
+        CreateSoulLifeRelic("SoulRelic_2_Foundry", new Vector2(160.0f, 9.5f), a, levelRoot.transform);
 
         // Twin out-of-phase Pop-Up Spike Gauntlet leading to Zone 4 Checkpoint
         CreateGroundedPlatform("Roof_3C_Gauntlet", 164.5f, 178.5f, 3.6f, GroundBottomY, a, levelRoot.transform, footprints);
         CreateGothicRailing("Railing_3C", 165.0f, 166.6f, 3.6f, a, levelRoot.transform);
         CreatePopUpSpikes("Spikes_3B_TimedA", new Vector2(168.0f, 3.6f), 1.8f, PopUpSpikes.TrapMode.TimedCycle, 0.0f, a, levelRoot.transform);
-        CreatePopUpSpikes("Spikes_3C_TimedB", new Vector2(172.2f, 3.6f), 1.8f, PopUpSpikes.TrapMode.TimedCycle, 1.65f, a, levelRoot.transform);
+        CreatePopUpSpikes("Spikes_3C_TimedB", new Vector2(172.2f, 3.6f), 1.8f, PopUpSpikes.TrapMode.TimedCycle, 1.55f, a, levelRoot.transform);
+        CreatePlagueCaster("Caster_3B_Gauntlet", new Vector2(174.5f, 3.6f), a, levelRoot.transform);
         CreateStreetLamp("Lamp_3C", new Vector2(174.4f, 3.6f), a, levelRoot.transform);
 
-        // Shards 15..20
+        // Shards 15..20 + 27..28
         CreateShard(15, new Vector2(121.5f, 9.2f), a, levelRoot.transform);
         CreateShard(16, new Vector2(131.5f, 6.8f), a, levelRoot.transform);
+        CreateShard(27, new Vector2(140.5f, 6.2f), a, levelRoot.transform);
         CreateShard(17, new Vector2(144.6f, 7.9f), a, levelRoot.transform);
         CreateShard(18, new Vector2(152.5f, 7.6f), a, levelRoot.transform);
         CreateShard(19, new Vector2(159.5f, 6.0f), a, levelRoot.transform);
+        CreateShard(28, new Vector2(166.0f, 5.8f), a, levelRoot.transform);
         CreateShard(20, new Vector2(170.1f, 5.7f), a, levelRoot.transform);
 
         // ============================================================
-        // ZONE 4: Twilight Sanctum Ascent (x = 176 .. 228)
-        // Twin Grounded Steam Chimneys, Ruined Watchtower Crumbling Perch,
-        // Final Sentinel & Ambush Grate, and the Sanctum Beacon
+        // ZONE 4: Twilight Sanctum Ascent (x = 176 .. 244)
+        // Gargoyle-Guarded Chimneys, Bastion Pendulum/Caster, and Multi-Phase Final Boss Arena
         // ============================================================
         CreateCheckpoint(3, "Sanctum Stair Gate", new Vector2(176.2f, 3.6f), a, levelRoot.transform);
         CreateTutorialTrigger("Tut_6_Final", new Vector2(176.5f, 5.2f), new Vector2(3.5f, 4f),
-            "TWILIGHT SANCTUM: Soar up the twin steam chimneys and reignite the Sanctum Beacon!",
-            "DISTRICT IV: TWILIGHT SANCTUM", "Ascend the Twin Chimneys & ignite the Sanctum Beacon!",
+            string.Empty,
+            "IV · SANCTUM", string.Empty,
             levelRoot.transform);
 
         CreateGroundedPlatform("Roof_4A_Bastion", 181.0f, 190.5f, 4.6f, GroundBottomY, a, levelRoot.transform, footprints);
         CreateStreetLamp("Lamp_4A", new Vector2(182.0f, 4.6f), a, levelRoot.transform);
-        CreateSentinel("Sentinel_4_Bastion", new Vector2(185.8f, 5.55f), -2.8f, 2.8f, 2.9f, a, levelRoot.transform);
+        CreateSentinel("Sentinel_4_Bastion", new Vector2(185.8f, 5.55f), -2.8f, 2.8f, 3.1f, a, levelRoot.transform);
+        CreatePendulumScythe("Pendulum_4_Bastion", new Vector2(185.8f, 10.4f), 3.85f, 44f, 2.6f, 1.2f, a, levelRoot.transform);
+        CreatePlagueCaster("Caster_4_Bastion", new Vector2(188.6f, 4.6f), a, levelRoot.transform);
 
-        // Twin Grounded Canal Steam Chimneys flanking a Ruined Watchtower Crumble Perch
+        // Twin Grounded Canal Steam Chimneys flanked by Abyssal Gargoyle Swoopers
         CreateCanalChimneyUpdraft("Updraft_4_AscentA", 193.8f, -1.6f, GroundBottomY, 3.6f, 12.1f, 10.6f, a, levelRoot.transform, footprints);
+        CreateGargoyle("Gargoyle_4A_Chimney", new Vector2(193.8f, 8.8f), 2.8f, 3.0f, a, levelRoot.transform);
         CreateGothicPillar("Pillar_4B_RuinBase", 199.75f, 6.45f, GroundBottomY, 2.0f, a, levelRoot.transform, new Color(0.68f, 0.66f, 0.76f, 1f));
         CreateBrokenArchCorbel("Corbel_4B_Left", 198.75f, 6.45f, flipX: true, a, levelRoot.transform);
         CreateBrokenArchCorbel("Corbel_4B_Right", 200.75f, 6.45f, flipX: false, a, levelRoot.transform);
         CreateCrumblingPlatform("Crumble_4B_Perch", 197.5f, 202.0f, 7.4f, 1.0f, a, levelRoot.transform, footprints);
         CreateCanalChimneyUpdraft("Updraft_5_AscentB", 205.5f, 0.8f, GroundBottomY, 3.6f, 11.7f, 10.8f, a, levelRoot.transform, footprints);
+        CreateGargoyle("Gargoyle_4B_Chimney", new Vector2(205.5f, 11.2f), 2.8f, 3.2f, a, levelRoot.transform);
 
-        // Final Sanctum Terrace, Final Boss Arena (Malakor, The Eclipse Warden) & Sealed Sanctum Beacon
+        // Final Sanctum Terrace, Multi-Phase Final Boss Arena (Malakor) & Sealed Sanctum Beacon
         CreateGroundedPlatform("Roof_4C_Sanctum", 209.0f, 244.0f, 9.0f, GroundBottomY, a, levelRoot.transform, footprints);
         CreateDistrictArch("Arch_4_SanctumApproach", new Vector2(210.0f, 9.0f), a, levelRoot.transform);
         CreateCheckpoint(4, "Sanctum Threshold", new Vector2(211.6f, 9.0f), a, levelRoot.transform);
         CreateStreetLamp("Lamp_4_ArenaL", new Vector2(213.2f, 9.0f), a, levelRoot.transform);
         CreateRooftopUpdraft("Updraft_6_BossArenaLeft", new Vector2(214.8f, 9.0f), 2.8f, 5.8f, 9.4f, a, levelRoot.transform);
+        CreateArenaAmmoSpawner("ArenaLightning_Left", new Vector2(214.8f, 13.8f), a, levelRoot.transform);
         CreateRooftopUpdraft("Updraft_7_BossArenaRight", new Vector2(233.2f, 9.0f), 2.8f, 5.8f, 9.4f, a, levelRoot.transform);
+        CreateArenaAmmoSpawner("ArenaLightning_Right", new Vector2(233.2f, 13.8f), a, levelRoot.transform);
         CreateStreetLamp("Lamp_4_BeaconL", new Vector2(236.2f, 9.0f), a, levelRoot.transform);
         CreateStreetLamp("Lamp_4_BeaconR", new Vector2(242.4f, 9.0f), a, levelRoot.transform);
         CreateGothicRailing("Railing_4C_End", 241.0f, 243.6f, 9.0f, a, levelRoot.transform);
 
-        // Shards 21..25
+        // Shards 21..25 + 29..30
+        CreateShard(29, new Vector2(183.2f, 6.4f), a, levelRoot.transform);
         CreateShard(21, new Vector2(185.8f, 7.9f), a, levelRoot.transform);
         CreateShard(22, new Vector2(193.8f, 7.4f), a, levelRoot.transform);
         CreateShard(23, new Vector2(199.8f, 9.0f), a, levelRoot.transform);
+        CreateShard(30, new Vector2(202.0f, 10.4f), a, levelRoot.transform);
         CreateShard(24, new Vector2(219.5f, 12.6f), a, levelRoot.transform);
         CreateShard(25, new Vector2(228.5f, 12.6f), a, levelRoot.transform);
 
@@ -1289,7 +1373,7 @@ public static class LevelBuilder
             maxY = Mathf.Max(startPos.y, endPos.y) + height * 0.5f
         });
 
-        // Subtle glowing iron guide rail showing the platform's exact safe path
+        // Wrought-iron gothic chain guide rail showing the platform's exact travel path
         GameObject railGo = new GameObject($"{name}_GuideRail");
         railGo.transform.SetParent(parent, false);
         Vector3 mid = (startPos + endPos) * 0.5f;
@@ -1297,14 +1381,16 @@ public static class LevelBuilder
         float railLen = diff.magnitude + 0.5f;
         float railAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
         railGo.transform.position = mid;
-        railGo.transform.rotation = Quaternion.Euler(0f, 0f, railAngle);
-        railGo.transform.localScale = new Vector3(railLen, 0.16f, 1f);
+        railGo.transform.rotation = Quaternion.Euler(0f, 0f, railAngle - 90f);
         SpriteRenderer railSr = railGo.AddComponent<SpriteRenderer>();
-        railSr.sprite = a.uiWhiteSprite;
-        railSr.color = new Color(0.28f, 0.72f, 0.88f, 0.42f);
+        railSr.sprite = a.propIronChain;
+        railSr.drawMode = SpriteDrawMode.Tiled;
+        railSr.tileMode = SpriteTileMode.Continuous;
+        railSr.size = new Vector2(0.45f, railLen);
+        railSr.color = new Color(0.76f, 0.80f, 0.92f, 0.78f);
         railSr.sortingOrder = -1;
 
-        // Brass clockwork gear pylons capping every endpoint + grounded iron gantry stanchions into canal
+        // Brass clockwork gear pylons capping every endpoint + forged wrought-iron suspension chains into canal
         List<Vector3> anchors = new List<Vector3> { startPos };
         if ((endPos - startPos).sqrMagnitude > 0.01f)
         {
@@ -1322,10 +1408,12 @@ public static class LevelBuilder
                     GameObject colGo = new GameObject($"{name}_GantryPier_{i + 1}");
                     colGo.transform.SetParent(parent, false);
                     colGo.transform.position = new Vector3(endPt.x, (endPt.y + groundBottomY) * 0.5f, 0f);
-                    colGo.transform.localScale = new Vector3(0.24f, colH, 1f);
                     SpriteRenderer colSr = colGo.AddComponent<SpriteRenderer>();
-                    colSr.sprite = a.uiWhiteSprite;
-                    colSr.color = new Color(0.14f, 0.16f, 0.28f, 0.92f);
+                    colSr.sprite = a.propIronChain;
+                    colSr.drawMode = SpriteDrawMode.Tiled;
+                    colSr.tileMode = SpriteTileMode.Continuous;
+                    colSr.size = new Vector2(0.48f, colH);
+                    colSr.color = new Color(0.85f, 0.88f, 0.96f, 0.95f);
                     colSr.sortingOrder = -2;
                 }
             }
@@ -1985,6 +2073,174 @@ public static class LevelBuilder
         trigger.triggerOnce = true;
     }
 
+    private static void CreateGargoyle(string name, Vector2 pos, float range, float speed, BuiltAssets a, Transform parent)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(pos.x, pos.y, 0f);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = a.gargoyleFrames[0];
+        sr.sortingOrder = 7;
+
+        Animator anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = a.gargoyleAnimator;
+
+        CircleCollider2D col = go.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = 0.72f;
+
+        SwoopEnemy swoop = go.AddComponent<SwoopEnemy>();
+        swoop.patrolRange = range;
+        swoop.patrolSpeed = speed;
+        swoop.defeatParticles = CreateOneShotBurstParticles(
+            $"{name}_DefeatParticles", go.transform, Vector3.zero,
+            a.particleMaterial, new Color(0.85f, 0.35f, 0.65f, 0.96f), 24, 0.14f, 0.34f, 6.2f, 180f, 11,
+            enableTrails: true
+        );
+    }
+
+    private static void CreatePlagueCaster(string name, Vector2 basePos, BuiltAssets a, Transform parent)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(basePos.x, basePos.y, 0f);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = a.casterFrames[0];
+        sr.sortingOrder = 6;
+
+        Animator anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = a.casterAnimator;
+
+        BoxCollider2D col = go.AddComponent<BoxCollider2D>();
+        col.isTrigger = true;
+        col.offset = new Vector2(0f, 0.92f);
+        col.size = new Vector2(1.05f, 1.85f);
+
+        AetherShooterEnemy caster = go.AddComponent<AetherShooterEnemy>();
+        caster.projectileSprite = a.vfxEclipseOrb;
+        caster.defeatParticles = CreateOneShotBurstParticles(
+            $"{name}_DefeatParticles", go.transform, new Vector3(0f, 0.9f, 0f),
+            a.particleMaterial, new Color(0.92f, 0.32f, 0.75f, 0.96f), 26, 0.14f, 0.34f, 6.2f, 180f, 11,
+            enableTrails: true
+        );
+    }
+
+    private static void CreatePendulumScythe(
+        string name,
+        Vector2 pivotPos,
+        float chainLength,
+        float maxAngle,
+        float swingSpeed,
+        float phaseOffset,
+        BuiltAssets a,
+        Transform parent)
+    {
+        GameObject pivot = new GameObject(name);
+        pivot.transform.SetParent(parent, false);
+        pivot.transform.position = new Vector3(pivotPos.x, pivotPos.y, 0f);
+
+        PendulumHazard pend = pivot.AddComponent<PendulumHazard>();
+        pend.maxAngle = maxAngle;
+        pend.swingSpeed = swingSpeed;
+        pend.phaseOffset = phaseOffset;
+
+        // Ornate brass clockwork ceiling anchor hub
+        GameObject hub = new GameObject("CeilingAnchorHub");
+        hub.transform.SetParent(pivot.transform, false);
+        hub.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
+        SpriteRenderer hubSr = hub.AddComponent<SpriteRenderer>();
+        hubSr.sprite = a.propTrackPylon;
+        hubSr.sortingOrder = 4;
+
+        // Forged iron chain arm down to blade
+        GameObject chain = new GameObject("PendulumChain");
+        chain.transform.SetParent(pivot.transform, false);
+        chain.transform.localPosition = new Vector3(0f, -chainLength * 0.5f, 0f);
+        SpriteRenderer chSr = chain.AddComponent<SpriteRenderer>();
+        chSr.sprite = a.propIronChain;
+        chSr.drawMode = SpriteDrawMode.Tiled;
+        chSr.tileMode = SpriteTileMode.Continuous;
+        chSr.size = new Vector2(0.42f, chainLength);
+        chSr.sortingOrder = 3;
+
+        // Crescent executioner blade at bottom of chain
+        GameObject blade = new GameObject("ScytheBlade");
+        blade.transform.SetParent(pivot.transform, false);
+        blade.transform.localPosition = new Vector3(0f, -chainLength, 0f);
+        SpriteRenderer blSr = blade.AddComponent<SpriteRenderer>();
+        blSr.sprite = a.hazardPendulumBlade;
+        blSr.sortingOrder = 5;
+
+        BoxCollider2D col = blade.AddComponent<BoxCollider2D>();
+        col.isTrigger = true;
+        col.offset = new Vector2(0f, -0.18f);
+        col.size = new Vector2(1.75f, 0.52f);
+
+        Hazard hz = blade.AddComponent<Hazard>();
+        hz.isKillzone = false;
+        hz.damageAmount = 25;
+    }
+
+    private static void CreateSoulLifeRelic(string name, Vector2 pos, BuiltAssets a, Transform parent)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(pos.x, pos.y, 0f);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = a.propSoulLifeRelic;
+        sr.sortingOrder = 6;
+
+        CircleCollider2D col = go.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = 0.62f;
+
+        CreateLoopingTrailParticles(
+            $"{name}_Glow", go.transform, Vector3.zero,
+            a.particleMaterial, new Color(1f, 0.90f, 0.42f, 0.85f), new Color(0.45f, 0.98f, 1f, 0.80f), 5,
+            enableRibbons: false, noiseStrength: 0.45f
+        );
+
+        SoulLifePickup pickup = go.AddComponent<SoulLifePickup>();
+        pickup.pickupParticles = CreateOneShotBurstParticles(
+            $"{name}_Burst", go.transform, Vector3.zero,
+            a.particleMaterial, new Color(1f, 0.90f, 0.45f, 1f), 28, 0.16f, 0.34f, 6.0f, 180f, 12,
+            enableTrails: true
+        );
+    }
+
+    private static void CreateArenaAmmoSpawner(string name, Vector2 pos, BuiltAssets a, Transform parent)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(pos.x, pos.y, 0f);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = a.shardFrames[0];
+        sr.sortingOrder = 6;
+
+        Animator anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = a.shardAnimator;
+
+        CircleCollider2D col = go.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+        col.radius = 0.65f;
+
+        ArenaAmmoSpawner spawner = go.AddComponent<ArenaAmmoSpawner>();
+        spawner.idleParticles = CreateLoopingTrailParticles(
+            $"{name}_Idle", go.transform, Vector3.zero,
+            a.particleMaterial, new Color(0.45f, 0.98f, 1f, 0.85f), new Color(1f, 0.94f, 0.55f, 0.75f), 5,
+            enableRibbons: false, noiseStrength: 0.45f
+        );
+        spawner.collectBurstParticles = CreateOneShotBurstParticles(
+            $"{name}_CollectBurst", go.transform, Vector3.zero,
+            a.particleMaterial, new Color(0.45f, 0.98f, 1f, 1f), 22, 0.16f, 0.34f, 6.2f, 180f, 12,
+            enableTrails: true
+        );
+    }
+
     private static void CreateFinalBoss(Vector2 basePos, LevelGoal linkedGoal, BuiltAssets a, Transform parent)
     {
         GameObject go = new GameObject("FinalBoss_EclipseWarden");
@@ -2000,23 +2256,38 @@ public static class LevelBuilder
 
         BoxCollider2D col = go.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
-        col.offset = new Vector2(0f, 1.15f);
-        col.size = new Vector2(1.55f, 2.30f);
+        col.offset = new Vector2(0f, 1.38f);
+        col.size = new Vector2(1.75f, 2.75f);
 
         Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Kinematic;
+
+        GameObject wardRingGo = new GameObject("EclipseWardRing");
+        wardRingGo.transform.SetParent(go.transform, false);
+        wardRingGo.transform.localPosition = new Vector3(0f, 1.45f, 0f);
+        wardRingGo.transform.localScale = new Vector3(1.42f, 1.42f, 1f);
+        SpriteRenderer wardSr = wardRingGo.AddComponent<SpriteRenderer>();
+        wardSr.sprite = a.propEclipseSeal;
+        wardSr.color = new Color(1f, 0.38f, 0.52f, 0.44f);
+        wardSr.sortingOrder = 6;
 
         FinalBossAI boss = go.AddComponent<FinalBossAI>();
         boss.animator = anim;
         boss.spriteRenderer = sr;
         boss.linkedGoal = linkedGoal;
+        boss.wardRingVisual = wardRingGo;
         boss.shockwaveSprite = a.vfxBossShockwave;
+        boss.skySpearSprite = a.vfxBossSkySpear;
+        boss.skyBeamWhiteSprite = a.uiWhiteSprite;
+        boss.eclipseOrbSprite = a.vfxEclipseOrb;
         boss.wanderPreviewSprite = a.bossWanderFrames[0];
         boss.attackPreviewSprite = a.bossAttackFrames[2];
+        boss.dashPreviewSprite = a.bossDashFrames[1];
+        boss.castPreviewSprite = a.bossCastFrames[1];
         boss.stunnedPreviewSprite = a.bossStunnedFrames[1];
         boss.arenaActivationX = 212.5f;
-        boss.minPatrolX = 216.2f;
-        boss.maxPatrolX = 231.8f;
+        boss.minPatrolX = 215.5f;
+        boss.maxPatrolX = 232.8f;
 
         boss.slamParticles = CreateOneShotBurstParticles(
             "BossSlamParticles", go.transform, new Vector3(-1.45f, 0.15f, 0f),
@@ -2029,7 +2300,7 @@ public static class LevelBuilder
             enableTrails: true
         );
         boss.stunLoopParticles = CreateLoopingTrailParticles(
-            "BossStunLoopParticles", go.transform, new Vector3(0f, 2.25f, 0f),
+            "BossStunLoopParticles", go.transform, new Vector3(0f, 2.4f, 0f),
             a.particleMaterial, new Color(0.45f, 0.98f, 1f, 0.85f), new Color(1f, 0.86f, 0.35f, 0.8f), 8,
             enableRibbons: false, noiseStrength: 0.7f
         );
@@ -2037,9 +2308,18 @@ public static class LevelBuilder
         var stunMain = boss.stunLoopParticles.main;
         stunMain.playOnAwake = false;
 
+        boss.rageAuraParticles = CreateLoopingTrailParticles(
+            "BossRageAuraParticles", go.transform, new Vector3(0f, 1.2f, 0f),
+            a.particleMaterial, new Color(1f, 0.24f, 0.42f, 0.82f), new Color(1f, 0.58f, 0.20f, 0.75f), 5,
+            enableRibbons: true, noiseStrength: 0.85f
+        );
+        boss.rageAuraParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        var rageMain = boss.rageAuraParticles.main;
+        rageMain.playOnAwake = false;
+
         boss.defeatExplosionParticles = CreateOneShotBurstParticles(
             "BossDefeatExplosionParticles", go.transform, new Vector3(0f, 1.4f, 0f),
-            a.particleMaterial, new Color(1f, 0.72f, 0.32f, 1f), 55, 0.22f, 0.52f, 9.0f, 180f, 14,
+            a.particleMaterial, new Color(1f, 0.72f, 0.32f, 1f), 60, 0.22f, 0.54f, 9.2f, 180f, 14,
             enableTrails: true
         );
     }
@@ -2332,43 +2612,42 @@ public static class LevelBuilder
         GameObject titlePanel = CreateFullScreenPanel("TitlePanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.04f, 0.05f, 0.13f, 0.48f));
         uiMgr.titlePanel = titlePanel;
 
-        GameObject titleModal = CreateOrnatePanel("TitleModal", titlePanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(690f, 560f));
-        CreateUiImage("TitleCrest", titleModal.transform, a.uiTitleCrest, new Vector2(0.5f, 0.5f), new Vector2(0f, 214f), new Vector2(460f, 78f));
+        GameObject titleModal = CreateOrnatePanel("TitleModal", titlePanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(640f, 520f));
+        CreateUiImage("TitleCrest", titleModal.transform, a.uiTitleCrest, new Vector2(0.5f, 0.5f), new Vector2(0f, 198f), new Vector2(440f, 74f));
 
-        Text titleLogo = CreateText("TitleLogo", titleModal.transform, uiFont, "VESPER: TWILIGHT COURIER", 36, FontStyle.Bold,
+        Text titleLogo = CreateText("TitleLogo", titleModal.transform, uiFont, "VESPER", 42, FontStyle.Bold,
             cyanGlow, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 152f), new Vector2(640f, 52f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 134f), new Vector2(560f, 52f));
         AddUiShadow(titleLogo, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
 
-        CreateText("TitleSubtitle", titleModal.transform, uiFont, "THE FALLEN BEACON OF NOCTIS REACH", 18, FontStyle.Bold,
+        CreateText("TitleSubtitle", titleModal.transform, uiFont, "TWILIGHT COURIER", 18, FontStyle.Bold,
             goldTrim, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 114f), new Vector2(580f, 30f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 96f), new Vector2(480f, 28f));
 
-        CreateUiImage("TitleDivider", titleModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 88f), new Vector2(440f, 20f));
+        CreateUiImage("TitleDivider", titleModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 70f), new Vector2(400f, 18f));
 
         CreateText("TitlePitch", titleModal.transform, uiFont,
-            "An eternal eclipse freezes the canal spires. As a Shadow-Stitcher Courier,\n" +
-            "reclaim the scattered Memory Shards and reignite the Sanctum Beacon.",
-            17, FontStyle.Normal, warmWhite, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(600f, 64f));
+            "Outfly the eclipse. Break the Warden.",
+            16, FontStyle.Normal, warmWhite, TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 36f), new Vector2(520f, 32f));
 
         Button startBtn = CreateOrnateButton("StartRunButton", titleModal.transform, a.uiBtnPrimary, uiFont,
-            "BEGIN DELIVERY", new Vector2(0f, -38f), new Vector2(310f, 60f), 22, Color.white);
+            "PLAY", new Vector2(0f, -24f), new Vector2(290f, 56f), 22, Color.white);
         uiMgr.startRunButton = startBtn;
         UnityEventTools.AddPersistentListener(startBtn.onClick, gm.BeginDeliveryFromTitle);
 
         Button titleStoryBtn = CreateOrnateButton("TitleStoryButton", titleModal.transform, a.uiBtnSecondary, uiFont,
-            "STORY & MISSION", new Vector2(0f, -104f), new Vector2(280f, 50f), 18, goldTrim);
+            "STORY", new Vector2(0f, -86f), new Vector2(260f, 46f), 18, goldTrim);
         uiMgr.titleStoryButton = titleStoryBtn;
         UnityEventTools.AddPersistentListener(titleStoryBtn.onClick, gm.ShowLoreScreen);
 
         Button titleTutBtn = CreateOrnateButton("TitleTutorialButton", titleModal.transform, a.uiBtnSecondary, uiFont,
-            "HOW TO PLAY", new Vector2(0f, -162f), new Vector2(280f, 50f), 18, cyanGlow);
+            "GUIDE", new Vector2(0f, -142f), new Vector2(260f, 46f), 18, cyanGlow);
         uiMgr.titleTutorialButton = titleTutBtn;
         UnityEventTools.AddPersistentListener(titleTutBtn.onClick, gm.OpenTutorialFromTitle);
 
         Button titleQuitBtn = CreateOrnateButton("TitleQuitButton", titleModal.transform, a.uiBtnDanger, uiFont,
-            "QUIT", new Vector2(0f, -220f), new Vector2(210f, 44f), 17, warmWhite);
+            "QUIT", new Vector2(0f, -198f), new Vector2(200f, 42f), 17, warmWhite);
         uiMgr.titleQuitButton = titleQuitBtn;
         UnityEventTools.AddPersistentListener(titleQuitBtn.onClick, gm.QuitGame);
 
@@ -2378,41 +2657,40 @@ public static class LevelBuilder
         GameObject storyIntroPanel = CreateFullScreenPanel("StoryIntroPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.03f, 0.04f, 0.11f, 0.78f));
         uiMgr.storyIntroPanel = storyIntroPanel;
 
-        GameObject storyModal = CreateOrnatePanel("StoryIntroModal", storyIntroPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(880f, 570f));
-        Text storyHeader = CreateText("StoryHeader", storyModal.transform, uiFont, "CHRONICLE OF NOCTIS REACH", 28, FontStyle.Bold,
-            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 236f), new Vector2(740f, 44f));
+        GameObject storyModal = CreateOrnatePanel("StoryIntroModal", storyIntroPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(840f, 540f));
+        Text storyHeader = CreateText("StoryHeader", storyModal.transform, uiFont, "NOCTIS REACH", 28, FontStyle.Bold,
+            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 224f), new Vector2(680f, 42f));
         AddUiShadow(storyHeader, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
-        CreateUiImage("StoryDividerTop", storyModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 206f), new Vector2(480f, 18f));
+        CreateUiImage("StoryDividerTop", storyModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 194f), new Vector2(460f, 16f));
 
         uiMgr.storyCardImage = CreateUiImage("StoryCardImage", storyModal.transform,
             a.storyCardSprites != null && a.storyCardSprites.Length > 0 ? a.storyCardSprites[0] : a.uiWhiteSprite,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 74f), new Vector2(510f, 222f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 64f), new Vector2(520f, 226f));
 
-        uiMgr.storyStepTitleText = CreateText("StoryStepTitleText", storyModal.transform, uiFont, "I. THE FALLING ECLIPSE", 23, FontStyle.Bold,
-            cyanGlow, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, -64f), new Vector2(760f, 36f));
+        uiMgr.storyStepTitleText = CreateText("StoryStepTitleText", storyModal.transform, uiFont, "I · ECLIPSE", 23, FontStyle.Bold,
+            cyanGlow, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, -74f), new Vector2(700f, 34f));
 
         uiMgr.storyStepBodyText = CreateText("StoryStepBodyText", storyModal.transform, uiFont,
-            "A crimson eclipse hangs frozen over Noctis Reach, draining every district lantern toward eternal frost.\n" +
-            "Should darkness claim the upper spires, the canal city beneath will never see another dawn.",
-            17, FontStyle.Normal, warmWhite, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, -124f), new Vector2(780f, 84f));
+            "The Eternal Eclipse freezes Noctis Reach.",
+            18, FontStyle.Normal, warmWhite, TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(0f, -118f), new Vector2(720f, 44f));
 
         Button storyBackBtn = CreateOrnateButton("StoryBackButton", storyModal.transform, a.uiBtnSecondary, uiFont,
-            "PREVIOUS", new Vector2(-280f, -220f), new Vector2(160f, 48f), 16, warmWhite);
+            "BACK", new Vector2(-260f, -206f), new Vector2(150f, 46f), 16, warmWhite);
         uiMgr.storyBackButton = storyBackBtn;
         UnityEventTools.AddPersistentListener(storyBackBtn.onClick, uiMgr.PreviousStoryIntro);
 
         uiMgr.storyPageIndicatorText = CreateText("StoryPageIndicatorText", storyModal.transform, uiFont, "1 / 3", 18, FontStyle.Bold,
-            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(-120f, -220f), new Vector2(90f, 36f));
+            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(-115f, -206f), new Vector2(86f, 34f));
 
         Button storyNextBtn = CreateOrnateButton("StoryNextButton", storyModal.transform, a.uiBtnPrimary, uiFont,
-            "NEXT PAGE", new Vector2(75f, -220f), new Vector2(235f, 54f), 19, Color.white);
+            "NEXT", new Vector2(75f, -206f), new Vector2(220f, 52f), 19, Color.white);
         uiMgr.storyNextButton = storyNextBtn;
         uiMgr.storyNextButtonText = storyNextBtn.GetComponentInChildren<Text>();
         UnityEventTools.AddPersistentListener(storyNextBtn.onClick, uiMgr.AdvanceStoryIntro);
 
         Button storySkipBtn = CreateOrnateButton("StorySkipButton", storyModal.transform, a.uiBtnSecondary, uiFont,
-            "SKIP INTRO", new Vector2(300f, -220f), new Vector2(160f, 48f), 16, warmWhite);
+            "SKIP", new Vector2(280f, -206f), new Vector2(145f, 46f), 16, warmWhite);
         uiMgr.storySkipButton = storySkipBtn;
         UnityEventTools.AddPersistentListener(storySkipBtn.onClick, gm.StartGame);
 
@@ -2422,68 +2700,68 @@ public static class LevelBuilder
         GameObject lorePanel = CreateFullScreenPanel("LorePanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.03f, 0.04f, 0.11f, 0.78f));
         uiMgr.lorePanel = lorePanel;
 
-        GameObject loreModal = CreateOrnatePanel("LoreModal", lorePanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(900f, 570f));
-        Text loreTitle = CreateText("LoreTitle", loreModal.transform, uiFont, "STORY & COURIER MISSION", 30, FontStyle.Bold,
-            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 232f), new Vector2(780f, 46f));
+        GameObject loreModal = CreateOrnatePanel("LoreModal", lorePanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(780f, 460f));
+        Text loreTitle = CreateText("LoreTitle", loreModal.transform, uiFont, "CHRONICLE", 30, FontStyle.Bold,
+            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 178f), new Vector2(680f, 44f));
         AddUiShadow(loreTitle, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
-        CreateUiImage("LoreDivider", loreModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 200f), new Vector2(520f, 18f));
+        CreateUiImage("LoreDivider", loreModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 146f), new Vector2(460f, 16f));
 
         CreateText("LoreContent", loreModal.transform, uiFont,
-            "THE WORLD — NOCTIS REACH:\n" +
-            "Suspended above the moonlit Twilight Canal, Noctis Reach runs on condensed dawnlight stored inside golden\n" +
-            "District Lanterns. Tonight, the Eternal Eclipse struck the high Sanctum Spire, shattering its central crystal.\n\n" +
-            "VESPER'S BACKSTORY & CAUSE:\n" +
-            "You play as Vesper, youngest of the Shadow-Stitchers—high-altitude couriers entrusted with the dusk-woven Cloak.\n" +
-            "Only Vesper can soar across severed bridges, awaken dormant Watchtower Lanterns, and save the sleeping city below.\n\n" +
-            "YOUR OBJECTIVE ACROSS 4 DISTRICTS:\n" +
-            "1. Courtyard of Whispers  ->  2. Gale-Draft Aqueduct  ->  3. Clockwork Foundry  ->  4. Twilight Sanctum\n" +
-            "Reclaim all 25 scattered Memory Shards, outwit Sentinel drones & ambush spikes, and ignite the Sanctum Beacon!",
-            17, FontStyle.Normal, warmWhite, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(820f, 330f));
+            "NOCTIS REACH — Locked in Eternal Eclipse.\n\n" +
+            "VESPER — Shadow-Stitcher flying the dusk-woven cloak.\n\n" +
+            "MISSION — Gather Storm-Lightnings, shatter Malakor's Ward, ignite Dawn.",
+            19, FontStyle.Normal, warmWhite, TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 12f), new Vector2(700f, 220f));
 
         Button loreStartBtn = CreateOrnateButton("LoreStartButton", loreModal.transform, a.uiBtnPrimary, uiFont,
-            "BEGIN DELIVERY", new Vector2(-150f, -210f), new Vector2(250f, 54f), 19, Color.white);
+            "PLAY", new Vector2(-140f, -158f), new Vector2(220f, 52f), 19, Color.white);
         uiMgr.loreStartButton = loreStartBtn;
         UnityEventTools.AddPersistentListener(loreStartBtn.onClick, gm.StartGame);
 
         Button loreBackBtn = CreateOrnateButton("LoreBackButton", loreModal.transform, a.uiBtnSecondary, uiFont,
-            "BACK TO MENU", new Vector2(150f, -210f), new Vector2(240f, 50f), 18, warmWhite);
+            "BACK", new Vector2(140f, -158f), new Vector2(220f, 48f), 18, warmWhite);
         uiMgr.loreBackButton = loreBackBtn;
         UnityEventTools.AddPersistentListener(loreBackBtn.onClick, gm.CloseSubScreen);
 
         // ============================================================
-        // 4. DEDICATED VISUAL TUTORIAL SCREEN ("COURIER FIELD GUIDE")
+        // 4. ANIMATED VISUAL TUTORIAL SCREEN ("FIELD GUIDE")
         // ============================================================
         GameObject tutorialPanel = CreateFullScreenPanel("TutorialPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.03f, 0.04f, 0.11f, 0.78f));
         uiMgr.tutorialPanel = tutorialPanel;
 
-        GameObject tutModal = CreateOrnatePanel("TutorialModal", tutorialPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(1020f, 595f));
-        Text tutTitle = CreateText("TutorialTitle", tutModal.transform, uiFont, "COURIER FIELD GUIDE  -  HOW TO PLAY", 29, FontStyle.Bold,
-            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 250f), new Vector2(840f, 44f));
+        GameObject tutModal = CreateOrnatePanel("TutorialModal", tutorialPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(1020f, 585f));
+        Text tutTitle = CreateText("TutorialTitle", tutModal.transform, uiFont, "FIELD GUIDE", 30, FontStyle.Bold,
+            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 246f), new Vector2(760f, 44f));
         AddUiShadow(tutTitle, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
-        CreateUiImage("TutorialDivider", tutModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 220f), new Vector2(540f, 18f));
+        CreateUiImage("TutorialDivider", tutModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 216f), new Vector2(520f, 16f));
 
         CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_MoveJump",
-            new Vector2(-325f, 110f), a.vesperRunFrames[0], new Vector2(74f, 74f),
-            "MOVE & JUMP", "A/D + SPACE", "Run rooftops & hold SPACE / W longer for higher leaps.", cyanGlow);
+            new Vector2(-325f, 106f), a.vesperRunFrames[0], new Vector2(78f, 78f),
+            "MOVE & JUMP", "A/D + SPACE", "Hold Jump for extra height.", cyanGlow,
+            a.vesperRunFrames, 10f, 0f, 5f);
         CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Glide",
-            new Vector2(0f, 110f), a.vesperGlideFrames[1], new Vector2(74f, 74f),
-            "SHADOW-CLOAK GLIDE", "HOLD SHIFT", "Hold SHIFT (or SPACE after peak) in mid-air to glide smoothly.", cyanGlow);
+            new Vector2(0f, 106f), a.vesperGlideFrames[1], new Vector2(78f, 78f),
+            "CLOAK GLIDE", "HOLD SHIFT", "Soar cleanly across chasms.", cyanGlow,
+            a.vesperGlideFrames, 8f, 5f, 0f);
         CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Updraft",
-            new Vector2(325f, 110f), a.propUpdraftVent, new Vector2(88f, 34f),
-            "THERMAL UPDRAFTS", "GLIDE IN", "Glide inside glowing vents & canal chimneys to soar skyward!", cyanGlow);
-        CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Spikes",
-            new Vector2(-325f, -78f), a.hazardSpikes, new Vector2(80f, 44f),
-            "AMBUSH SPIKE GRATES", "WATCH SPARKS", "Recessed grates spark briefly before erupting - leap clean!", new Color(1f, 0.45f, 0.58f, 1f));
-        CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Sentinels",
-            new Vector2(0f, -78f), a.sentinelFrames[0], new Vector2(74f, 74f),
-            "CLOCKWORK SENTINELS", "STOMP TOP", "Land on top of patrolling drones to stomp-bounce over gaps!", goldTrim);
-        CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Goal",
-            new Vector2(325f, -78f), a.shardFrames[0], new Vector2(74f, 74f),
-            "AETHER SHARDS & LIGHT", "[E / F] FLASH", "5/12/18 Tiers power Cloak & Boss Dmg; per 5 Heal/Shield; per 4 charge Flash!", goldTrim);
+            new Vector2(325f, 106f), a.propUpdraftVent, new Vector2(88f, 36f),
+            "UPDRAFTS", "GLIDE IN", "Glide into vents & steam.", cyanGlow,
+            null, 6f, 7f, 0f);
+        CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Hazards",
+            new Vector2(-325f, -80f), a.hazardPendulumBlade != null ? a.hazardPendulumBlade : a.hazardSpikes, new Vector2(76f, 64f),
+            "TRAPS & SCYTHES", "TIMED DODGE", "Time scythes & spark grates.", new Color(1f, 0.45f, 0.58f, 1f),
+            new[] { a.hazardPendulumBlade, a.hazardSpikes }, 1.2f, 3f, 8f);
+        CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Lightning",
+            new Vector2(0f, -80f), a.shardFrames[0], new Vector2(74f, 74f),
+            "STORM BOLT", "CLICK / E / F", "Blast foes & Boss Shield!", cyanGlow,
+            a.shardFrames, 9f, 4f, 0f);
+        CreateVisualTutorialCard(tutModal.transform, a, uiFont, "Card_Stomp",
+            new Vector2(325f, -80f), a.gargoyleFrames != null && a.gargoyleFrames.Length > 0 ? a.gargoyleFrames[0] : a.sentinelFrames[0], new Vector2(76f, 76f),
+            "STOMP FOES", "LAND ON TOP", "Crush drones & Stunned Boss.", goldTrim,
+            a.gargoyleFrames != null && a.gargoyleFrames.Length > 0 ? a.gargoyleFrames : a.sentinelFrames, 9f, 6f, 0f);
 
         Button tutBackBtn = CreateOrnateButton("TutorialBackButton", tutModal.transform, a.uiBtnSecondary, uiFont,
-            "BACK", new Vector2(0f, -236f), new Vector2(240f, 50f), 18, warmWhite);
+            "BACK", new Vector2(0f, -234f), new Vector2(220f, 48f), 18, warmWhite);
         uiMgr.tutorialBackButton = tutBackBtn;
         UnityEventTools.AddPersistentListener(tutBackBtn.onClick, gm.CloseSubScreen);
 
@@ -2493,48 +2771,133 @@ public static class LevelBuilder
         GameObject hudPanel = CreateFullScreenPanel("HUDPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0f, 0f, 0f, 0f));
         uiMgr.hudPanel = hudPanel;
 
-        // Top-left Stats Plaque
+        // Top-left Combat Stats Plaque (Portrait + 5 Life Souls + 100 HP Bar + Lightning Ammo + Shards + Timer)
         GameObject leftPlaque = CreateHudPlaque("HudStatsPlaque", hudPanel.transform, a.uiHudBar,
-            new Vector2(0f, 1f), new Vector2(182f, -62f), new Vector2(336f, 108f));
+            new Vector2(0f, 1f), new Vector2(216f, -64f), new Vector2(412f, 112f));
 
-        uiMgr.heartIcons = new Image[3];
-        for (int i = 0; i < 3; i++)
+        Image portraitImg = CreateUiImage("VesperPortrait", leftPlaque.transform,
+            a.uiPortraitVesper != null ? a.uiPortraitVesper : a.vesperIdle,
+            new Vector2(0.5f, 0.5f), new Vector2(-152f, 0f), new Vector2(78f, 78f));
+        portraitImg.preserveAspect = true;
+
+        uiMgr.lifeIcons = new Image[5];
+        for (int i = 0; i < 5; i++)
         {
-            GameObject heartGo = new GameObject($"HeartIcon_{i + 1}");
-            heartGo.transform.SetParent(leftPlaque.transform, false);
-            Image hImg = heartGo.AddComponent<Image>();
-            hImg.sprite = a.uiHeartSprite;
-            hImg.color = uiMgr.fullHeartColor;
-            hImg.raycastTarget = false;
+            GameObject lifeGo = new GameObject($"LifeIcon_{i + 1}");
+            lifeGo.transform.SetParent(leftPlaque.transform, false);
+            Image lImg = lifeGo.AddComponent<Image>();
+            lImg.sprite = a.uiLifeSoulIcon != null ? a.uiLifeSoulIcon : a.uiHeartSprite;
+            lImg.preserveAspect = true;
+            lImg.color = i < 3 ? uiMgr.fullLifeColor : uiMgr.emptyLifeColor;
+            lImg.raycastTarget = false;
 
-            RectTransform hRt = heartGo.GetComponent<RectTransform>();
-            hRt.anchorMin = new Vector2(0f, 1f);
-            hRt.anchorMax = new Vector2(0f, 1f);
-            hRt.pivot = new Vector2(0f, 1f);
-            hRt.anchoredPosition = new Vector2(16f + i * 38f, -10f);
-            hRt.sizeDelta = new Vector2(32f, 32f);
-            uiMgr.heartIcons[i] = hImg;
+            RectTransform lRt = lifeGo.GetComponent<RectTransform>();
+            lRt.anchorMin = new Vector2(0.5f, 0.5f);
+            lRt.anchorMax = new Vector2(0.5f, 0.5f);
+            lRt.anchoredPosition = new Vector2(-88f + i * 26f, 32f);
+            lRt.sizeDelta = new Vector2(22f, 22f);
+            uiMgr.lifeIcons[i] = lImg;
         }
 
-        uiMgr.timerText = CreateText("TimerText", leftPlaque.transform, uiFont, "TIME: 00:00", 16, FontStyle.Bold,
+        uiMgr.timerText = CreateText("TimerText", leftPlaque.transform, uiFont, "00:00", 14, FontStyle.Bold,
             goldTrim, TextAnchor.MiddleRight,
-            new Vector2(1f, 1f), new Vector2(-78f, -26f), new Vector2(130f, 28f));
+            new Vector2(0.5f, 0.5f), new Vector2(148f, 32f), new Vector2(96f, 24f));
 
-        CreateUiImage("HudShardIcon", leftPlaque.transform, a.shardFrames[0], new Vector2(0f, 0f), new Vector2(32f, 30f), new Vector2(32f, 32f));
-        uiMgr.shardCounterText = CreateText("ShardCounterText", leftPlaque.transform, uiFont, "MEMORY SHARDS: 0 / 25", 19, FontStyle.Bold,
-            cyanGlow, TextAnchor.MiddleLeft,
-            new Vector2(0f, 0f), new Vector2(192f, 30f), new Vector2(276f, 32f));
+        // 100 HP Bar with delayed white-gold drain trail and ornate Gothic frame
+        GameObject hpTrack = new GameObject("HpBarTrack");
+        hpTrack.transform.SetParent(leftPlaque.transform, false);
+        Image hpTrackImg = hpTrack.AddComponent<Image>();
+        hpTrackImg.sprite = a.uiWhiteSprite;
+        hpTrackImg.color = new Color(0.06f, 0.05f, 0.12f, 0.96f);
+        hpTrackImg.raycastTarget = false;
+        RectTransform hpTrackRt = hpTrack.GetComponent<RectTransform>();
+        hpTrackRt.anchorMin = new Vector2(0.5f, 0.5f);
+        hpTrackRt.anchorMax = new Vector2(0.5f, 0.5f);
+        hpTrackRt.anchoredPosition = new Vector2(44f, 3f);
+        hpTrackRt.sizeDelta = new Vector2(276f, 18f);
 
-        // Top-center Mission & Sanctum Beacon Progress Plaque
+        GameObject hpTrailGo = new GameObject("HpTrailFill");
+        hpTrailGo.transform.SetParent(hpTrack.transform, false);
+        Image hpTrailImg = hpTrailGo.AddComponent<Image>();
+        hpTrailImg.sprite = a.uiHpBarFill != null ? a.uiHpBarFill : a.uiWhiteSprite;
+        hpTrailImg.type = Image.Type.Filled;
+        hpTrailImg.fillMethod = Image.FillMethod.Horizontal;
+        hpTrailImg.fillAmount = 1f;
+        hpTrailImg.color = new Color(1f, 0.88f, 0.52f, 0.9f);
+        hpTrailImg.raycastTarget = false;
+        RectTransform hpTrailRt = hpTrailGo.GetComponent<RectTransform>();
+        hpTrailRt.anchorMin = Vector2.zero;
+        hpTrailRt.anchorMax = Vector2.one;
+        hpTrailRt.offsetMin = Vector2.zero;
+        hpTrailRt.offsetMax = Vector2.zero;
+        uiMgr.hpTrailFillImage = hpTrailImg;
+
+        GameObject hpFillGo = new GameObject("HpFill");
+        hpFillGo.transform.SetParent(hpTrack.transform, false);
+        Image hpFillImg = hpFillGo.AddComponent<Image>();
+        hpFillImg.sprite = a.uiHpBarFill != null ? a.uiHpBarFill : a.uiWhiteSprite;
+        hpFillImg.type = Image.Type.Filled;
+        hpFillImg.fillMethod = Image.FillMethod.Horizontal;
+        hpFillImg.fillAmount = 1f;
+        hpFillImg.color = new Color(0.28f, 0.92f, 0.68f, 1f);
+        hpFillImg.raycastTarget = false;
+        RectTransform hpFillRt = hpFillGo.GetComponent<RectTransform>();
+        hpFillRt.anchorMin = Vector2.zero;
+        hpFillRt.anchorMax = Vector2.one;
+        hpFillRt.offsetMin = Vector2.zero;
+        hpFillRt.offsetMax = Vector2.zero;
+        uiMgr.hpFillImage = hpFillImg;
+
+        if (a.uiHpBarFrame != null)
+        {
+            Image hpFrameImg = CreateUiImage("HpBarFrame", leftPlaque.transform, a.uiHpBarFrame,
+                new Vector2(0.5f, 0.5f), new Vector2(44f, 3f), new Vector2(288f, 26f));
+            hpFrameImg.type = Image.Type.Sliced;
+        }
+
+        uiMgr.hpValueText = CreateText("HpValueText", leftPlaque.transform, uiFont, "100 / 100", 13, FontStyle.Bold,
+            Color.white, TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(44f, 3f), new Vector2(180f, 22f));
+        AddUiShadow(uiMgr.hpValueText, new Color(0f, 0f, 0f, 0.92f), new Vector2(1f, -1f));
+
+        // Lightning Ammo Pill + Shard Counter
+        GameObject lightPillGo = new GameObject("LightningAmmoPill");
+        lightPillGo.transform.SetParent(leftPlaque.transform, false);
+        Image lightPillImg = lightPillGo.AddComponent<Image>();
+        lightPillImg.sprite = a.uiKeycap;
+        lightPillImg.type = Image.Type.Sliced;
+        lightPillImg.color = new Color(0.32f, 0.88f, 1f, 0.95f);
+        lightPillImg.raycastTarget = false;
+        RectTransform lightPillRt = lightPillGo.GetComponent<RectTransform>();
+        lightPillRt.anchorMin = new Vector2(0.5f, 0.5f);
+        lightPillRt.anchorMax = new Vector2(0.5f, 0.5f);
+        lightPillRt.anchoredPosition = new Vector2(-12f, -29f);
+        lightPillRt.sizeDelta = new Vector2(166f, 28f);
+        uiMgr.lightningBadgeBackground = lightPillImg;
+
+        Image boltIcon = CreateUiImage("HudLightningIcon", lightPillGo.transform,
+            a.uiLightningIcon != null ? a.uiLightningIcon : a.shardFrames[0],
+            new Vector2(0.5f, 0.5f), new Vector2(-62f, 0f), new Vector2(22f, 22f));
+        boltIcon.preserveAspect = true;
+
+        uiMgr.lightningAmmoText = CreateText("LightningAmmoText", lightPillGo.transform, uiFont, "3 BOLTS  [E/CLICK]", 12, FontStyle.Bold,
+            Color.white, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), new Vector2(14f, 0f), new Vector2(128f, 24f));
+
+        Image shardMini = CreateUiImage("HudShardIcon", leftPlaque.transform, a.shardFrames[0],
+            new Vector2(0.5f, 0.5f), new Vector2(96f, -29f), new Vector2(22f, 22f));
+        shardMini.preserveAspect = true;
+        uiMgr.shardCounterText = CreateText("ShardCounterText", leftPlaque.transform, uiFont, "0/30", 15, FontStyle.Bold,
+            goldTrim, TextAnchor.MiddleLeft,
+            new Vector2(0.5f, 0.5f), new Vector2(148f, -29f), new Vector2(76f, 24f));
+
+        // Top-center Minimal Zone & Sanctum Progress Plaque
         GameObject missionPlaque = CreateHudPlaque("HudMissionPlaque", hudPanel.transform, a.uiHudBar,
-            new Vector2(0.5f, 1f), new Vector2(-10f, -48f), new Vector2(456f, 78f));
+            new Vector2(0.5f, 1f), new Vector2(-6f, -38f), new Vector2(360f, 58f));
 
         uiMgr.districtObjectiveText = CreateText("DistrictObjectiveText", missionPlaque.transform, uiFont,
-            "DISTRICT I: COURTYARD OF WHISPERS\nReclaim Memory Shards & ignite the Sanctum Beacon",
-            14, FontStyle.Bold, warmWhite, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 14f), new Vector2(436f, 38f));
+            "I · COURTYARDS", 14, FontStyle.Bold, warmWhite, TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 11f), new Vector2(340f, 22f));
 
-        // Progress Bar Track inside Mission Plaque
         GameObject progTrack = new GameObject("SanctumProgressTrack");
         progTrack.transform.SetParent(missionPlaque.transform, false);
         Image trackImg = progTrack.AddComponent<Image>();
@@ -2544,8 +2907,8 @@ public static class LevelBuilder
         RectTransform trackRt = progTrack.GetComponent<RectTransform>();
         trackRt.anchorMin = new Vector2(0.5f, 0.5f);
         trackRt.anchorMax = new Vector2(0.5f, 0.5f);
-        trackRt.anchoredPosition = new Vector2(-24f, -20f);
-        trackRt.sizeDelta = new Vector2(320f, 12f);
+        trackRt.anchoredPosition = new Vector2(-20f, -12f);
+        trackRt.sizeDelta = new Vector2(246f, 10f);
 
         GameObject progFill = new GameObject("SanctumProgressFill");
         progFill.transform.SetParent(progTrack.transform, false);
@@ -2560,18 +2923,40 @@ public static class LevelBuilder
         fillRt.offsetMax = Vector2.zero;
         uiMgr.sanctumProgressFill = fillImg;
 
-        CreateUiImage("BeaconGoalMiniIcon", missionPlaque.transform, a.goalBeaconFrames[0], new Vector2(0.5f, 0.5f), new Vector2(150f, -19f), new Vector2(22f, 22f));
+        CreateUiImage("BeaconGoalMiniIcon", missionPlaque.transform, a.goalBeaconFrames[0], new Vector2(0.5f, 0.5f), new Vector2(116f, -12f), new Vector2(18f, 18f));
         uiMgr.sanctumProgressPercentText = CreateText("SanctumProgressPercentText", missionPlaque.transform, uiFont,
-            "0%", 14, FontStyle.Bold, goldTrim, TextAnchor.MiddleLeft,
-            new Vector2(0.5f, 0.5f), new Vector2(188f, -20f), new Vector2(48f, 22f));
+            "0%", 13, FontStyle.Bold, goldTrim, TextAnchor.MiddleLeft,
+            new Vector2(0.5f, 0.5f), new Vector2(148f, -12f), new Vector2(42f, 20f));
 
-        // Top-center Final Boss Health & State Plaque (shown upon entering Sanctum Arena)
+        // Top-center Final Boss Multi-Phase Health & Eclipse Ward Shield Plaque
         GameObject bossPlaque = CreateHudPlaque("BossHudPlaque", hudPanel.transform, a.uiHudBar,
-            new Vector2(0.5f, 1f), new Vector2(-10f, -124f), new Vector2(456f, 64f));
+            new Vector2(0.5f, 1f), new Vector2(-6f, -114f), new Vector2(468f, 82f));
         uiMgr.bossHudContainer = bossPlaque;
         uiMgr.bossNameText = CreateText("BossNameText", bossPlaque.transform, uiFont,
-            "MALAKOR, ECLIPSE WARDEN  (3 / 3)", 15, FontStyle.Bold, new Color(1f, 0.86f, 0.65f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(436f, 22f));
+            "MALAKOR  (120/120)", 14, FontStyle.Bold, new Color(1f, 0.86f, 0.65f, 1f), TextAnchor.MiddleLeft,
+            new Vector2(0.5f, 0.5f), new Vector2(-128f, 22f), new Vector2(180f, 22f));
+
+        uiMgr.bossPhaseText = CreateText("BossPhaseText", bossPlaque.transform, uiFont,
+            "PHASE I", 12, FontStyle.Bold, goldTrim, TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(18f, 22f), new Vector2(142f, 22f));
+
+        uiMgr.bossWardIcons = new Image[4];
+        for (int i = 0; i < 4; i++)
+        {
+            GameObject wGo = new GameObject($"WardIcon_{i + 1}");
+            wGo.transform.SetParent(bossPlaque.transform, false);
+            Image wImg = wGo.AddComponent<Image>();
+            wImg.sprite = a.uiWardDiamond != null ? a.uiWardDiamond : a.uiWhiteSprite;
+            wImg.preserveAspect = true;
+            wImg.color = uiMgr.activeWardColor;
+            wImg.raycastTarget = false;
+            RectTransform wRt = wGo.GetComponent<RectTransform>();
+            wRt.anchorMin = new Vector2(0.5f, 0.5f);
+            wRt.anchorMax = new Vector2(0.5f, 0.5f);
+            wRt.anchoredPosition = new Vector2(114f + i * 24f, 22f);
+            wRt.sizeDelta = new Vector2(20f, 20f);
+            uiMgr.bossWardIcons[i] = wImg;
+        }
 
         GameObject bossTrack = new GameObject("BossHealthTrack");
         bossTrack.transform.SetParent(bossPlaque.transform, false);
@@ -2583,12 +2968,28 @@ public static class LevelBuilder
         bTrackRt.anchorMin = new Vector2(0.5f, 0.5f);
         bTrackRt.anchorMax = new Vector2(0.5f, 0.5f);
         bTrackRt.anchoredPosition = new Vector2(0f, 0f);
-        bTrackRt.sizeDelta = new Vector2(390f, 12f);
+        bTrackRt.sizeDelta = new Vector2(414f, 14f);
+
+        GameObject bossTrailGo = new GameObject("BossHealthTrailFill");
+        bossTrailGo.transform.SetParent(bossTrack.transform, false);
+        Image bTrailImg = bossTrailGo.AddComponent<Image>();
+        bTrailImg.sprite = a.uiHpBarFill != null ? a.uiHpBarFill : a.uiWhiteSprite;
+        bTrailImg.type = Image.Type.Filled;
+        bTrailImg.fillMethod = Image.FillMethod.Horizontal;
+        bTrailImg.fillAmount = 1f;
+        bTrailImg.color = new Color(1f, 0.86f, 0.54f, 0.90f);
+        bTrailImg.raycastTarget = false;
+        RectTransform bTrailRt = bossTrailGo.GetComponent<RectTransform>();
+        bTrailRt.anchorMin = Vector2.zero;
+        bTrailRt.anchorMax = Vector2.one;
+        bTrailRt.offsetMin = Vector2.zero;
+        bTrailRt.offsetMax = Vector2.zero;
+        uiMgr.bossHealthTrailFill = bTrailImg;
 
         GameObject bossFill = new GameObject("BossHealthFill");
         bossFill.transform.SetParent(bossTrack.transform, false);
         Image bFillImg = bossFill.AddComponent<Image>();
-        bFillImg.sprite = a.uiWhiteSprite;
+        bFillImg.sprite = a.uiHpBarFill != null ? a.uiHpBarFill : a.uiWhiteSprite;
         bFillImg.type = Image.Type.Filled;
         bFillImg.fillMethod = Image.FillMethod.Horizontal;
         bFillImg.fillAmount = 1f;
@@ -2602,57 +3003,38 @@ public static class LevelBuilder
         uiMgr.bossHealthFill = bFillImg;
 
         uiMgr.bossStateText = CreateText("BossStateText", bossPlaque.transform, uiFont,
-            "ARMORED PATROL — BAIT HALBERD SLAM", 12, FontStyle.Bold, new Color(0.95f, 0.86f, 0.78f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, -18f), new Vector2(436f, 20f));
+            "BREAK WARD WITH ⚡", 12, FontStyle.Bold, new Color(0.95f, 0.86f, 0.78f, 1f), TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(0f, -22f), new Vector2(436f, 20f));
         bossPlaque.SetActive(false);
 
         // Top-right Audio & Pause Plaque
         GameObject rightPlaque = CreateHudPlaque("HudAudioPlaque", hudPanel.transform, a.uiHudBar,
-            new Vector2(1f, 1f), new Vector2(-210f, -42f), new Vector2(396f, 60f));
+            new Vector2(1f, 1f), new Vector2(-190f, -38f), new Vector2(356f, 54f));
 
         uiMgr.hudVolumeSlider = CreateSlider("HudVolumeSlider", rightPlaque.transform, a.uiWhiteSprite,
-            new Vector2(0f, 0.5f), new Vector2(78f, 0f), new Vector2(124f, 22f),
+            new Vector2(0f, 0.5f), new Vector2(68f, 0f), new Vector2(114f, 20f),
             out _);
 
         Button hudMuteBtn = CreateOrnateButton("HudMuteButton", rightPlaque.transform, a.uiBtnSecondary, uiFont,
-            "MUTE AUDIO", Vector2.zero, new Vector2(124f, 38f), 13, warmWhite);
+            "MUTE", Vector2.zero, new Vector2(98f, 36f), 13, warmWhite);
         RectTransform hudMuteRt = hudMuteBtn.GetComponent<RectTransform>();
         hudMuteRt.anchorMin = new Vector2(1f, 0.5f);
         hudMuteRt.anchorMax = new Vector2(1f, 0.5f);
-        hudMuteRt.anchoredPosition = new Vector2(-174f, 0f);
+        hudMuteRt.anchoredPosition = new Vector2(-152f, 0f);
         uiMgr.hudMuteButton = hudMuteBtn;
         uiMgr.hudMuteButtonText = hudMuteBtn.GetComponentInChildren<Text>();
         UnityEventTools.AddPersistentListener(hudMuteBtn.onClick, uiMgr.OnToggleMuteClicked);
 
         Button pauseBtn = CreateOrnateButton("HudPauseButton", rightPlaque.transform, a.uiBtnPrimary, uiFont,
-            "PAUSE", Vector2.zero, new Vector2(92f, 38f), 14, Color.white);
+            "PAUSE", Vector2.zero, new Vector2(90f, 36f), 14, Color.white);
         RectTransform pauseBtnRt = pauseBtn.GetComponent<RectTransform>();
         pauseBtnRt.anchorMin = new Vector2(1f, 0.5f);
         pauseBtnRt.anchorMax = new Vector2(1f, 0.5f);
-        pauseBtnRt.anchoredPosition = new Vector2(-58f, 0f);
+        pauseBtnRt.anchoredPosition = new Vector2(-54f, 0f);
         uiMgr.hudPauseButton = pauseBtn;
         UnityEventTools.AddPersistentListener(pauseBtn.onClick, gm.TogglePause);
 
-        // Aether Light Resonance badge directly above Glide badge at bottom-left
-        GameObject lightBadgeGo = new GameObject("AetherLightBadge");
-        lightBadgeGo.transform.SetParent(hudPanel.transform, false);
-        Image lightBadgeImg = lightBadgeGo.AddComponent<Image>();
-        lightBadgeImg.sprite = a.uiHudBar;
-        lightBadgeImg.type = Image.Type.Sliced;
-        lightBadgeImg.color = Color.white;
-        lightBadgeImg.raycastTarget = false;
-        RectTransform lightBadgeRt = lightBadgeGo.GetComponent<RectTransform>();
-        lightBadgeRt.anchorMin = new Vector2(0f, 0f);
-        lightBadgeRt.anchorMax = new Vector2(0f, 0f);
-        lightBadgeRt.anchoredPosition = new Vector2(150f, 88f);
-        lightBadgeRt.sizeDelta = new Vector2(268f, 42f);
-        uiMgr.aetherLightBadgeBackground = lightBadgeImg;
-
-        uiMgr.aetherLightBadgeText = CreateText("AetherLightBadgeText", lightBadgeGo.transform, uiFont,
-            "LIGHT [○○○] E/F | NEED SHARDS", 12, FontStyle.Bold,
-            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(252f, 32f));
-
-        // Glide badge at bottom-left
+        // Compact Glide badge at bottom-left
         GameObject badgeGo = new GameObject("GlideStatusBadge");
         badgeGo.transform.SetParent(hudPanel.transform, false);
         Image badgeImg = badgeGo.AddComponent<Image>();
@@ -2663,14 +3045,14 @@ public static class LevelBuilder
         RectTransform badgeRt = badgeGo.GetComponent<RectTransform>();
         badgeRt.anchorMin = new Vector2(0f, 0f);
         badgeRt.anchorMax = new Vector2(0f, 0f);
-        badgeRt.anchoredPosition = new Vector2(138f, 38f);
-        badgeRt.sizeDelta = new Vector2(244f, 44f);
+        badgeRt.anchoredPosition = new Vector2(106f, 34f);
+        badgeRt.sizeDelta = new Vector2(180f, 38f);
         uiMgr.glideBadgeBackground = badgeImg;
 
-        uiMgr.glideBadgeText = CreateText("GlideBadgeText", badgeGo.transform, uiFont, "CLOAK: READY", 16, FontStyle.Bold,
-            Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(228f, 34f));
+        uiMgr.glideBadgeText = CreateText("GlideBadgeText", badgeGo.transform, uiFont, "CLOAK: READY", 14, FontStyle.Bold,
+            Color.white, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(168f, 30f));
 
-        // Center-bottom Whisper / Tutorial Banner
+        // Center-bottom Minimal Whisper Banner
         GameObject bannerGo = new GameObject("BannerContainer");
         bannerGo.transform.SetParent(hudPanel.transform, false);
         Image bannerImg = bannerGo.AddComponent<Image>();
@@ -2681,12 +3063,12 @@ public static class LevelBuilder
         RectTransform bannerRt = bannerGo.GetComponent<RectTransform>();
         bannerRt.anchorMin = new Vector2(0.5f, 0f);
         bannerRt.anchorMax = new Vector2(0.5f, 0f);
-        bannerRt.anchoredPosition = new Vector2(110f, 40f);
-        bannerRt.sizeDelta = new Vector2(740f, 54f);
+        bannerRt.anchoredPosition = new Vector2(80f, 34f);
+        bannerRt.sizeDelta = new Vector2(540f, 44f);
         uiMgr.bannerContainer = bannerGo;
-        uiMgr.bannerText = CreateText("BannerText", bannerGo.transform, uiFont, "", 16, FontStyle.Bold,
+        uiMgr.bannerText = CreateText("BannerText", bannerGo.transform, uiFont, "", 15, FontStyle.Bold,
             warmWhite, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(706f, 44f));
+            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(510f, 36f));
         bannerGo.SetActive(false);
 
         // ============================================================
@@ -2695,47 +3077,47 @@ public static class LevelBuilder
         GameObject pausePanel = CreateFullScreenPanel("PausePanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.03f, 0.04f, 0.11f, 0.78f));
         uiMgr.pausePanel = pausePanel;
 
-        GameObject pauseModal = CreateOrnatePanel("PauseModal", pausePanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(520f, 535f));
-        Text pauseTitle = CreateText("PauseTitle", pauseModal.transform, uiFont, "JOURNEY PAUSED", 34, FontStyle.Bold,
-            cyanGlow, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 214f), new Vector2(460f, 48f));
+        GameObject pauseModal = CreateOrnatePanel("PauseModal", pausePanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(490f, 520f));
+        Text pauseTitle = CreateText("PauseTitle", pauseModal.transform, uiFont, "PAUSED", 34, FontStyle.Bold,
+            cyanGlow, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 210f), new Vector2(440f, 46f));
         AddUiShadow(pauseTitle, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
-        CreateUiImage("PauseDivider", pauseModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 180f), new Vector2(380f, 16f));
+        CreateUiImage("PauseDivider", pauseModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 178f), new Vector2(360f, 16f));
 
-        CreateText("PauseVolLabel", pauseModal.transform, uiFont, "MUSIC & SFX VOLUME", 17, FontStyle.Bold,
-            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 148f), new Vector2(300f, 28f));
+        CreateText("PauseVolLabel", pauseModal.transform, uiFont, "VOLUME", 16, FontStyle.Bold,
+            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 146f), new Vector2(260f, 26f));
 
         uiMgr.pauseVolumeSlider = CreateSlider("PauseVolumeSlider", pauseModal.transform, a.uiWhiteSprite,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 114f), new Vector2(270f, 26f),
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 114f), new Vector2(260f, 24f),
             out _);
 
         Button pauseMuteBtn = CreateOrnateButton("PauseMuteButton", pauseModal.transform, a.uiBtnSecondary, uiFont,
-            "MUTE AUDIO", new Vector2(0f, 64f), new Vector2(240f, 44f), 16, warmWhite);
+            "MUTE", new Vector2(0f, 64f), new Vector2(240f, 42f), 16, warmWhite);
         uiMgr.pauseMuteButton = pauseMuteBtn;
         uiMgr.pauseMuteButtonText = pauseMuteBtn.GetComponentInChildren<Text>();
         UnityEventTools.AddPersistentListener(pauseMuteBtn.onClick, uiMgr.OnToggleMuteClicked);
 
         Button resumeBtn = CreateOrnateButton("ResumeButton", pauseModal.transform, a.uiBtnPrimary, uiFont,
-            "RESUME", new Vector2(0f, 2f), new Vector2(270f, 52f), 20, Color.white);
+            "RESUME", new Vector2(0f, 4f), new Vector2(260f, 52f), 20, Color.white);
         uiMgr.resumeButton = resumeBtn;
         UnityEventTools.AddPersistentListener(resumeBtn.onClick, gm.ResumeGame);
 
         Button pauseTutBtn = CreateOrnateButton("PauseTutorialButton", pauseModal.transform, a.uiBtnSecondary, uiFont,
-            "CONTROLS & GUIDE", new Vector2(0f, -58f), new Vector2(270f, 46f), 17, cyanGlow);
+            "GUIDE", new Vector2(0f, -56f), new Vector2(260f, 44f), 17, cyanGlow);
         uiMgr.pauseTutorialButton = pauseTutBtn;
         UnityEventTools.AddPersistentListener(pauseTutBtn.onClick, gm.OpenTutorialFromPause);
 
         Button pauseRestartBtn = CreateOrnateButton("PauseRestartButton", pauseModal.transform, a.uiBtnSecondary, uiFont,
-            "RESTART LEVEL", new Vector2(0f, -114f), new Vector2(270f, 46f), 17, warmWhite);
+            "RESTART", new Vector2(0f, -110f), new Vector2(260f, 44f), 17, warmWhite);
         uiMgr.pauseRestartButton = pauseRestartBtn;
         UnityEventTools.AddPersistentListener(pauseRestartBtn.onClick, gm.RestartLevel);
 
         Button pauseTitleBtn = CreateOrnateButton("PauseTitleButton", pauseModal.transform, a.uiBtnSecondary, uiFont,
-            "MAIN MENU", new Vector2(0f, -170f), new Vector2(270f, 44f), 17, warmWhite);
+            "MENU", new Vector2(0f, -164f), new Vector2(260f, 42f), 17, warmWhite);
         uiMgr.pauseTitleButton = pauseTitleBtn;
         UnityEventTools.AddPersistentListener(pauseTitleBtn.onClick, gm.ReturnToTitle);
 
         Button pauseQuitBtn = CreateOrnateButton("PauseQuitButton", pauseModal.transform, a.uiBtnDanger, uiFont,
-            "QUIT GAME", new Vector2(0f, -224f), new Vector2(240f, 42f), 16, warmWhite);
+            "QUIT", new Vector2(0f, -216f), new Vector2(220f, 40f), 16, warmWhite);
         uiMgr.pauseQuitButton = pauseQuitBtn;
         UnityEventTools.AddPersistentListener(pauseQuitBtn.onClick, gm.QuitGame);
 
@@ -2745,60 +3127,57 @@ public static class LevelBuilder
         GameObject winPanel = CreateFullScreenPanel("WinPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.03f, 0.05f, 0.14f, 0.80f));
         uiMgr.winPanel = winPanel;
 
-        GameObject winModal = CreateOrnatePanel("WinModal", winPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(780f, 490f));
-        Text winTitle = CreateText("WinTitle", winModal.transform, uiFont, "DAWN RESTORED!", 42, FontStyle.Bold,
-            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 180f), new Vector2(680f, 60f));
+        GameObject winModal = CreateOrnatePanel("WinModal", winPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(680f, 420f));
+        Text winTitle = CreateText("WinTitle", winModal.transform, uiFont, "DAWN RESTORED", 40, FontStyle.Bold,
+            goldTrim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0f, 148f), new Vector2(600f, 54f));
         AddUiShadow(winTitle, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
-        CreateUiImage("WinDivider", winModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 138f), new Vector2(520f, 20f));
+        CreateUiImage("WinDivider", winModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 108f), new Vector2(460f, 18f));
 
         uiMgr.winSummaryText = CreateText("WinSummaryText", winModal.transform, uiFont,
-            "The Sanctum Beacon blazes across Noctis Reach, shattering the Eternal Eclipse!\n" +
-            "Dawn breaks over the canal spires thanks to Vesper's delivery.\n\n" +
-            "COURIER RANK:  S  -  MASTER OF THE TWILIGHT\n" +
-            "Memory Shards Restored:  25 / 25    |    Clear Time:  00:00    |    Retries:  0",
-            20, FontStyle.Normal, warmWhite, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 28f), new Vector2(700f, 170f));
+            "RANK S  ·  TWILIGHT LEGEND\n\n⚡ 30/30   ·   ⏱ 00:00   ·   ♥ ×0 RETRIES",
+            21, FontStyle.Bold, warmWhite, TextAnchor.MiddleCenter,
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 24f), new Vector2(620f, 110f));
 
         Button winPlayAgainBtn = CreateOrnateButton("WinPlayAgainButton", winModal.transform, a.uiBtnPrimary, uiFont,
-            "PLAY AGAIN", new Vector2(0f, -108f), new Vector2(280f, 56f), 20, Color.white);
+            "PLAY AGAIN", new Vector2(0f, -84f), new Vector2(260f, 54f), 20, Color.white);
         uiMgr.winPlayAgainButton = winPlayAgainBtn;
         UnityEventTools.AddPersistentListener(winPlayAgainBtn.onClick, gm.RestartLevel);
 
         Button winMenuBtn = CreateOrnateButton("WinMenuButton", winModal.transform, a.uiBtnSecondary, uiFont,
-            "MAIN MENU", new Vector2(0f, -176f), new Vector2(260f, 48f), 18, warmWhite);
+            "MENU", new Vector2(0f, -150f), new Vector2(240f, 46f), 18, warmWhite);
         uiMgr.winMenuButton = winMenuBtn;
         UnityEventTools.AddPersistentListener(winMenuBtn.onClick, gm.ReturnToTitle);
 
         // ============================================================
-        // 8. GAME OVER PANEL ("THE ECLIPSE CLAIMS YOU")
+        // 8. GAME OVER PANEL ("ECLIPSE FALLS")
         // ============================================================
         GameObject gameOverPanel = CreateFullScreenPanel("GameOverPanel", canvasGo.transform, a.uiWhiteSprite, new Color(0.09f, 0.02f, 0.06f, 0.82f));
         uiMgr.gameOverPanel = gameOverPanel;
 
-        GameObject goModal = CreateOrnatePanel("GameOverModal", gameOverPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(640f, 440f));
-        Text goTitle = CreateText("GameOverTitle", goModal.transform, uiFont, "THE ECLIPSE CLAIMS YOU", 38, FontStyle.Bold,
+        GameObject goModal = CreateOrnatePanel("GameOverModal", gameOverPanel.transform, a.uiPanelOrnate, Vector2.zero, new Vector2(580f, 400f));
+        Text goTitle = CreateText("GameOverTitle", goModal.transform, uiFont, "ECLIPSE FALLS", 38, FontStyle.Bold,
             new Color(1f, 0.40f, 0.50f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 152f), new Vector2(580f, 56f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 134f), new Vector2(520f, 52f));
         AddUiShadow(goTitle, new Color(0f, 0f, 0f, 0.85f), new Vector2(2f, -2f));
-        CreateUiImage("GameOverDivider", goModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 114f), new Vector2(440f, 18f));
+        CreateUiImage("GameOverDivider", goModal.transform, a.uiDivider, new Vector2(0.5f, 0.5f), new Vector2(0f, 96f), new Vector2(400f, 16f));
 
         CreateText("GameOverHint", goModal.transform, uiFont,
-            "Vesper fell upon the twilight rooftops, yet the Watchtower Lanterns still burn.", 18, FontStyle.Normal,
+            "Rise at the last Watchtower.", 18, FontStyle.Normal,
             warmWhite, TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, 66f), new Vector2(560f, 48f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, 56f), new Vector2(480f, 34f));
 
         Button retryCpBtn = CreateOrnateButton("RetryCheckpointButton", goModal.transform, a.uiBtnPrimary, uiFont,
-            "RETRY CHECKPOINT", new Vector2(0f, -18f), new Vector2(290f, 56f), 20, Color.white);
+            "RETRY", new Vector2(0f, -14f), new Vector2(260f, 54f), 20, Color.white);
         uiMgr.retryCheckpointButton = retryCpBtn;
         UnityEventTools.AddPersistentListener(retryCpBtn.onClick, gm.RetryFromCheckpoint);
 
         Button goRestartBtn = CreateOrnateButton("GameOverRestartButton", goModal.transform, a.uiBtnSecondary, uiFont,
-            "RESTART LEVEL", new Vector2(0f, -88f), new Vector2(260f, 48f), 18, warmWhite);
+            "RESTART", new Vector2(0f, -80f), new Vector2(240f, 46f), 18, warmWhite);
         uiMgr.gameOverRestartButton = goRestartBtn;
         UnityEventTools.AddPersistentListener(goRestartBtn.onClick, gm.RestartLevel);
 
         Button goTitleBtn = CreateOrnateButton("GameOverTitleButton", goModal.transform, a.uiBtnDanger, uiFont,
-            "MAIN MENU", new Vector2(0f, -150f), new Vector2(240f, 44f), 17, warmWhite);
+            "MENU", new Vector2(0f, -140f), new Vector2(220f, 42f), 17, warmWhite);
         uiMgr.gameOverTitleButton = goTitleBtn;
         UnityEventTools.AddPersistentListener(goTitleBtn.onClick, gm.ReturnToTitle);
 
@@ -2917,11 +3296,26 @@ public static class LevelBuilder
         string title,
         string keyLabel,
         string description,
-        Color accentColor)
+        Color accentColor,
+        Sprite[] animFrames = null,
+        float fps = 8f,
+        float bobY = 0f,
+        float slideX = 0f)
     {
         GameObject card = CreateHudPlaque(name, parent, a.uiHudBar, new Vector2(0.5f, 0.5f), anchoredPos, new Vector2(308f, 174f));
 
-        CreateUiImage("Icon", card.transform, iconSprite, new Vector2(0.5f, 0.5f), new Vector2(-92f, 18f), iconSize);
+        Image iconImg = CreateUiImage("Icon", card.transform, iconSprite, new Vector2(0.5f, 0.5f), new Vector2(-92f, 18f), iconSize);
+        iconImg.preserveAspect = true;
+        if ((animFrames != null && animFrames.Length > 0) || bobY > 0.01f || slideX > 0.01f)
+        {
+            AnimatedUiSprite anim = iconImg.gameObject.AddComponent<AnimatedUiSprite>();
+            anim.frames = animFrames;
+            anim.fps = fps;
+            anim.bobAmplitudeY = bobY;
+            anim.bobFrequency = 2.6f;
+            anim.slideAmplitudeX = slideX;
+            anim.slideFrequency = 2.1f;
+        }
 
         // Keycap pill at top-right of card
         GameObject capGo = new GameObject("KeycapBadge");
@@ -2944,7 +3338,7 @@ public static class LevelBuilder
 
         CreateText("CardDesc", card.transform, uiFont, description, 14, FontStyle.Normal,
             new Color(0.90f, 0.93f, 1f, 1f), TextAnchor.MiddleCenter,
-            new Vector2(0.5f, 0.5f), new Vector2(0f, -48f), new Vector2(276f, 54f));
+            new Vector2(0.5f, 0.5f), new Vector2(0f, -48f), new Vector2(276f, 46f));
     }
 
     private static void AddUiShadow(Text txt, Color shadowColor, Vector2 distance)
@@ -3173,30 +3567,32 @@ public static class LevelBuilder
         }
         CaptureCameraView(cam, new Vector3(7.0f, 1.4f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/tutorial_screen_preview.png");
 
-        // 4. Capture Zone 1 Gameplay + Ornate HUD + Objective Tracker + Progress Bar + Twilight Canal
+        // 4. Capture Zone 1 Gameplay + Cool Portrait/HP/Lives/Lightning HUD
         if (uiMgr != null)
         {
             uiMgr.ShowOnlyPanel(GameState.Playing);
-            uiMgr.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Gather Shards for Light powers & reach Gale-Draft Aqueduct");
-            uiMgr.UpdateSanctumProgress(0.05f);
-            uiMgr.UpdateAetherLightHud(0, 3, 0, false);
-            if (uiMgr.bannerContainer != null && uiMgr.bannerText != null)
+            uiMgr.UpdateObjective("I · COURTYARDS", string.Empty);
+            uiMgr.UpdateSanctumProgress(0.06f);
+            uiMgr.UpdateHealth(100, 100);
+            uiMgr.UpdateLives(3, 5);
+            uiMgr.UpdateLightningAmmo(5, 2, 30);
+            if (uiMgr.bannerContainer != null)
             {
-                uiMgr.bannerText.text = "SHARDS FUEL YOUR LIGHT: Every 5 Shards Heals/Shields, 5/12/18 Upgrade Cloak, & 4 Charge [E/F] Aether Flash!";
-                uiMgr.bannerContainer.SetActive(true);
+                uiMgr.bannerContainer.SetActive(false);
             }
-            uiMgr.UpdateShards(2, 25);
         }
         CaptureCameraView(cam, new Vector3(8.5f, 1.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/gameplay_preview.png");
 
         // 5. Capture Zone 2: Rooftop Thermal Vent Updraft, Gothic Pillars, Pop-Up Ground Spikes erupting, & Pylon-Anchored Moving Lift
-        if (uiMgr != null && uiMgr.bannerContainer != null)
+        if (uiMgr != null)
         {
             uiMgr.UpdateGlideStatus(false, false);
-            uiMgr.UpdateShards(10, 25);
-            uiMgr.UpdateObjective("DISTRICT II: GALE-DRAFT AQUEDUCT", "Ride Thermal Vents & cross the Clockwork Shuttle");
+            uiMgr.UpdateHealth(85, 100);
+            uiMgr.UpdateLives(3, 5);
+            uiMgr.UpdateLightningAmmo(6, 10, 30);
+            uiMgr.UpdateObjective("II · AQUEDUCT", string.Empty);
             uiMgr.UpdateSanctumProgress(0.32f);
-            uiMgr.bannerText.text = "AMBUSH TRAPS: Watch recessed stone grates - concealed spikes spark briefly before erupting!";
+            if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
         }
         PopUpSpikes[] allTraps = UnityEngine.Object.FindObjectsByType<PopUpSpikes>(FindObjectsSortMode.None);
         PopUpSpikes zone2Trap = null;
@@ -3226,20 +3622,22 @@ public static class LevelBuilder
             }
         }
 
-        // 6. Capture Zone 3A: Broken Arch Corbels, Crumbling Stone Span, Foundry Rooftop & Canal
+        // 6. Capture Zone 3A: Broken Arch Corbels, Crumbling Stone Span, Pendulums & Canal
         if (uiMgr != null)
         {
-            uiMgr.UpdateShards(16, 25);
-            uiMgr.UpdateObjective("DISTRICT III: CLOCKWORK FOUNDRY", "Defeat Sentinel Drones & traverse the Gantry Canal");
+            uiMgr.UpdateHealth(90, 100);
+            uiMgr.UpdateLives(4, 5);
+            uiMgr.UpdateLightningAmmo(8, 18, 30);
+            uiMgr.UpdateObjective("III · FOUNDRY", string.Empty);
             uiMgr.UpdateSanctumProgress(0.58f);
             if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
         }
         CaptureCameraView(cam, new Vector3(131.5f, 2.6f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone3_crumble_span_preview.png");
 
-        // 7. Capture Zone 3B: Dual Non-Colliding Moving Platforms with Brass Pylons & Canal Gantry Stanchions
+        // 7. Capture Zone 3B: Dual Gothic Chain-Anchored Moving Platforms + Relic Perch
         if (uiMgr != null)
         {
-            uiMgr.UpdateShards(18, 25);
+            uiMgr.UpdateLightningAmmo(9, 21, 30);
             uiMgr.UpdateSanctumProgress(0.70f);
         }
         CaptureCameraView(cam, new Vector3(154.5f, 2.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone3_dynamic_platforms_preview.png");
@@ -3247,8 +3645,8 @@ public static class LevelBuilder
         // 8A. Capture Zone 4 Chasm: Twin Grounded Canal Steam Chimneys & Ruined Watchtower Crumbling Perch
         if (uiMgr != null)
         {
-            uiMgr.UpdateShards(22, 25);
-            uiMgr.UpdateObjective("DISTRICT IV: TWILIGHT SANCTUM", "Ascend the Twin Chimneys & ignite the Sanctum Beacon!");
+            uiMgr.UpdateLightningAmmo(7, 26, 30);
+            uiMgr.UpdateObjective("IV · SANCTUM", string.Empty);
             uiMgr.UpdateSanctumProgress(0.88f);
         }
         CaptureCameraView(cam, new Vector3(200.5f, 3.8f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/zone4_chimney_ascent_preview.png");
@@ -3258,11 +3656,12 @@ public static class LevelBuilder
         Vector3 origBossPos = boss != null ? boss.transform.position : Vector3.zero;
         if (uiMgr != null)
         {
-            uiMgr.UpdateShards(25, 25);
-            uiMgr.UpdateObjective("DISTRICT IV: TWILIGHT SANCTUM", "Defeat Malakor to unseal the Sanctum Beacon!");
+            uiMgr.UpdateHealth(100, 100);
+            uiMgr.UpdateLives(4, 5);
+            uiMgr.UpdateLightningAmmo(9, 30, 30);
+            uiMgr.UpdateObjective("IV · SANCTUM", string.Empty);
             uiMgr.UpdateSanctumProgress(0.96f);
-            uiMgr.UpdateAetherLightHud(3, 3, 3, true);
-            uiMgr.UpdateBossHud(true, 3, 3, "ARMORED PATROL — BAIT HALBERD SLAM");
+            uiMgr.UpdateBossHud(true, 120, 120, 4, 4, 1, "BREAK WARD WITH ⚡");
         }
         if (zone4Trap != null)
         {
@@ -3270,10 +3669,10 @@ public static class LevelBuilder
         }
         CaptureCameraView(cam, new Vector3(231.5f, 11.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/level_goal_preview.png");
 
-        // 8C. Capture Final Boss Attack State + Eclipse Halberd Shockwave + Vesper Soaring Overhead
+        // 8C. Capture Final Boss Phase II Enraged Attack + Sky Spears + Vesper Shooting Lightning Bolt
         if (boss != null && player != null && playerSr != null && assets != null)
         {
-            boss.SetEditorPreviewPose(FinalBossAI.BossState.Attacking, -1f, new Vector3(225.0f, 9.0f, 0f));
+            boss.SetEditorPreviewPose(FinalBossAI.BossState.Casting, -1f, new Vector3(227.5f, 9.0f, 0f), true);
             if (boss.slamParticles != null)
             {
                 boss.slamParticles.Play();
@@ -3281,34 +3680,53 @@ public static class LevelBuilder
             }
 
             GameObject previewWave = new GameObject("PreviewBossShockwave");
-            previewWave.transform.position = new Vector3(220.6f, 9.05f, 0f);
+            previewWave.transform.position = new Vector3(222.0f, 9.05f, 0f);
             previewWave.transform.localScale = new Vector3(-1f, 1f, 1f);
             SpriteRenderer waveSr = previewWave.AddComponent<SpriteRenderer>();
             waveSr.sprite = assets.vfxBossShockwave;
             waveSr.sortingOrder = 6;
 
-            player.transform.position = new Vector3(221.2f, 13.0f, 0f);
+            GameObject previewSpear1 = new GameObject("PreviewSkySpear1");
+            previewSpear1.transform.position = new Vector3(219.5f, 12.8f, 0f);
+            SpriteRenderer sp1Sr = previewSpear1.AddComponent<SpriteRenderer>();
+            sp1Sr.sprite = assets.vfxBossSkySpear;
+            sp1Sr.sortingOrder = 6;
+
+            GameObject previewSpear2 = new GameObject("PreviewSkySpear2");
+            previewSpear2.transform.position = new Vector3(231.0f, 11.9f, 0f);
+            SpriteRenderer sp2Sr = previewSpear2.AddComponent<SpriteRenderer>();
+            sp2Sr.sprite = assets.vfxBossSkySpear;
+            sp2Sr.sortingOrder = 6;
+
+            GameObject previewBolt = new GameObject("PreviewPlayerBolt");
+            previewBolt.transform.position = new Vector3(222.6f, 11.8f, 0f);
+            SpriteRenderer boltSr = previewBolt.AddComponent<SpriteRenderer>();
+            boltSr.sprite = assets.vfxPlayerLightningBolt;
+            boltSr.sortingOrder = 7;
+
+            player.transform.position = new Vector3(218.2f, 11.8f, 0f);
             playerSr.sprite = assets.vesperGlideFrames != null && assets.vesperGlideFrames.Length > 1 ? assets.vesperGlideFrames[1] : assets.vesperGlide;
 
             if (uiMgr != null)
             {
-                uiMgr.UpdateBossHud(true, 3, 3, "ECLIPSE HALBERD SLAM — JUMP OR GLIDE!");
-                if (uiMgr.bannerContainer != null && uiMgr.bannerText != null)
-                {
-                    uiMgr.bannerText.text = "BOSS STATE 2 (ATTACKING): Leap over the crimson shockwave — Malakor staggers next!";
-                    uiMgr.bannerContainer.SetActive(true);
-                }
+                uiMgr.UpdateHealth(72, 100);
+                uiMgr.UpdateLightningAmmo(7, 30, 30);
+                uiMgr.UpdateBossHud(true, 62, 120, 2, 4, 2, "ENRAGED · SKY SPEARS!");
+                if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
             }
             CaptureCameraView(cam, new Vector3(224.0f, 11.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/boss_attack_preview.png");
 
             UnityEngine.Object.DestroyImmediate(previewWave);
+            UnityEngine.Object.DestroyImmediate(previewSpear1);
+            UnityEngine.Object.DestroyImmediate(previewSpear2);
+            UnityEngine.Object.DestroyImmediate(previewBolt);
             if (boss.slamParticles != null)
             {
                 boss.slamParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
 
-            // 8D. Capture Final Boss Stunned State + Exposed Cyan Aether Crown + Vesper Diving for Stomp
-            boss.SetEditorPreviewPose(FinalBossAI.BossState.Stunned, -1f, new Vector3(225.0f, 9.0f, 0f));
+            // 8D. Capture Final Boss Phase III Stunned State + Exposed Crown + Vesper Diving for Stomp
+            boss.SetEditorPreviewPose(FinalBossAI.BossState.Stunned, -1f, new Vector3(225.0f, 9.0f, 0f), false);
             if (boss.stunLoopParticles != null)
             {
                 boss.stunLoopParticles.Play();
@@ -3319,12 +3737,10 @@ public static class LevelBuilder
 
             if (uiMgr != null)
             {
-                uiMgr.UpdateBossHud(true, 2, 3, "STUNNED! STOMP EXPOSED CROWN!");
-                if (uiMgr.bannerContainer != null && uiMgr.bannerText != null)
-                {
-                    uiMgr.bannerText.text = "BOSS STATE 3 (STUNNED): Stomp Malakor's glowing Aether Crown Core! (3 hits to win)";
-                    uiMgr.bannerContainer.SetActive(true);
-                }
+                uiMgr.UpdateHealth(65, 100);
+                uiMgr.UpdateLightningAmmo(4, 30, 30);
+                uiMgr.UpdateBossHud(true, 34, 120, 0, 4, 3, "STUNNED! STOMP CROWN!");
+                if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
             }
             CaptureCameraView(cam, new Vector3(224.0f, 11.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/boss_stunned_preview.png");
 
@@ -3338,18 +3754,18 @@ public static class LevelBuilder
         }
         if (uiMgr != null)
         {
-            uiMgr.UpdateBossHud(false, 3, 3, string.Empty);
+            uiMgr.UpdateBossHud(false, 120, 120, 4, 4, 1, string.Empty);
         }
 
         // 9. Capture Dawn Restored Victory Screen Epilogue
         if (uiMgr != null)
         {
-            uiMgr.PopulateWinStats(25, 25, 142f, 0);
+            uiMgr.PopulateWinStats(30, 30, 142f, 0);
             uiMgr.ShowOnlyPanel(GameState.Victory);
         }
         CaptureCameraView(cam, new Vector3(236.0f, 10.2f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/win_screen_preview.png");
 
-        // Also recapture Zone 1 Glide action with Vesper_Run_01 / Vesper_Glide ribbon trail
+        // Also recapture Zone 1 Glide action with Vesper_Glide ribbon trail
         if (player != null && playerSr != null && assets != null)
         {
             player.transform.position = new Vector3(34.5f, 4.1f, 0f);
@@ -3362,15 +3778,13 @@ public static class LevelBuilder
             if (uiMgr != null)
             {
                 uiMgr.ShowOnlyPanel(GameState.Playing);
-                uiMgr.UpdateObjective("DISTRICT I: COURTYARD OF WHISPERS", "Practice your Shadow-Cloak Glide safely!");
+                uiMgr.UpdateObjective("I · COURTYARDS", string.Empty);
                 uiMgr.UpdateSanctumProgress(0.14f);
+                uiMgr.UpdateHealth(100, 100);
+                uiMgr.UpdateLives(3, 5);
                 uiMgr.UpdateGlideStatus(true, true);
-                uiMgr.UpdateShards(5, 25);
-                if (uiMgr.bannerContainer != null && uiMgr.bannerText != null)
-                {
-                    uiMgr.bannerText.text = "SHADOW-CLOAK GLIDE: Hold SPACE or SHIFT in mid-air to glide across the chasm!";
-                    uiMgr.bannerContainer.SetActive(true);
-                }
+                uiMgr.UpdateLightningAmmo(5, 5, 30);
+                if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
             }
         }
         CaptureCameraView(cam, new Vector3(35.5f, 1.8f, -10f), baseCamPos, parallaxLayers, origLayerPos, "Screenshots/glide_and_particles_preview.png");
@@ -3392,9 +3806,10 @@ public static class LevelBuilder
         }
         if (uiMgr != null)
         {
-            uiMgr.UpdateShards(0, 25);
+            uiMgr.UpdateHealth(100, 100);
+            uiMgr.UpdateLives(3, 5);
+            uiMgr.UpdateLightningAmmo(3, 0, 30);
             uiMgr.UpdateSanctumProgress(0f);
-            uiMgr.UpdateAetherLightHud(0, 3, 0, false);
             uiMgr.ShowOnlyPanel(GameState.Title);
             if (uiMgr.bannerContainer != null) uiMgr.bannerContainer.SetActive(false);
         }

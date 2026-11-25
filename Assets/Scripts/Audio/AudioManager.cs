@@ -25,6 +25,8 @@ namespace VesperTwilightCourier
         public AudioClip checkpointClip;
         public AudioClip glideClip;
         public AudioClip winClip;
+        public AudioClip zapClip;
+        public AudioClip bossRoarClip;
 
         [Header("Music")]
         public AudioClip bgmClip;
@@ -131,5 +133,7 @@ namespace VesperTwilightCourier
         public void PlayCheckpoint() => PlaySfx(checkpointClip, 0.95f);
         public void PlayGlide() => PlaySfx(glideClip, 0.65f);
         public void PlayWin() => PlaySfx(winClip, 1f);
+        public void PlayZap() => PlaySfx(zapClip, 0.88f);
+        public void PlayBossRoar() => PlaySfx(bossRoarClip, 1f);
     }
 }

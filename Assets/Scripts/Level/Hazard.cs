@@ -11,7 +11,7 @@ namespace VesperTwilightCourier
     {
         [Header("Hazard Mode")]
         public bool isKillzone = false;
-        public int damageAmount = 1;
+        public int damageAmount = 25;
 
         private void OnTriggerEnter2D(Collider2D other)
         {

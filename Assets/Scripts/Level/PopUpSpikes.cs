@@ -28,7 +28,7 @@ namespace VesperTwilightCourier
 
         [Header("Trap Behavior")]
         public TrapMode mode = TrapMode.ProximityAmbush;
-        public int damageAmount = 1;
+        public int damageAmount = 25;
         public float triggerHorizontalRange = 2.6f;
         public float triggerVerticalRange = 2.4f;
 

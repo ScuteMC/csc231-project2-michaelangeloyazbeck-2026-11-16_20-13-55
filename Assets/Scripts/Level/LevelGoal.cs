@@ -72,7 +72,7 @@ namespace VesperTwilightCourier
                     }
                     if (UIManager.Instance != null)
                     {
-                        UIManager.Instance.ShowBanner("SEALED BY MALAKOR! Defeat the Eclipse Warden to ignite the Beacon!", 3.2f);
+                        UIManager.Instance.ShowBanner("SEALED BY MALAKOR", 2.0f);
                     }
                 }
                 return;

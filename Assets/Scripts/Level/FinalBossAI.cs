@@ -3,11 +3,10 @@ using UnityEngine;
 namespace VesperTwilightCourier
 {
     /// <summary>
-    /// Final Boss AI controller for Malakor, The Eclipse Warden.
-    /// Explicitly cycles across 3 distinct states:
-    /// 0 = Wandering (armored patrol with Eclipse Halberd guard),
-    /// 1 = Attacking (overhead Halberd telegraph -> cleave + crimson shockwave),
-    /// 2 = Stunned (kneeling exhaustion exposing his cyan-gold Aether Crown Core for a Stomp).
+    /// Multi-phase Final Boss AI controller for Malakor, The Eclipse Warden.
+    /// States: 0=Wandering, 1=Attacking (Halberd Slam), 2=Stunned, 3=Dashing (Phantom Lunge), 4=Casting (Sky Spears + Orbs).
+    /// Escalates across Phase I (120-81 HP), Phase II Enraged (80-41 HP), and Phase III Berserk (40-1 HP).
+    /// Vesper uses collectible Storm-Lightning bolts to shatter Malakor's Eclipse Ward pips, then stomps his exposed Aether Crown!
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class FinalBossAI : MonoBehaviour
@@ -16,42 +15,58 @@ namespace VesperTwilightCourier
         {
             Wandering = 0,
             Attacking = 1,
-            Stunned = 2
+            Stunned = 2,
+            Dashing = 3,
+            Casting = 4
+        }
+
+        private enum AttackPattern
+        {
+            HalberdSlam,
+            PhantomDash,
+            SkySpearBarrage
         }
 
         [Header("Identity & Vitals")]
-        public string bossTitle = "MALAKOR, THE ECLIPSE WARDEN";
-        public int maxHealth = 3;
+        public string bossTitle = "MALAKOR";
+        public int maxHealth = 120;
         public BossState currentState = BossState.Wandering;
 
         [Header("Arena Bounds & Movement")]
         public float arenaActivationX = 212.5f;
-        public float minPatrolX = 216.2f;
-        public float maxPatrolX = 231.8f;
-        public float wanderSpeed = 2.8f;
-        public float attackTriggerRange = 6.2f;
-        public float attackCooldown = 1.55f;
+        public float minPatrolX = 215.5f;
+        public float maxPatrolX = 232.8f;
+        public float wanderSpeed = 3.0f;
+        public float attackTriggerRange = 11.5f;
 
-        [Header("Attack & Stun Timings")]
-        public float windupDuration = 0.62f;
-        public float attackTotalDuration = 1.05f;
-        public float stunDuration = 3.25f;
-        public float stompBounceSpeed = 14.2f;
-        public float armorDeflectBounceSpeed = 10.2f;
+        [Header("Combat & Damage (100 HP Scale)")]
+        public int meleeDamage = 28;
+        public int stompCrownDamage = 22;
+        public int lightningWardChipDamage = 4;
+        public int lightningStunCritDamage = 8;
+        public float stompBounceSpeed = 14.5f;
+        public float armorDeflectBounceSpeed = 10.6f;
 
         [Header("References")]
         public Animator animator;
         public SpriteRenderer spriteRenderer;
         public LevelGoal linkedGoal;
+        public GameObject wardRingVisual;
         public Sprite shockwaveSprite;
-        public Sprite attackPreviewSprite;
-        public Sprite stunnedPreviewSprite;
+        public Sprite skySpearSprite;
+        public Sprite skyBeamWhiteSprite;
+        public Sprite eclipseOrbSprite;
         public Sprite wanderPreviewSprite;
+        public Sprite attackPreviewSprite;
+        public Sprite dashPreviewSprite;
+        public Sprite castPreviewSprite;
+        public Sprite stunnedPreviewSprite;
 
         [Header("Particle Systems")]
         public ParticleSystem slamParticles;
         public ParticleSystem hitSparkParticles;
         public ParticleSystem stunLoopParticles;
+        public ParticleSystem rageAuraParticles;
         public ParticleSystem defeatExplosionParticles;
 
         private static readonly int AnimStateHash = Animator.StringToHash("State");
@@ -59,17 +74,27 @@ namespace VesperTwilightCourier
         private Collider2D bossCollider;
         private Transform playerTransform;
         private int currentHealth;
+        private int currentPhase = 1;
+        private int currentWardPips = 3;
         private float facingDirection = -1f;
         private float stateTimer;
-        private float attackCooldownTimer = 0.65f;
+        private float attackCooldownTimer = 0.85f;
         private float armorWarningCooldown;
         private float postStompSafeTimer;
         private float hitFlashTimer;
-        private bool slamExecuted;
+        private bool actionExecuted;
         private bool arenaEngaged;
         private bool defeated;
+        private int comboChainRemaining;
+        private int attackRotationIndex;
+        private float dashStartX;
+        private float dashTargetX;
         private Vector3 spawnPosition;
         private Color baseColor = Color.white;
+
+        public int CurrentPhase => currentPhase;
+        public int CurrentWardPips => currentWardPips;
+        public int MaxWardPips => GetMaxWardPipsForPhase(currentPhase);
 
         private void Awake()
         {
@@ -82,7 +107,6 @@ namespace VesperTwilightCourier
             {
                 animator = GetComponentInChildren<Animator>();
             }
-
             if (spriteRenderer != null)
             {
                 baseColor = spriteRenderer.color;
@@ -90,16 +114,16 @@ namespace VesperTwilightCourier
 
             spawnPosition = transform.position;
             currentHealth = maxHealth;
+            currentPhase = 1;
+            currentWardPips = GetMaxWardPipsForPhase(1);
         }
 
         private void Start()
         {
             FindPlayer();
             SetState(BossState.Wandering);
-            if (UIManager.Instance != null)
-            {
-                UIManager.Instance.UpdateBossHud(false, currentHealth, maxHealth, GetStateHudLabel());
-            }
+            UpdateWardVisual();
+            RefreshBossHud(false);
         }
 
         private void Update()
@@ -109,23 +133,21 @@ namespace VesperTwilightCourier
                 return;
             }
 
+            if (wardRingVisual != null && wardRingVisual.activeSelf)
+            {
+                wardRingVisual.transform.Rotate(0f, 0f, -95f * Time.deltaTime);
+            }
+
             if (hitFlashTimer > 0f && spriteRenderer != null)
             {
                 hitFlashTimer -= Time.deltaTime;
                 spriteRenderer.color = hitFlashTimer > 0f
-                    ? new Color(1f, 0.92f, 0.72f, 1f)
-                    : baseColor;
+                    ? new Color(1f, 0.96f, 0.72f, 1f)
+                    : GetPhaseTint();
             }
 
-            if (armorWarningCooldown > 0f)
-            {
-                armorWarningCooldown -= Time.deltaTime;
-            }
-
-            if (postStompSafeTimer > 0f)
-            {
-                postStompSafeTimer -= Time.deltaTime;
-            }
+            if (armorWarningCooldown > 0f) armorWarningCooldown -= Time.deltaTime;
+            if (postStompSafeTimer > 0f) postStompSafeTimer -= Time.deltaTime;
 
             if (GameManager.Instance != null && !GameManager.Instance.IsPlaying)
             {
@@ -138,26 +160,30 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            // Activate Sanctum arena HUD when Vesper steps onto the Sanctum Terrace
             if (!arenaEngaged && playerTransform.position.x >= arenaActivationX)
             {
                 arenaEngaged = true;
                 RefreshBossHud(true);
                 if (UIManager.Instance != null)
                 {
-                    UIManager.Instance.ShowBanner("MALAKOR BLOCKS THE BEACON! Bait his Halberd Slam, then stomp his exposed Crown!", 4.5f);
+                    UIManager.Instance.ShowBanner("MALAKOR AWAKENS", 2.0f);
                 }
             }
 
-            float speedMultiplier = GetPhaseSpeedMultiplier();
-
+            float speedMult = GetPhaseSpeedMultiplier();
             switch (currentState)
             {
                 case BossState.Wandering:
-                    TickWandering(speedMultiplier);
+                    TickWandering(speedMult);
                     break;
                 case BossState.Attacking:
-                    TickAttacking(speedMultiplier);
+                    TickAttacking(speedMult);
+                    break;
+                case BossState.Dashing:
+                    TickDashing(speedMult);
+                    break;
+                case BossState.Casting:
+                    TickCasting(speedMult);
                     break;
                 case BossState.Stunned:
                     TickStunned();
@@ -167,46 +193,42 @@ namespace VesperTwilightCourier
 
         private void FindPlayer()
         {
-            if (playerTransform != null)
+            if (playerTransform == null)
             {
-                return;
-            }
-
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                playerTransform = playerObj.transform;
+                GameObject p = GameObject.FindGameObjectWithTag("Player");
+                if (p != null) playerTransform = p.transform;
             }
         }
 
-        private float GetPhaseSpeedMultiplier()
+        private int GetMaxWardPipsForPhase(int phase) => phase >= 3 ? 4 : 3;
+
+        private float GetPhaseSpeedMultiplier() => currentPhase switch
         {
-            int hitsTaken = Mathf.Clamp(maxHealth - currentHealth, 0, 2);
-            return hitsTaken switch
-            {
-                0 => 1.0f,
-                1 => 1.18f,
-                _ => 1.35f
-            };
-        }
+            1 => 1.0f,
+            2 => 1.28f,
+            _ => 1.48f
+        };
+
+        private float GetStunDurationForPhase() => currentPhase switch
+        {
+            1 => 2.95f,
+            2 => 2.40f,
+            _ => 2.00f
+        };
+
+        private Color GetPhaseTint() => currentPhase switch
+        {
+            2 => new Color(1f, 0.84f, 0.82f, 1f),
+            3 => new Color(1f, 0.72f, 0.76f, 1f),
+            _ => baseColor
+        };
 
         private void TickWandering(float speedMult)
         {
             float dxToPlayer = playerTransform.position.x - transform.position.x;
-
-            // Patrol smoothly while subtly orienting toward Vesper inside the arena
-            if (arenaEngaged && Mathf.Abs(dxToPlayer) > 0.75f)
+            if (arenaEngaged && Mathf.Abs(dxToPlayer) > 0.65f)
             {
-                float desiredDir = Mathf.Sign(dxToPlayer);
-                if ((transform.position.x <= minPatrolX + 0.1f && desiredDir < 0f) ||
-                    (transform.position.x >= maxPatrolX - 0.1f && desiredDir > 0f))
-                {
-                    facingDirection = desiredDir;
-                }
-                else
-                {
-                    facingDirection = desiredDir;
-                }
+                facingDirection = Mathf.Sign(dxToPlayer);
             }
 
             Vector3 pos = transform.position;
@@ -221,7 +243,6 @@ namespace VesperTwilightCourier
                 pos.x = maxPatrolX;
                 facingDirection = -1f;
             }
-
             transform.position = pos;
             ApplyFacingScale();
 
@@ -233,25 +254,65 @@ namespace VesperTwilightCourier
             attackCooldownTimer -= Time.deltaTime * speedMult;
             if (attackCooldownTimer <= 0f && Mathf.Abs(dxToPlayer) <= attackTriggerRange)
             {
-                facingDirection = Mathf.Sign(dxToPlayer != 0f ? dxToPlayer : facingDirection);
-                ApplyFacingScale();
-                SetState(BossState.Attacking);
+                comboChainRemaining = currentPhase >= 3 ? 1 : 0;
+                LaunchNextAttack(dxToPlayer);
             }
+        }
+
+        private void LaunchNextAttack(float dxToPlayer)
+        {
+            facingDirection = Mathf.Sign(dxToPlayer != 0f ? dxToPlayer : facingDirection);
+            ApplyFacingScale();
+
+            AttackPattern chosen = ChooseAttackPattern(Mathf.Abs(dxToPlayer));
+            switch (chosen)
+            {
+                case AttackPattern.HalberdSlam:
+                    SetState(BossState.Attacking);
+                    break;
+                case AttackPattern.PhantomDash:
+                    dashStartX = transform.position.x;
+                    dashTargetX = Mathf.Clamp(dashStartX + facingDirection * 10.5f, minPatrolX, maxPatrolX);
+                    SetState(BossState.Dashing);
+                    break;
+                case AttackPattern.SkySpearBarrage:
+                    SetState(BossState.Casting);
+                    break;
+            }
+        }
+
+        private AttackPattern ChooseAttackPattern(float absDist)
+        {
+            attackRotationIndex++;
+            if (currentPhase == 1)
+            {
+                return (absDist > 7.2f || attackRotationIndex % 2 == 0)
+                    ? AttackPattern.PhantomDash
+                    : AttackPattern.HalberdSlam;
+            }
+
+            int mod = attackRotationIndex % 3;
+            return mod switch
+            {
+                0 => AttackPattern.SkySpearBarrage,
+                1 => AttackPattern.HalberdSlam,
+                _ => AttackPattern.PhantomDash
+            };
         }
 
         private void TickAttacking(float speedMult)
         {
             stateTimer += Time.deltaTime * speedMult;
 
-            if (!slamExecuted && stateTimer >= windupDuration)
+            if (!actionExecuted && stateTimer >= 0.56f)
             {
-                slamExecuted = true;
+                actionExecuted = true;
                 ExecuteHalberdSlam();
             }
 
-            if (stateTimer >= attackTotalDuration)
+            if (stateTimer >= 1.02f)
             {
-                SetState(BossState.Stunned);
+                FinishAttackCycle();
             }
         }
 
@@ -263,41 +324,35 @@ namespace VesperTwilightCourier
                 slamParticles.Play();
             }
 
-            if (CameraController.Instance != null)
-            {
-                CameraController.Instance.TriggerShake(0.24f, 0.28f);
-            }
+            if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.24f, 0.28f);
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayLand();
 
-            if (AudioManager.Instance != null)
-            {
-                AudioManager.Instance.PlayLand();
-            }
-
-            // Direct Halberd cleave hit check in front of Malakor
             if (playerTransform != null)
             {
                 Vector2 cleaveCenter = (Vector2)transform.position + new Vector2(facingDirection * 2.0f, 1.15f);
                 Vector2 delta = (Vector2)playerTransform.position - cleaveCenter;
-                if (Mathf.Abs(delta.x) <= 1.55f && Mathf.Abs(delta.y) <= 1.35f)
+                if (Mathf.Abs(delta.x) <= 1.75f && Mathf.Abs(delta.y) <= 1.45f)
                 {
                     PlayerHealth health = playerTransform.GetComponent<PlayerHealth>();
-                    if (health != null)
-                    {
-                        health.TakeDamage(1, transform.position);
-                    }
+                    if (health != null) health.TakeDamage(meleeDamage, transform.position);
                 }
             }
 
-            SpawnShockwave();
+            SpawnShockwave(facingDirection);
+            if (currentPhase >= 2)
+            {
+                // Enraged Phase II & III fire bidirectional shockwaves!
+                SpawnShockwave(-facingDirection);
+            }
         }
 
-        private void SpawnShockwave()
+        private void SpawnShockwave(float dir)
         {
             GameObject waveObj = new GameObject("BossShockwave");
-            waveObj.transform.position = transform.position + new Vector3(facingDirection * 1.75f, 0.05f, 0f);
+            waveObj.transform.position = transform.position + new Vector3(dir * 1.75f, 0.05f, 0f);
 
             SpriteRenderer sr = waveObj.AddComponent<SpriteRenderer>();
-            sr.sortingOrder = 6;
+            sr.sortingOrder = 7;
             sr.sprite = shockwaveSprite;
 
             BoxCollider2D col = waveObj.AddComponent<BoxCollider2D>();
@@ -306,28 +361,146 @@ namespace VesperTwilightCourier
             col.offset = new Vector2(0f, 0.44f);
 
             BossShockwave wave = waveObj.AddComponent<BossShockwave>();
-            wave.Initialize(facingDirection, shockwaveSprite, minPatrolX - 6.0f, maxPatrolX + 7.5f);
+            wave.damageAmount = currentPhase >= 3 ? 28 : 25;
+            wave.moveSpeed = currentPhase >= 2 ? 12.0f : 10.5f;
+            wave.Initialize(dir, shockwaveSprite, minPatrolX - 6.0f, maxPatrolX + 7.5f);
+        }
+
+        private void TickDashing(float speedMult)
+        {
+            stateTimer += Time.deltaTime * speedMult;
+            const float windup = 0.50f;
+            const float dashDur = 0.55f;
+
+            if (stateTimer < windup)
+            {
+                return;
+            }
+
+            if (!actionExecuted)
+            {
+                actionExecuted = true;
+                if (slamParticles != null)
+                {
+                    slamParticles.transform.position = transform.position + new Vector3(0f, 0.25f, 0f);
+                    slamParticles.Play();
+                }
+                if (AudioManager.Instance != null) AudioManager.Instance.PlayLand();
+            }
+
+            float u = Mathf.Clamp01((stateTimer - windup) / dashDur);
+            float smooth = u * (2f - u);
+            Vector3 pos = transform.position;
+            pos.x = Mathf.Lerp(dashStartX, dashTargetX, smooth);
+            transform.position = pos;
+
+            if (u >= 1f)
+            {
+                FinishAttackCycle();
+            }
+        }
+
+        private void TickCasting(float speedMult)
+        {
+            stateTimer += Time.deltaTime * speedMult;
+            if (!actionExecuted && stateTimer >= 0.42f)
+            {
+                actionExecuted = true;
+                ExecuteSkySpearBarrage();
+            }
+
+            if (stateTimer >= 1.12f)
+            {
+                FinishAttackCycle();
+            }
+        }
+
+        private void ExecuteSkySpearBarrage()
+        {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayZap();
+            if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.20f, 0.22f);
+
+            int spearCount = currentPhase >= 3 ? 6 : 4;
+            float span = maxPatrolX - minPatrolX;
+            for (int i = 0; i < spearCount; i++)
+            {
+                float norm = (i + 0.5f) / spearCount;
+                float x = Mathf.Lerp(minPatrolX, maxPatrolX, norm);
+                if (i == spearCount / 2 && playerTransform != null)
+                {
+                    x = Mathf.Clamp(playerTransform.position.x, minPatrolX, maxPatrolX);
+                }
+                SpawnSkyStrike(x);
+            }
+
+            // Phase III Berserk also fires a 3-way Eclipse Orb spread toward Vesper
+            if (currentPhase >= 3 && playerTransform != null)
+            {
+                Vector2 origin = (Vector2)transform.position + new Vector2(facingDirection * 0.9f, 1.8f);
+                Vector2 toPlayer = ((Vector2)playerTransform.position + new Vector2(0f, 0.7f) - origin).normalized;
+                float baseAngle = Mathf.Atan2(toPlayer.y, toPlayer.x);
+                for (int a = -1; a <= 1; a++)
+                {
+                    float ang = baseAngle + a * 0.22f;
+                    Vector2 vel = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * 9.5f;
+                    SpawnEclipseOrb(origin, vel);
+                }
+            }
+        }
+
+        private void SpawnSkyStrike(float targetX)
+        {
+            GameObject go = new GameObject("BossSkyStrike");
+            go.transform.position = new Vector3(targetX, transform.position.y + 3.0f, 0f);
+            BossSkyStrike strike = go.AddComponent<BossSkyStrike>();
+            strike.Initialize(skyBeamWhiteSprite, skySpearSprite, currentPhase >= 3 ? 28 : 24, currentPhase >= 3 ? 0.58f : 0.68f);
+        }
+
+        private void SpawnEclipseOrb(Vector2 origin, Vector2 velocity)
+        {
+            GameObject go = new GameObject("BossEclipseOrb");
+            go.transform.position = origin;
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sortingOrder = 8;
+            CircleCollider2D col = go.AddComponent<CircleCollider2D>();
+            col.isTrigger = true;
+            col.radius = 0.28f;
+            EnemyProjectile proj = go.AddComponent<EnemyProjectile>();
+            proj.Initialize(velocity, eclipseOrbSprite, 22, 2.8f);
+        }
+
+        private void FinishAttackCycle()
+        {
+            if (comboChainRemaining > 0 && playerTransform != null && !defeated)
+            {
+                comboChainRemaining--;
+                LaunchNextAttack(playerTransform.position.x - transform.position.x);
+                return;
+            }
+
+            attackCooldownTimer = currentPhase switch
+            {
+                1 => 1.35f,
+                2 => 0.95f,
+                _ => 0.65f
+            };
+            SetState(BossState.Wandering);
         }
 
         private void TickStunned()
         {
             stateTimer += Time.deltaTime;
-            if (stateTimer >= stunDuration)
+            if (stateTimer >= GetStunDurationForPhase())
             {
-                attackCooldownTimer = 1.1f;
+                currentWardPips = GetMaxWardPipsForPhase(currentPhase);
+                UpdateWardVisual();
+                attackCooldownTimer = 0.75f;
                 SetState(BossState.Wandering);
             }
         }
 
-        private void OnTriggerEnter2D(Collider2D other)
-        {
-            HandlePlayerContact(other);
-        }
-
-        private void OnTriggerStay2D(Collider2D other)
-        {
-            HandlePlayerContact(other);
-        }
+        private void OnTriggerEnter2D(Collider2D other) => HandlePlayerContact(other);
+        private void OnTriggerStay2D(Collider2D other) => HandlePlayerContact(other);
 
         private void HandlePlayerContact(Collider2D other)
         {
@@ -347,9 +520,8 @@ namespace VesperTwilightCourier
 
             if (currentState == BossState.Stunned)
             {
-                // Stunned: generous stomp onto his lowered body/exposed Aether Crown; never deal contact damage here!
                 bool stunnedStomp = playerRb != null && playerRb.linearVelocity.y <= 1.2f &&
-                                    other.bounds.min.y >= transform.position.y + 0.70f;
+                                    other.bounds.min.y >= transform.position.y + 0.65f;
                 if (stunnedStomp)
                 {
                     StompCrown(player, health);
@@ -357,18 +529,15 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            // Wandering or Attacking: landing atop Malakor's armored helm bounces Vesper harmlessly
+            // While Ward is active or patrolling: landing atop Malakor deflects safely without hurting Vesper
             bool comingFromAbove = playerRb != null && playerRb.linearVelocity.y <= 0.8f &&
                                    other.bounds.min.y >= transform.position.y + 1.15f;
             if (comingFromAbove && player != null)
             {
                 postStompSafeTimer = 0.55f;
-                if (health != null)
-                {
-                    health.GrantBriefInvulnerability(0.45f);
-                }
-
+                if (health != null) health.GrantBriefInvulnerability(0.45f);
                 player.Bounce(armorDeflectBounceSpeed);
+
                 if (hitSparkParticles != null)
                 {
                     hitSparkParticles.transform.position = other.bounds.min + new Vector3(0f, 0.1f, 0f);
@@ -378,57 +547,93 @@ namespace VesperTwilightCourier
                 if (armorWarningCooldown <= 0f)
                 {
                     armorWarningCooldown = 2.0f;
-                    if (AudioManager.Instance != null)
-                    {
-                        AudioManager.Instance.PlayLand();
-                    }
-                    if (UIManager.Instance != null)
-                    {
-                        UIManager.Instance.ShowBanner("ARMORED HELM! Bait his Halberd Slam to expose his Aether Crown!", 3.2f);
-                    }
+                    if (AudioManager.Instance != null) AudioManager.Instance.PlayLand();
+                    if (UIManager.Instance != null) UIManager.Instance.ShowBanner("ZAP WARD [CLICK / E]", 1.8f);
                 }
                 return;
             }
 
-            // Side or front contact while Wandering or Attacking hurts Vesper
             if (health != null)
             {
-                health.TakeDamage(1, transform.position);
+                health.TakeDamage(meleeDamage, transform.position);
             }
+        }
+
+        public void TakeLightningHit(Vector2 hitPos)
+        {
+            if (defeated)
+            {
+                return;
+            }
+
+            if (hitSparkParticles != null)
+            {
+                hitSparkParticles.transform.position = hitPos;
+                hitSparkParticles.Play();
+            }
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayZap();
+
+            if (currentState == BossState.Stunned)
+            {
+                ApplyBossDamage(lightningStunCritDamage);
+                return;
+            }
+
+            ApplyBossDamage(lightningWardChipDamage);
+            if (defeated)
+            {
+                return;
+            }
+
+            if (currentWardPips > 0)
+            {
+                currentWardPips--;
+                UpdateWardVisual();
+
+                if (currentWardPips <= 0)
+                {
+                    ClearArenaHazards();
+                    if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.28f, 0.34f);
+                    SetState(BossState.Stunned);
+                    if (UIManager.Instance != null) UIManager.Instance.ShowBanner("WARD BROKEN — STOMP!", 2.0f);
+                    return;
+                }
+            }
+
+            RefreshBossHud(true);
         }
 
         private void StompCrown(PlayerController player, PlayerHealth health)
         {
             postStompSafeTimer = 0.75f;
-            if (health != null)
-            {
-                health.GrantBriefInvulnerability(0.65f);
-            }
-
-            if (player != null)
-            {
-                player.Bounce(stompBounceSpeed);
-            }
-
-            int stompDamage = (GameManager.Instance != null && GameManager.Instance.HasCrownBreakerPower) ? 2 : 1;
-            currentHealth = Mathf.Max(0, currentHealth - stompDamage);
-            hitFlashTimer = 0.25f;
+            if (health != null) health.GrantBriefInvulnerability(0.65f);
+            if (player != null) player.Bounce(stompBounceSpeed);
 
             if (hitSparkParticles != null)
             {
                 hitSparkParticles.transform.position = transform.position + new Vector3(0f, 2.0f, 0f);
                 hitSparkParticles.Play();
             }
+            if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.24f, 0.28f);
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayCollect();
 
-            if (CameraController.Instance != null)
+            int bonusDmg = (GameManager.Instance != null && GameManager.Instance.HasCrownBreakerPower) ? 6 : 0;
+            ApplyBossDamage(stompCrownDamage + bonusDmg);
+            if (defeated)
             {
-                CameraController.Instance.TriggerShake(0.22f, 0.25f);
+                return;
             }
 
-            if (AudioManager.Instance != null)
-            {
-                AudioManager.Instance.PlayCollect();
-            }
+            currentWardPips = GetMaxWardPipsForPhase(currentPhase);
+            UpdateWardVisual();
+            attackCooldownTimer = 0.65f;
+            SetState(BossState.Wandering);
+        }
+
+        private void ApplyBossDamage(int amount)
+        {
+            currentHealth = Mathf.Max(0, currentHealth - Mathf.Max(1, amount));
+            hitFlashTimer = 0.22f;
 
             if (currentHealth <= 0)
             {
@@ -436,15 +641,40 @@ namespace VesperTwilightCourier
                 return;
             }
 
-            // Snap back into Wandering at heightened phase tempo
-            attackCooldownTimer = 0.85f;
-            SetState(BossState.Wandering);
+            int nextPhase = currentHealth <= 40 ? 3 : currentHealth <= 80 ? 2 : 1;
+            if (nextPhase > currentPhase)
+            {
+                EnterEnragePhase(nextPhase);
+            }
+            else
+            {
+                RefreshBossHud(true);
+            }
+        }
+
+        private void EnterEnragePhase(int nextPhase)
+        {
+            currentPhase = nextPhase;
+            currentWardPips = GetMaxWardPipsForPhase(currentPhase);
+            UpdateWardVisual();
+
+            if (rageAuraParticles != null && !rageAuraParticles.isPlaying)
+            {
+                rageAuraParticles.Play();
+            }
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = GetPhaseTint();
+            }
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayBossRoar();
+            if (CameraController.Instance != null) CameraController.Instance.TriggerShake(0.35f, 0.42f);
 
             if (UIManager.Instance != null)
             {
-                string prefix = stompDamage > 1 ? "CROWN-BREAKER CRIT!" : "AETHER CROWN STRUCK!";
-                UIManager.Instance.ShowBanner($"{prefix} Malakor has {currentHealth} core charge(s) left!", 3.2f);
+                string msg = currentPhase >= 3 ? "PHASE III — BERSERK!" : "PHASE II — ENRAGED!";
+                UIManager.Instance.ShowBanner(msg, 2.4f);
             }
+            RefreshBossHud(true);
         }
 
         public bool ForceStunFromAetherFlash()
@@ -454,13 +684,9 @@ namespace VesperTwilightCourier
                 return false;
             }
 
-            ClearAllShockwaves();
-            if (hitSparkParticles != null)
-            {
-                hitSparkParticles.transform.position = transform.position + new Vector3(0f, 1.8f, 0f);
-                hitSparkParticles.Play();
-            }
-
+            currentWardPips = 0;
+            UpdateWardVisual();
+            ClearArenaHazards();
             SetState(BossState.Stunned);
             return true;
         }
@@ -468,45 +694,31 @@ namespace VesperTwilightCourier
         private void DefeatBoss()
         {
             defeated = true;
-            ClearAllShockwaves();
+            ClearArenaHazards();
+            UpdateWardVisual();
 
-            if (stunLoopParticles != null)
-            {
-                stunLoopParticles.Stop();
-            }
-
+            if (stunLoopParticles != null) stunLoopParticles.Stop();
+            if (rageAuraParticles != null) rageAuraParticles.Stop();
             if (defeatExplosionParticles != null)
             {
-                defeatExplosionParticles.transform.position = transform.position + new Vector3(0f, 1.4f, 0f);
+                defeatExplosionParticles.transform.position = transform.position + new Vector3(0f, 1.5f, 0f);
                 defeatExplosionParticles.Play();
             }
-
-            if (bossCollider != null)
-            {
-                bossCollider.enabled = false;
-            }
-
-            if (spriteRenderer != null)
-            {
-                spriteRenderer.enabled = false;
-            }
-
-            if (linkedGoal != null)
-            {
-                linkedGoal.UnlockBeacon();
-            }
+            if (AudioManager.Instance != null) AudioManager.Instance.PlayBossRoar();
+            if (bossCollider != null) bossCollider.enabled = false;
+            if (spriteRenderer != null) spriteRenderer.enabled = false;
+            if (linkedGoal != null) linkedGoal.UnlockBeacon();
 
             if (UIManager.Instance != null)
             {
-                UIManager.Instance.UpdateBossHud(false, 0, maxHealth, string.Empty);
-                UIManager.Instance.ShowBanner("MALAKOR DEFEATED! The Sanctum Beacon is unsealed!", 4.5f);
+                UIManager.Instance.UpdateBossHud(false, 0, maxHealth, 0, 4, currentPhase, string.Empty);
+                UIManager.Instance.ShowBanner("BEACON UNSEALED", 2.8f);
             }
         }
 
         public void ResetForRetry()
         {
-            ClearAllShockwaves();
-
+            ClearArenaHazards();
             if (defeated)
             {
                 RefreshBossHud(false);
@@ -514,35 +726,38 @@ namespace VesperTwilightCourier
             }
 
             currentHealth = maxHealth;
+            currentPhase = 1;
+            currentWardPips = GetMaxWardPipsForPhase(1);
             hitFlashTimer = 0f;
-            attackCooldownTimer = 0.7f;
+            attackCooldownTimer = 0.8f;
             armorWarningCooldown = 0f;
             postStompSafeTimer = 0f;
+            comboChainRemaining = 0;
             facingDirection = -1f;
             transform.position = spawnPosition;
             ApplyFacingScale();
 
-            if (bossCollider != null)
-            {
-                bossCollider.enabled = true;
-            }
-
+            if (bossCollider != null) bossCollider.enabled = true;
             if (spriteRenderer != null)
             {
                 spriteRenderer.enabled = true;
                 spriteRenderer.color = baseColor;
             }
+            if (rageAuraParticles != null)
+            {
+                rageAuraParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
 
+            UpdateWardVisual();
             arenaEngaged = playerTransform != null && playerTransform.position.x >= arenaActivationX;
             SetState(BossState.Wandering);
-            RefreshBossHud(arenaEngaged);
         }
 
         private void SetState(BossState nextState)
         {
             currentState = nextState;
             stateTimer = 0f;
-            slamExecuted = false;
+            actionExecuted = false;
 
             if (animator != null)
             {
@@ -551,24 +766,34 @@ namespace VesperTwilightCourier
 
             if (stunLoopParticles != null)
             {
-                if (currentState == BossState.Stunned)
-                {
-                    stunLoopParticles.Play();
-                }
-                else
-                {
-                    stunLoopParticles.Stop();
-                }
+                if (currentState == BossState.Stunned) stunLoopParticles.Play();
+                else stunLoopParticles.Stop();
             }
 
             RefreshBossHud(arenaEngaged);
+        }
+
+        private void UpdateWardVisual()
+        {
+            if (wardRingVisual != null)
+            {
+                wardRingVisual.SetActive(!defeated && currentWardPips > 0 && currentState != BossState.Stunned);
+            }
         }
 
         private void RefreshBossHud(bool visible)
         {
             if (UIManager.Instance != null)
             {
-                UIManager.Instance.UpdateBossHud(visible && !defeated, currentHealth, maxHealth, GetStateHudLabel());
+                UIManager.Instance.UpdateBossHud(
+                    visible && !defeated,
+                    currentHealth,
+                    maxHealth,
+                    currentWardPips,
+                    MaxWardPips,
+                    currentPhase,
+                    GetStateHudLabel()
+                );
             }
         }
 
@@ -576,10 +801,11 @@ namespace VesperTwilightCourier
         {
             return currentState switch
             {
-                BossState.Wandering => "ARMORED PATROL — BAIT HALBERD SLAM",
-                BossState.Attacking => "ECLIPSE HALBERD SLAM — JUMP OR GLIDE!",
-                BossState.Stunned => "STUNNED! STOMP EXPOSED CROWN!",
-                _ => string.Empty
+                BossState.Stunned => "STUNNED — STOMP!",
+                BossState.Attacking => "HALBERD SLAM",
+                BossState.Dashing => "PHANTOM DASH",
+                BossState.Casting => "SKY LIGHTNING",
+                _ => currentWardPips > 0 ? "WARD UP — ZAP!" : "STUN READY"
             };
         }
 
@@ -589,31 +815,38 @@ namespace VesperTwilightCourier
             transform.localScale = new Vector3(Mathf.Abs(s.x) * facingDirection, s.y, s.z);
         }
 
-        private static void ClearAllShockwaves()
+        private static void ClearArenaHazards()
         {
             BossShockwave[] waves = FindObjectsByType<BossShockwave>(FindObjectsSortMode.None);
             for (int i = 0; i < waves.Length; i++)
             {
-                if (waves[i] != null)
-                {
-                    Destroy(waves[i].gameObject);
-                }
+                if (waves[i] != null) Destroy(waves[i].gameObject);
+            }
+
+            BossSkyStrike[] strikes = FindObjectsByType<BossSkyStrike>(FindObjectsSortMode.None);
+            for (int i = 0; i < strikes.Length; i++)
+            {
+                if (strikes[i] != null) Destroy(strikes[i].gameObject);
+            }
+
+            EnemyProjectile[] orbs = FindObjectsByType<EnemyProjectile>(FindObjectsSortMode.None);
+            for (int i = 0; i < orbs.Length; i++)
+            {
+                if (orbs[i] != null) Destroy(orbs[i].gameObject);
             }
         }
 
         // ============================================================
-        // EDITOR VERIFICATION PREVIEW SUPPORT (non-runtime pose helper)
+        // EDITOR VERIFICATION PREVIEW SUPPORT
         // ============================================================
-        public void SetEditorPreviewPose(BossState poseState, float facingDir, Vector3 previewPos)
+        public void SetEditorPreviewPose(BossState poseState, float facingDir, Vector3 previewPos, bool showWard = true)
         {
             facingDirection = facingDir >= 0f ? 1f : -1f;
             transform.position = previewPos;
             ApplyFacingScale();
 
-            if (animator != null)
-            {
-                animator.enabled = false;
-            }
+            if (animator != null) animator.enabled = false;
+            if (wardRingVisual != null) wardRingVisual.SetActive(showWard && poseState != BossState.Stunned);
 
             if (spriteRenderer != null)
             {
@@ -621,6 +854,8 @@ namespace VesperTwilightCourier
                 spriteRenderer.sprite = poseState switch
                 {
                     BossState.Attacking => attackPreviewSprite != null ? attackPreviewSprite : spriteRenderer.sprite,
+                    BossState.Dashing => dashPreviewSprite != null ? dashPreviewSprite : spriteRenderer.sprite,
+                    BossState.Casting => castPreviewSprite != null ? castPreviewSprite : spriteRenderer.sprite,
                     BossState.Stunned => stunnedPreviewSprite != null ? stunnedPreviewSprite : spriteRenderer.sprite,
                     _ => wanderPreviewSprite != null ? wanderPreviewSprite : spriteRenderer.sprite
                 };
@@ -639,6 +874,8 @@ namespace VesperTwilightCourier
                 animator.enabled = true;
                 animator.SetInteger(AnimStateHash, (int)BossState.Wandering);
             }
+
+            if (wardRingVisual != null) wardRingVisual.SetActive(true);
 
             if (spriteRenderer != null && wanderPreviewSprite != null)
             {
