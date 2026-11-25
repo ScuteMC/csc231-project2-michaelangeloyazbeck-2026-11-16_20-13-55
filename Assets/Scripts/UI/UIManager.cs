@@ -687,21 +687,21 @@ namespace VesperTwilightCourier
 
             if (bossNameText != null)
             {
-                bossNameText.text = $"MALAKOR   {currentHp}/{maxHp}";
+                bossNameText.text = $"MALAKOR, THE ECLIPSE WARDEN   ({currentHp}/{maxHp})";
             }
 
             if (bossPhaseText != null)
             {
                 bossPhaseText.text = phase switch
                 {
-                    3 => "PHASE III · FURY",
-                    2 => "PHASE II · RAGE",
+                    3 => "PHASE III · NIGHTMARE",
+                    2 => "PHASE II · ENRAGED",
                     _ => "PHASE I"
                 };
                 bossPhaseText.color = phase switch
                 {
                     3 => new Color(1f, 0.36f, 0.65f, 1f),
-                    2 => new Color(1f, 0.60f, 0.25f, 1f),
+                    2 => new Color(1f, 0.62f, 0.25f, 1f),
                     _ => new Color(1f, 0.86f, 0.55f, 1f)
                 };
             }
@@ -784,9 +784,9 @@ namespace VesperTwilightCourier
 
             int mins = Mathf.FloorToInt(elapsedSeconds / 60f);
             int secs = Mathf.FloorToInt(elapsedSeconds % 60f);
-            string rank = (collectedShards >= 24 && deaths == 0)
+            string rank = (collectedShards >= 36 && deaths == 0)
                 ? "RANK S · TWILIGHT LEGEND"
-                : collectedShards >= 16
+                : collectedShards >= 24
                     ? "RANK A · SANCTUM VANGUARD"
                     : "RANK B · SHADOW COURIER";
 

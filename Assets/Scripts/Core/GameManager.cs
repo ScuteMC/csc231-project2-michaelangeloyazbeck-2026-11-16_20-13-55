@@ -34,9 +34,9 @@ namespace VesperTwilightCourier
         public PlayerHealth playerHealth;
 
         [Header("Level Progression")]
-        public int totalShards = 30;
+        public int totalShards = 45;
         public float levelStartX = 2f;
-        public float levelGoalX = 239.5f;
+        public float levelGoalX = 490.5f;
 
         [Header("Lives & Storm Lightning")]
         public int startingLives = 3;
@@ -222,7 +222,7 @@ namespace VesperTwilightCourier
             {
                 UIManager.Instance.ShowOnlyPanel(GameState.Title);
                 UIManager.Instance.SyncAudioControls();
-                UIManager.Instance.UpdateBossHud(false, 0, 100, 0, 3, 1, string.Empty);
+                UIManager.Instance.UpdateBossHud(false, 0, 220, 0, 3, 1, string.Empty);
             }
             if (AudioManager.Instance != null)
             {
@@ -323,7 +323,7 @@ namespace VesperTwilightCourier
                 UIManager.Instance.UpdateLightningAmmo(LightningAmmo, CollectedShards, totalShards);
                 UIManager.Instance.UpdateSanctumProgress(0f);
                 UIManager.Instance.UpdateObjective("I · COURTYARDS", string.Empty);
-                UIManager.Instance.UpdateBossHud(false, 0, 100, 0, 3, 1, string.Empty);
+                UIManager.Instance.UpdateBossHud(false, 0, 220, 0, 3, 1, string.Empty);
                 if (playerHealth != null)
                 {
                     UIManager.Instance.UpdateHealth(playerHealth.CurrentHealth, playerHealth.maxHealth);

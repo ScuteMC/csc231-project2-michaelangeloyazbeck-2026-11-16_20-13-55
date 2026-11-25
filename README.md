@@ -6,40 +6,38 @@ A 2D Gothic action-platformer built in **Unity 6000.5.1f1** (URP 2D, Unity Input
 
 ## Storyline & Goal
 
-**The Falling Eclipse**: An eternal eclipse locks the rooftop citadel of **Noctis Reach** in frost. As **Vesper**, Shadow-Stitcher Courier, fly across four perilous districts, gather crackling **Storm-Lightnings**, break **Malakor, The Eclipse Warden**, and ignite the **Sanctum Beacon** to restore dawn.
+**The Falling Eclipse**: An eternal eclipse locks the rooftop citadel of **Noctis Reach** in frost. As **Vesper**, Shadow-Stitcher Courier, fly across six escalating districts (`x = -2 .. 496`, ~3-minute challenge run), gather crackling **Storm-Lightnings**, break **Malakor, The Eclipse Warden**, and ignite the **Sanctum Beacon** to restore dawn.
 
 ---
 
 ## Key Gameplay Features
 
-- **100 HP + Soul Lives + Delayed-Trail Gothic HUD**:
-  - Top-left HUD plaque featuring **Vesper's portrait medallion**, up to **5 Life Soul diamonds** (starts with `3`, collectible **Soul-Life Relics** restore `+1 Life` & `+50 HP`), a **100 HP bar with delayed white-gold drain trail**, Storm-Lightning bolt ammo pill, and run timer.
-- **Meaningful Collectible Storm-Lightnings (`30` + Boss Arena Respawns)**:
+- **Sculpted Diegetic Gothic HUD & Serif Typography**:
+  - Top-left floating **Vesper portrait medallion**, **5 Life Soul diamonds** (starts with `3`, plus **3 Soul-Life Relics** across Aqueduct, Foundry & Belltower), a **100 HP bar with sculpted sapphire-filigree frame and delayed trail**, Storm-Lightning bolt pill, and shard tracker (`0/45`).
+  - Bare floating top-center Zone & Sanctum progress tracker (`I · COURTYARDS` -> `VI · SANCTUM`) and compact top-right Timer, Audio Mute & Pause buttons (volume slider inside `PausePanel`).
+  - Bottom-center **Dark Souls / Hollow Knight Boss Health Bar** framed in custom sculpted iron & gold filigree (`UI_BossBar_Frame.png`) with Ward Diamonds (`3 -> 4 -> 5`).
+- **Studio Stereo Soundscape (`44100 Hz` 2-Channel Stereo)**:
+  - All 17 SFX and BGM tracks synthesized in stereo with FFT cathedral reverb, Karplus-Strong plucked strings, FM crystal chimes, formant-filtered boss roars, 32.0s Gothic rooftop theme, and a driving **158 BPM D Harmonic Minor double-kick orchestral/metal boss track (`36.5s`)**.
+- **Meaningful Collectible Storm-Lightnings (`45` + Boss Arena Respawns)**:
   - Each Storm-Lightning shard heals **+10 HP** and grants **+1 Lightning Bolt** (`LMB` / `RMB` / `E` / `F` / Gamepad `X`).
-  - Lightning Bolts travel rapidly across the screen (`PlayerLightningBolt.cs`), blasting flying Gargoyles, Plague Casters, Sentinels, projectile orbs, shockwaves, and **shattering Malakor's Eclipse Ward Diamonds** (`[3–4]` pips) to force him into a Stunned state.
+  - Lightning Bolts travel rapidly across the screen (`PlayerLightningBolt.cs`), blasting flying Gargoyles, Plague Casters, Sentinels, projectile orbs, shockwaves, and **shattering Malakor's Eclipse Ward Diamonds** (`[3 -> 4 -> 5]` pips with `0.36s` Ward hit ICD) to force him into a Stunned state.
 - **Shadow-Cloak Glide & Thermal Updrafts**:
   - Hold **Shift** (or **Space** after apex) to glide smoothly (`-2.2 u/s`, upgraded via Shards) and catch rising **Thermal Vents** / **Canal Steam Chimneys** cleanly mid-glide.
-- **Harder Gothic Enemies & Hazards**:
-  - **Clockwork Sentinels (`PatrolEnemy.cs`)**: Rooftop drones (`20` dmg, stompable or zap-killable).
-  - **Abyssal Gargoyle Swoopers (`SwoopEnemy.cs`)**: Perch and dive-swoop at Vesper with animated bat wings (`20` dmg, AI-illustrated 4-frame sprite cycle).
-  - **Eclipse Plague Casters (`AetherShooterEnemy.cs`)**: Hooded sorcerers firing homing-free **Eclipse Orbs** (`EnemyProjectile.cs`, AI-illustrated 4-frame staff cast animation).
-  - **Cathedral Pendulum Scythes (`PendulumHazard.cs`)**: Swinging crimson blades suspended from wrought-iron chains (`25` dmg).
-  - **Ambush Pop-Up Spikes (`PopUpSpikes.cs`)**: Floor-recessed `SpriteMask` traps with crackling spark telegraphs (`25` dmg).
-- **Cohesive Gothic Architecture**:
-  - Purple-slate carved moving platforms (`Tile_MovingPlatform`) suspended from overhead bronze pulleys and wrought-iron chains (`Prop_IronChain`), stone-carved crumbling spans (`Tile_CrumblePlatform`), Gothic pillars, spires, railings, and animated canal water (`WaterCanal.cs`).
+- **Harder 6-District Gothic Gauntlet (`~3 Minutes`, `45` Shards, `5` Checkpoints)**:
+  - Progress through **I · Courtyards**, **II · Aqueduct**, **III · Foundry**, **IV · Belltower Spires** (twin chimneys, crumbling spires & 3rd Soul Relic), **V · Obsidian Viaduct** (dual pendulums, timed killbox traps, & high-speed shuttles), and **VI · Twilight Sanctum**.
 
 ---
 
 ## Multi-Phase Final Boss: Malakor, The Eclipse Warden
 
-At the summit of District IV, past a **safe Vestibule Checkpoint (`Arch_4_SanctumApproach` & `Checkpoint 4`)**, **Malakor, The Eclipse Warden** (`FinalBossAI.cs` — **100 HP**, 20 AI-illustrated animation frames across 5 states plus an intimidating `Intro` roar, dynamically escalating **150 BPM D Harmonic Minor pipe-organ boss theme** `bgm_boss_warden.wav`, closing `BossArenaGate`, and wide-framing arena camera) guards the Sanctum Beacon:
+At the summit of District VI, past a **safe Vestibule Checkpoint (`Arch_6_SanctumApproach` & `Checkpoint 5`)**, **Malakor, The Eclipse Warden** (`FinalBossAI.cs` — **220 HP**, 6 states including aerial **Meteor Leap Slam**, dynamically escalating **158 BPM boss theme** `bgm_boss_warden.wav`, closing `BossArenaGate`, crimson Phase III flashes, and wide-framing arena camera) guards the Sanctum Beacon:
 
-1. **Fair Arena Entry**: Malakor stands stationary across the arena until Vesper crosses into the arena threshold (`x >= 219.0`), then locks the Crimson Eclipse Gate behind her, launches Boss Battle Music, and roars (`Intro`) before attacking.
-2. **Break the Eclipse Ward (`3` Pips)**: Shoot Malakor with **Storm-Lightnings** (`LMB` / `E` — swept `OverlapBox` physics with gentle smart-aim), land **Armored Helm Bounces** (`4` dmg + `-1` pip safely), or cleanly outlast heavy attacks: breaking his 3rd Ward pip shatters his shield (`sfx_ward_shatter.wav`) and stuns him.
-3. **Finish Him Across Three Escalating Phases (`100 -> 66 -> 33 -> 0 HP`)**:
-   - **Phase I (`100 -> 67 HP`)**: **Halberd Slam + Shockwave** and **Phantom Dash**.
-   - **Phase II — Enraged (`66 -> 34 HP`, `1.06x` music pitch)**: Unlocks **Sky Spear Barrage** (`BossSkyStrike.cs`) and bidirectional shockwaves.
-   - **Phase III — Berserk (`33 -> 0 HP`, `1.12x` music pitch)**: Fires **2-attack combos** plus **3-way Eclipse Orb fans**, backed by `4.5s`-respawning jump-height arena Lightning wisps (`ArenaAmmoSpawner.cs`). Both **Crown Stomps (`26–32 dmg`)** and **Lightning Bolts (`9–14 dmg` shielded, `12 dmg` stunned)** kill him cleanly and unseal the Sanctum Beacon.
+1. **Fair Arena Entry**: Malakor stands stationary across the arena until Vesper crosses `x >= 456.0`, then seals the Crimson Eclipse Gate behind her, launches Boss Battle Music, and roars (`Intro`) before attacking.
+2. **Break the Escalating Eclipse Ward (`3 -> 4 -> 5` Pips, `0.36s` ICD)**: Shoot **Storm-Lightnings** (`LMB` / `E` — click-spam prevented by ICD + `0.30s` stun bolt cap), land **Armored Helm Bounces** (`6` dmg + `-1` pip safely), or outlast attacks until all Ward pips shatter (`sfx_ward_shatter.wav`), stunning him and exposing his crown.
+3. **5-Attack Escalation Across Three Phases (`220 -> 149 -> 74 -> 0 HP`)**:
+   - **Phase I (`220 -> 150 HP`, 3 Ward Pips)**: **Halberd Slam + Shockwave**, **Phantom Dash**, and **Sky Spear Barrage**.
+   - **Phase II — Enraged (`149 -> 75 HP`, 4 Ward Pips, `1.06x` music pitch)**: Unlocks **Meteor Leap Slam** (high parabolic dive with shockwaves both ways), **Rolling Sky-Spear Storm**, and **4-way Eclipse Orb Fans**.
+   - **Phase III — Nightmare (`74 -> 0 HP`, 5 Ward Pips, `1.12x` music pitch)**: Unleashes **2-attack Chains**, **Phase III Double Cross-Dash** with crimson afterimages, **5-way Eclipse Orb Fans**, and periodic crimson flash pulses. Backed by `4.2s`-respawning arena Lightning wisps (`ArenaAmmoSpawner.cs`); **Crown CRIT Stomps (`38–46 dmg`)** and **Lightning Bolts (`8–12 dmg` shielded, `10 dmg` stunned)** kill him and unseal the Sanctum Beacon.
 
 ---
 
@@ -58,36 +56,28 @@ At the summit of District IV, past a **safe Vestibule Checkpoint (`Arch_4_Sanctu
 
 ## Intentional Minimal-Text UI & Animated Field Guide
 
-- **Streamlined Minimal Copy**: Concise titles, crisp button labels (`PLAY`, `STORY`, `GUIDE`, `QUIT`), micro district tags (`I · COURTYARDS` -> `IV · SANCTUM`), and clean iconized Victory stats (`⚡ 30/30 · ⏱ MM:SS · ♥ ×Retries`).
+- **Streamlined Minimal Copy**: Crisp serif typography, sleek full-bleed Title Screen (`PLAY`, `STORY`, `GUIDE`, `QUIT`), diegetic HUD clusters, micro district tags (`I · COURTYARDS` -> `VI · SANCTUM`), and clean iconized Victory stats (`45/45 · MM:SS · ♥ ×Retries`).
 - **Animated Visual Field Guide (`AnimatedUiSprite.cs`)**: All 6 tutorial cards animate continuously with unscaled frame playback and bob/stride motion (*Move & Jump*, *Cloak Glide*, *Updrafts*, *Traps & Scythes*, *Storm Bolt*, *Stomp Foes*).
 
 ---
 
 ## Verification & Screenshots Gallery
 
-| Main Menu | Story Prologue |
+| Main Menu | Portrait, HP, Lives & Diegetic HUD |
 | :---: | :---: |
-| ![Title Screen](Screenshots/title_screen.png) | ![Story Intro](Screenshots/story_intro_preview.png) |
+| ![Title Screen](Screenshots/title_screen.png) | ![Gameplay Preview](Screenshots/gameplay_preview.png) |
 
-| Animated Field Guide | Portrait, 100 HP, Lives & Lightning HUD |
+| Zone IV: Belltower Spires & Soul Relic | Zone V: Obsidian Viaduct Gauntlet |
 | :---: | :---: |
-| ![Tutorial Screen](Screenshots/tutorial_screen_preview.png) | ![Gameplay Preview](Screenshots/gameplay_preview.png) |
+| ![Zone 4 Belltower](Screenshots/zone4_belltower_preview.png) | ![Zone 5 Viaduct](Screenshots/zone5_viaduct_preview.png) |
 
-| Zone II: Pendulums, Ambush Spikes & Pillars | Zone III: Gothic Chain Platforms & Foundry |
+| District VI Boss Arena: Bottom-Center Boss Bar | Malakor Phase II Enraged: Sky Spears & Storm Bolt |
 | :---: | :---: |
-| ![Zone 2 Traps & Moving](Screenshots/zone2_traps_and_moving_preview.png) | ![Zone 3 Dynamic Platforms](Screenshots/zone3_dynamic_platforms_preview.png) |
+| ![Level Goal](Screenshots/level_goal_preview.png) | ![Boss Attack Preview](Screenshots/boss_attack_preview.png) |
 
-| Zone IV: Steam Chimneys & Sanctum Ascent | Boss Arena: Malakor Phase I (4 Ward Pips) |
+| Malakor Phase III Nightmare: Stunned Crown Stomp | Dawn Restored Epilogue |
 | :---: | :---: |
-| ![Zone 4 Chimney Ascent](Screenshots/zone4_chimney_ascent_preview.png) | ![Level Goal](Screenshots/level_goal_preview.png) |
-
-| Malakor Phase II Enraged: Sky Spears & Storm Bolt | Malakor Phase III: Stunned Crown Stomp |
-| :---: | :---: |
-| ![Boss Attack Preview](Screenshots/boss_attack_preview.png) | ![Boss Stunned Preview](Screenshots/boss_stunned_preview.png) |
-
-| Dawn Restored Epilogue |
-| :---: |
-| ![Win Screen](Screenshots/win_screen_preview.png) |
+| ![Boss Stunned Preview](Screenshots/boss_stunned_preview.png) | ![Win Screen](Screenshots/win_screen_preview.png) |
 
 ---
 

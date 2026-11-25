@@ -33,29 +33,31 @@ This document codifies the core industry principles that make 2D action-platform
 - **Horizontal Dead-Zone Window (`±0.75u`)**: Vesper moves comfortably without pushing the background constantly (`CameraController.cs`).
 - **Look-Ahead Hysteresis (`0.16s`)**: Sustaining a facing direction shifts the camera `2.0u` ahead cleanly without snapping violently back and forth when nudging position.
 - **Vertical Platform Snapping**: Locks camera Y tracking to grounded floor anchors (`anchoredGroundY`, jumping out only past `+2.5u` above or `-1.5u` below) to eliminate vertical bobbing during normal hops.
-- **Boss Arena Camera Lock & Zoom Punch**: Entering Malakor's Sanctum smoothly pulls out (`ortho = 7.7f`, centered at `x = 230.0`) so both walls and all telegraphs remain visible; Ward Shatters and Boss Kills punch orthographic zoom smoothly.
+- **Boss Arena Camera Lock & Zoom Punch**: Entering Malakor's Sanctum smoothly pulls out (`ortho = 7.7f`, centered at `x = 468.5`) so both walls and all telegraphs remain visible; Ward Shatters and Boss Kills punch orthographic zoom smoothly.
 
 ---
 
 ## 4. Boss Fight Craft (*Hollow Knight* & *Cuphead*)
 > *Rule*: High difficulty feels fair only when every attack follows **Telegraph -> Execution -> Punishment Window** with zero blind spots or off-screen ambushes.
 
-- **Pre-Fight Sanctuary & Fair Entry**: A dedicated safe Vestibule (`x = 208.5..217.4` with Checkpoint 4) precedes the arena; Malakor remains stationary across the hall (`x = 234.5`) until Vesper steps past `x >= 219.0`, triggering the closing `BossArenaGate`, `1.30s` `Intro` roar, and `150 BPM` D Harmonic Minor pipe-organ boss theme (`bgm_boss_warden.wav`).
+- **Pre-Fight Sanctuary & Fair Entry**: A dedicated safe Vestibule (`x = 444.0..454.5` with Checkpoint 5) precedes the arena; Malakor remains stationary across the hall (`x = 473.5`) until Vesper steps past `x >= 456.0`, triggering the closing `BossArenaGate`, `1.30s` `Intro` roar, and `158 BPM` D Harmonic Minor orchestral/metal boss theme (`bgm_boss_warden.wav`).
 - **Diegetic Visual + Audio Tells**:
-  - `Halberd Slam` paints a pulsing crimson ground impact strip (`SlamZoneTelegraph`) + plays `sfx_boss_telegraph.wav` for `0.68s` before cleaving.
-  - `Phantom Dash` paints a pulsing crimson runway laser (`DashFloorTelegraph`) from start to end (`0.62s` windup) + trims collider height during dash to permit clean hops.
-  - `Sky Spear Barrage` highlights vertical target shafts (`0.85s` warning beams in `BossSkyStrike.cs`).
-- **Readable Phase Escalation (`100 -> 66 -> 33 -> 0 HP`)**: Phase II & III clear hazards cleanly on transition, raise boss theme pitch (`1.06x` -> `1.12x`), and reward mastery via three ways to progress (Lightning Bolts, Stunned Crown CRIT stomps, or Armored Helm bounces + dodge exertion).
+  - `Halberd Slam` paints a pulsing crimson ground impact strip (`SlamZoneTelegraph`) + plays `sfx_boss_telegraph.wav` before cleaving.
+  - `Phantom Dash` paints a pulsing crimson runway laser (`DashFloorTelegraph`) + trims collider height during dash to permit clean hops, escalating to a Phase III Double Cross-Dash with crimson afterimages.
+  - `Meteor Leap Slam` & `Rolling Sky-Spear Storm` telegraph aerial dives and sweeping vertical beams (`BossSkyStrike.cs`) across the arena.
+- **Readable Phase Escalation (`220 -> 149 -> 74 -> 0 HP`)**: Phase II & III clear hazards cleanly on transition, expand Ward diamonds (`3 -> 4 -> 5`, `0.36s` ICD), raise boss theme pitch (`1.06x` -> `1.12x`), and reward mastery via three ways to progress (Lightning Bolts, Stunned Crown CRIT stomps `38–46 dmg`, or Armored Helm bounces + dodge exertion).
 
 ---
 
 ## 5. Nintendo *Kishōtenketsu* Level Pacing & *Flow Theory*
 > *Rule*: Introduce every mechanic safely without threats first (*Ki*), develop it with light obstacles (*Shō*), twist it (*Ten*), and synthesize everything in the climax (*Ketsu*), alternating intensity spikes with safe breathing room.
 
-- **District I — Safe Onboarding (*Ki*)**: Courtyard ruins teach movement, Storm-Lightnings, a zero-enemy Shadow-Cloak Glide chasm (with recessed safety ledges and step-up block), and a first Plague Caster right after a glowing Checkpoint Lantern.
-- **District II — Aqueduct Variations (*Shō*)**: Couples Thermal Updraft Vents with Gothic Pillar spans, swinging Pendulum Scythes, Gargoyle Swoopers overhead, an optional Soul-Life Relic skill perch, and staggered Clockwork Shuttle rides.
-- **District III — Foundry Twists (*Ten*)**: Combines crumbling stone bridges, dual non-colliding lifted platforms over the canal, timed out-of-phase spike grates, and mixed ranged/aerial enemies.
-- **District IV — Sanctum Gauntlet & Climax (*Ketsu*)**: Chimney updrafts lead to a **zero-ambush Vestibule rest** (Flow Theory valley) before culminating in the 3-phase Malakor duel and Sanctum Beacon ignition.
+- **District I — Courtyards (*Ki*)**: Courtyard ruins teach movement, Storm-Lightnings, a zero-enemy Shadow-Cloak Glide chasm (with recessed safety ledges and step-up block), and a first Plague Caster right after a glowing Checkpoint Lantern.
+- **District II — Aqueduct (*Shō*)**: Couples Thermal Updraft Vents with Gothic Pillar spans, swinging Pendulum Scythes, Gargoyle Swoopers overhead, an optional Soul-Life Relic skill perch, and staggered Clockwork Shuttle rides.
+- **District III — Foundry (*Ten*)**: Combines crumbling stone bridges, dual non-colliding lifted platforms over the canal, timed out-of-phase spike grates, and mixed ranged/aerial enemies.
+- **District IV — Belltower Spires**: Adds double-chimney vertical ascents, crumbling tower gaps, vertical elevators, and a 3rd Soul-Life Relic perch guarded by Gargoyles and Pendulums.
+- **District V — Obsidian Viaduct Gauntlet**: High-tempo shuttles, twin timed spike killboxes, pendulum alleys, and rapid chimney surges demanding full movement mastery.
+- **District VI — Sanctum Climax (*Ketsu*)**: Ascends into a **zero-ambush Vestibule rest (`Checkpoint 5`)** before culminating in the 5-attack, 3-phase Malakor duel (`220 HP`) and Sanctum Beacon ignition.
 
 ---
 
