@@ -61,7 +61,9 @@ At the summit of District VI, past a **safe Vestibule Checkpoint (`Arch_6_Sanctu
 
 ---
 
-## Verification & Screenshots Gallery
+## Verification Video & Screenshots Gallery
+
+- **Gameplay Demo Video (1:12, 1280×720 30 FPS Stereo Audio)**: [`DemoVideo/VesperTwilightCourier_Demo.mp4`](DemoVideo/VesperTwilightCourier_Demo.mp4) — showcases the **Title Screen**, District I Shadow-Cloak Glide, **Aqueduct Death & Checkpoint Respawn**, Districts II–V hazard gauntlets, the **5-Attack Malakor Boss Fight**, and the **DAWN RESTORED Win Screen**.
 
 | Main Menu | Portrait, HP, Lives & Diegetic HUD |
 | :---: | :---: |
@@ -96,11 +98,15 @@ A deep design synthesis in [`GAME_DESIGN_RULES.md`](GAME_DESIGN_RULES.md) docume
 
 - **Executable**: `Builds/Windows/VesperTwilightCourier.exe` (`StandaloneWindows64`)
 - **Archived Distribution**: `Builds/VesperTwilightCourier_WindowsBuild.zip`
-- Automated validation in `LevelBuilder.BuildAll` passed cleanly with **0 overlapping platform footprints across all 23 footprints**, `VerifyCombatAndBossSystems()` passing (`25.6s` boss music, swept bolt hits across all 4 enemy classes, full `100->0 HP` boss kill cycle unsealing the Beacon), and exit code `0`.
+- Automated validation in `LevelBuilder.BuildAll` passed cleanly with **0 overlapping footprints and `>= 2.10u` walking headroom across all 45 footprints**, `VerifyCombatAndBossSystems()` passing (`45` shards, `36.5s` stereo boss music, swept bolt hits across all 4 enemy classes, full `220->0 HP` boss kill cycle unsealing the Beacon), and exit code `0`.
 
 ---
 
 ## Tools & Credits
 
-- **Game Engine**: Unity `6000.5.1f1` (URP 2D `17.5.0`, Input System `1.19.0`, uGUI `2.5.0`).
-- **Art & Audio**: Original sprites and AI-illustrated character/boss keyframe sets (`image-generator` + Python PIL chroma-key & Gothic stonework compositing) alongside procedurally synthesized WAV sound effects (`Assets/Audio/`).
+- **Game Engine**: Unity `6000.5.1f1` (Universal Render Pipeline 2D `17.5.0`, Input System `1.19.0`, uGUI `2.5.0`, C#).
+- **AI Tools Used (Full Disclosure)**:
+  - **Google Antigravity / Gemini**: Assisted with C# gameplay/editor scripting, level architecture iteration, and PlayMode test/video automation harnesses; all game design rules, character identity (*Vesper*), boss mechanics, and creative direction are original.
+  - **AI Image Generation (`image-generator`) + Python (`Pillow` / `NumPy`)**: Used to generate base illustrations for *Vesper*, enemies, tiles, Malakor keyframes, and sculpted Gothic UI frames (`Assets/Art/`), followed by Python chroma-keying, rim cleanup, and 9-slice framing.
+  - **Custom Python DSP Audio Synthesis (`NumPy` / `wave`)**: All 17 stereo `44100 Hz` `.wav` sound effects and music tracks (`Assets/Audio/`) were procedurally synthesized cleanly in Python (zero copyrighted audio).
+- **External Third-Party Assets**: None — all artwork, audio, scripts, and scenes were created specifically for this project.

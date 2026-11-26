@@ -19,6 +19,11 @@ namespace VesperTwilightCourier
 
         public static AudioManager Instance { get; private set; }
 
+#if UNITY_EDITOR
+        public static System.Action<string, float, float> OnEditorSfxEvent;
+        public static System.Action<string, float> OnEditorBgmEvent;
+#endif
+
         [Header("Audio Sources")]
         public AudioSource bgmSource;
         public AudioSource sfxSource;
@@ -200,6 +205,9 @@ namespace VesperTwilightCourier
                 bgmSource.loop = true;
                 bgmSource.Play();
             }
+#if UNITY_EDITOR
+            OnEditorBgmEvent?.Invoke("bgm_boss_warden", bgmSource.pitch);
+#endif
             ApplyAudioSettings();
         }
 
@@ -218,6 +226,9 @@ namespace VesperTwilightCourier
                 bgmSource.loop = true;
                 bgmSource.Play();
             }
+#if UNITY_EDITOR
+            OnEditorBgmEvent?.Invoke("bgm_twilight_rooftops", 1.0f);
+#endif
             ApplyAudioSettings();
         }
 
@@ -243,6 +254,9 @@ namespace VesperTwilightCourier
 
             voice.pitch = pitchMin >= pitchMax ? pitchMin : Random.Range(pitchMin, pitchMax);
             voice.PlayOneShot(clip, Mathf.Clamp01(masterVolume * volumeScale));
+#if UNITY_EDITOR
+            OnEditorSfxEvent?.Invoke(clip.name, Mathf.Clamp01(masterVolume * volumeScale), voice.pitch);
+#endif
         }
 
         public void PlayJump() => PlaySfxVaried(jumpClip, 0.88f, 0.95f, 1.08f);

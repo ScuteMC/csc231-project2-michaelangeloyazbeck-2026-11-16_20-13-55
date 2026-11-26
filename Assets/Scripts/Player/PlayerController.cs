@@ -92,6 +92,15 @@ namespace VesperTwilightCourier
         private static readonly int IsHurtHash = Animator.StringToHash("IsHurt");
         private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
 
+#if UNITY_EDITOR
+        public static bool DemoInputOverrideActive;
+        public static float DemoMoveX;
+        public static bool DemoJumpDown;
+        public static bool DemoJumpHeld;
+        public static bool DemoGlideHeld;
+        public static bool DemoFlashDown;
+#endif
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody2D>();
@@ -280,6 +289,29 @@ namespace VesperTwilightCourier
 
         private void ReadInput()
         {
+#if UNITY_EDITOR
+            if (DemoInputOverrideActive)
+            {
+                horizontalInput = Mathf.Clamp(DemoMoveX, -1f, 1f);
+                jumpPressedThisFrame = DemoJumpDown;
+                jumpHeld = DemoJumpHeld;
+                glideButtonHeld = DemoGlideHeld;
+                aetherFlashPressedThisFrame = DemoFlashDown;
+                DemoJumpDown = false;
+                DemoFlashDown = false;
+
+                if (jumpPressedThisFrame)
+                {
+                    jumpBufferTimer = jumpBufferTime;
+                }
+                if (!jumpHeld && !isGrounded)
+                {
+                    jumpHoldEligibleForGlide = true;
+                }
+                return;
+            }
+#endif
+
             float moveX = 0f;
             bool jumpDown = false;
             bool jumpCurrentlyHeld = false;
