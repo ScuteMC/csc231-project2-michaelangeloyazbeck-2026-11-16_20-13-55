@@ -943,6 +943,7 @@ public static class LevelBuilder
 
         PlayerController pc = playerGo.AddComponent<PlayerController>();
         pc.lightningBoltSprite = a.vfxPlayerLightningBolt;
+        pc.impactParticleMaterial = a.particleMaterial;
         PlayerHealth ph = playerGo.AddComponent<PlayerHealth>();
 
         pc.jumpDustParticles = CreateOneShotBurstParticles(

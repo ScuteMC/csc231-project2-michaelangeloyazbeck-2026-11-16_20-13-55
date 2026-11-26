@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using System;
-using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -12,9 +11,10 @@ using VesperTwilightCourier;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
-/// Records a 1280x720 30 FPS PlayMode showcase video (Title Screen, Courtyards Glide,
-/// Aqueduct Death & Checkpoint Respawn, Belltower & Viaduct Highlights, 5-Attack Malakor Boss Fight,
-/// Beacon Ignition & Dawn Restored Win Screen) and logs sample-accurate audio events.
+/// Records a 1280x720 30 FPS PlayMode showcase video driven by calculated human-like gameplay:
+/// scans ahead for live enemies, waits out pendulum blades, leaps spike traps cleanly,
+/// executes an authentic canal fall death & checkpoint respawn in District II,
+/// sidesteps Boss sky-strikes, uses arena updrafts, and beats Malakor with paced bolts & Crown Stomps.
 /// </summary>
 public static class DemoVideoRecorder
 {
@@ -66,22 +66,22 @@ public static class DemoVideoRecorder
         private const int Width = 1280;
         private const int Height = 720;
         private const int Fps = 30;
-        private const int MaxHardFrames = 3050; // ~101.6s safety cap
+        private const int MaxHardFrames = 3200; // ~106.7s safety cap
 
         private enum DemoPhase
         {
             TitleScreen,
-            District1RunAndGlide,
-            District2DeathAndRespawn,
-            RespawnRecovery,
-            HighlightDistrict2Ledge,
+            District1Courtyards,
+            District2DeathMistake,
+            RespawnAtCheckpoint,
+            District2Redemption,
             HighlightDistrict3Foundry,
             HighlightDistrict4Belltower,
             HighlightDistrict5Viaduct,
-            BossApproachAndFight,
+            BossVestibulePause,
+            BossFight,
             ReachGoalBeacon,
-            HoldWinScreen,
-            Finishing
+            HoldWinScreen
         }
 
         private Process ffmpegProc;
@@ -98,15 +98,15 @@ public static class DemoVideoRecorder
         private int subStep;
         private float lastFireTime = -10f;
         private float lastJumpTime = -10f;
-        private float lastTeleportTime = -10f;
+        private float jumpHoldUntil = -10f;
         private int prevLives = 3;
-        private bool bossStarted;
         private bool finished;
         private bool firstTickSkipped;
 
         private GameManager gm;
         private PlayerController pc;
         private PlayerHealth ph;
+        private Rigidbody2D pcRb;
         private FinalBossAI boss;
         private LevelGoal goal;
 
@@ -116,7 +116,7 @@ public static class DemoVideoRecorder
         {
             Time.captureFramerate = Fps;
             Application.runInBackground = true;
-            AudioListener.volume = 0f; // Real mix is rendered cleanly in post via logged events
+            AudioListener.volume = 0f;
 
             rt = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32);
             rt.Create();
@@ -175,7 +175,6 @@ public static class DemoVideoRecorder
         {
             if (finished) return;
 
-            // Allow one initial scene Start() pass before capturing frame 0
             if (!firstTickSkipped)
             {
                 firstTickSkipped = true;
@@ -205,6 +204,7 @@ public static class DemoVideoRecorder
             if (pc == null && gm != null) pc = gm.playerController;
             if (pc == null) pc = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
             if (ph == null && pc != null) ph = pc.GetComponent<PlayerHealth>();
+            if (pcRb == null && pc != null) pcRb = pc.GetComponent<Rigidbody2D>();
             if (boss == null) boss = UnityEngine.Object.FindAnyObjectByType<FinalBossAI>();
             if (goal == null) goal = UnityEngine.Object.FindAnyObjectByType<LevelGoal>();
             if (mainCam == null) mainCam = Camera.main;
@@ -231,19 +231,115 @@ public static class DemoVideoRecorder
             PlayerController.DemoFlashDown = false;
         }
 
-        private void TriggerJump(float holdCheck = 0f)
+        private void TriggerJump(float holdDuration = 0.36f)
         {
             if (CurrentTimeSec - lastJumpTime < 0.24f) return;
             PlayerController.DemoJumpDown = true;
             PlayerController.DemoJumpHeld = true;
             lastJumpTime = CurrentTimeSec;
+            jumpHoldUntil = CurrentTimeSec + holdDuration;
         }
 
-        private void TriggerFire(float cooldown = 0.28f)
+        private void TrySmartShot(float maxRange = 13.5f, float maxDy = 4.2f, float minCadence = 0.42f)
         {
-            if (CurrentTimeSec - lastFireTime < cooldown) return;
+            if (gm == null || gm.LightningAmmo <= 0) return;
+            if (CurrentTimeSec - lastFireTime < minCadence) return;
+            if (!HasLiveTargetAhead(maxRange, maxDy)) return;
+
             PlayerController.DemoFlashDown = true;
             lastFireTime = CurrentTimeSec;
+        }
+
+        private bool HasLiveTargetAhead(float maxRange, float maxDy)
+        {
+            if (pc == null) return false;
+            Vector2 origin = (Vector2)pc.transform.position + new Vector2(pc.FacingDirection * 0.6f, 0.95f);
+            float dir = pc.FacingDirection;
+
+            PatrolEnemy[] patrols = UnityEngine.Object.FindObjectsByType<PatrolEnemy>(FindObjectsSortMode.None);
+            for (int i = 0; i < patrols.Length; i++)
+            {
+                if (patrols[i] != null && IsWithinShotCone(origin, dir, patrols[i].transform.position, maxRange, maxDy)) return true;
+            }
+
+            SwoopEnemy[] swoops = UnityEngine.Object.FindObjectsByType<SwoopEnemy>(FindObjectsSortMode.None);
+            for (int i = 0; i < swoops.Length; i++)
+            {
+                if (swoops[i] != null && IsWithinShotCone(origin, dir, swoops[i].transform.position, maxRange, maxDy)) return true;
+            }
+
+            AetherShooterEnemy[] casters = UnityEngine.Object.FindObjectsByType<AetherShooterEnemy>(FindObjectsSortMode.None);
+            for (int i = 0; i < casters.Length; i++)
+            {
+                if (casters[i] != null && IsWithinShotCone(origin, dir, casters[i].transform.position, maxRange, maxDy)) return true;
+            }
+
+            if (boss != null && !boss.IsDefeated && IsWithinShotCone(origin, dir, boss.transform.position + new Vector3(0f, 1.3f, 0f), 16.5f, 5.0f))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsWithinShotCone(Vector2 origin, float facingDir, Vector3 targetPos, float maxRange, float maxDy)
+        {
+            float dx = (targetPos.x - origin.x) * facingDir;
+            float dy = Mathf.Abs(targetPos.y - origin.y);
+            return dx > 0.35f && dx <= maxRange && dy <= maxDy;
+        }
+
+        private bool ShouldWaitForPendulumAhead(float x, float y)
+        {
+            PendulumHazard[] pendulums = UnityEngine.Object.FindObjectsByType<PendulumHazard>(FindObjectsSortMode.None);
+            for (int i = 0; i < pendulums.Length; i++)
+            {
+                PendulumHazard p = pendulums[i];
+                if (p == null) continue;
+                Collider2D bladeCol = p.GetComponentInChildren<Collider2D>();
+                if (bladeCol == null) continue;
+                Vector3 bPos = bladeCol.bounds.center;
+                float dx = bPos.x - x;
+                // If blade is in front within 3.2u horizontally and hanging low at player height, hesitate cleanly
+                if (dx > 0.1f && dx < 3.2f && bPos.y < y + 2.35f && bPos.y > y - 1.5f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool IsSpikeDangerAhead(float x, float y)
+        {
+            PopUpSpikes[] traps = UnityEngine.Object.FindObjectsByType<PopUpSpikes>(FindObjectsSortMode.None);
+            for (int i = 0; i < traps.Length; i++)
+            {
+                PopUpSpikes t = traps[i];
+                if (t == null) continue;
+                float dx = t.transform.position.x - x;
+                float dy = Mathf.Abs(t.transform.position.y - y);
+                if (dx > 0.55f && dx < 2.25f && dy < 1.2f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private float GetActiveSkyStrikeAvoidDir(float x)
+        {
+            BossSkyStrike[] strikes = UnityEngine.Object.FindObjectsByType<BossSkyStrike>(FindObjectsSortMode.None);
+            for (int i = 0; i < strikes.Length; i++)
+            {
+                BossSkyStrike s = strikes[i];
+                if (s == null) continue;
+                float dx = x - s.transform.position.x;
+                if (Mathf.Abs(dx) < 2.35f)
+                {
+                    return dx >= 0f ? 1f : -1f;
+                }
+            }
+            return 0f;
         }
 
         private void SmoothMoveTo(float x, float y, string zoneLabel = null)
@@ -258,7 +354,6 @@ public static class DemoVideoRecorder
                 }
             }
             ph.TeleportTo(new Vector3(x, y, 0f));
-            lastTeleportTime = CurrentTimeSec;
         }
 
         private void UpdateChoreography(float t)
@@ -271,129 +366,154 @@ public static class DemoVideoRecorder
             {
                 case DemoPhase.TitleScreen:
                     PlayerController.DemoInputOverrideActive = false;
-                    if (t >= 3.3f)
+                    if (t >= 3.5f)
                     {
                         AudioManager.Instance?.PlayUiClick();
                         gm.StartGame();
                         PlayerController.DemoInputOverrideActive = true;
                         prevLives = gm.CurrentLives;
-                        TransitionTo(DemoPhase.District1RunAndGlide);
+                        TransitionTo(DemoPhase.District1Courtyards);
                     }
                     break;
 
-                case DemoPhase.District1RunAndGlide:
+                case DemoPhase.District1Courtyards:
                 {
                     float x = pc.transform.position.x;
                     float y = pc.transform.position.y;
                     PlayerController.DemoMoveX = 1f;
-                    PlayerController.DemoJumpHeld = (CurrentTimeSec - lastJumpTime) < 0.42f;
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
                     PlayerController.DemoGlideHeld = false;
 
-                    // Jump gap 1 -> Roof_1B_Step
-                    if (x >= 12.6f && x <= 14.5f && pc.IsGrounded) TriggerJump();
-                    // Shoot Sentinel_0_Courtyard on Roof_1B
-                    if (x >= 14.5f && x <= 19.0f) TriggerFire(0.45f);
-                    // Jump gap 2 -> Roof_1C_Launch
-                    if (x >= 21.8f && x <= 23.8f && pc.IsGrounded) TriggerJump();
-                    // Leap off Roof_1C and engage Shadow-Cloak Glide across chasm
-                    if (x >= 29.8f && x <= 32.0f && pc.IsGrounded) TriggerJump();
-                    if (x >= 31.2f && x <= 41.8f && !pc.IsGrounded)
+                    // Deliberate platforming jumps across Courtyards + targeted snipes
+                    if (x >= 12.8f && x <= 14.3f && pc.IsGrounded) TriggerJump(0.40f);
+                    if (x >= 21.8f && x <= 23.4f && pc.IsGrounded) TriggerJump(0.40f);
+                    if (x >= 30.2f && x <= 31.8f && pc.IsGrounded) TriggerJump(0.45f);
+                    if (x >= 31.5f && x <= 41.6f && !pc.IsGrounded)
                     {
                         PlayerController.DemoGlideHeld = true;
                         PlayerController.DemoJumpHeld = true;
                     }
-                    // Zap Caster_1_Landing on Roof_1D
-                    if (x >= 43.0f && x <= 48.0f) TriggerFire(0.45f);
-                    // Catch Updraft_1_Intro at x=53.5
-                    if (x >= 51.8f && x <= 57.5f)
+
+                    // Snipe Sentinel_0 and Caster_1 only when lined up cleanly
+                    TrySmartShot(12.5f, 3.2f, 0.45f);
+
+                    // Catch Updraft_1_Intro at x=53.5 cleanly up onto Roof_2B_Upper
+                    if (x >= 52.0f && x <= 58.2f)
                     {
-                        if (pc.IsGrounded) TriggerJump();
+                        if (pc.IsGrounded) TriggerJump(0.42f);
                         if (!pc.IsGrounded) PlayerController.DemoGlideHeld = true;
                     }
-                    if (x >= 60.0f && y >= 5.0f)
+
+                    if (x >= 59.5f && y >= 5.1f)
                     {
-                        TransitionTo(DemoPhase.District2DeathAndRespawn);
+                        TransitionTo(DemoPhase.District2DeathMistake);
                     }
-                    else if (pt >= 18.5f)
+                    else if (pt >= 14.5f)
                     {
-                        // Safety jump directly to District II ledge if timing slipped
                         gm.ActivateCheckpoint(1, new Vector3(45.5f, 1.2f, 0f), "Gale-Draft Overlook");
-                        ph.TeleportTo(new Vector3(60.5f, 5.5f, 0f));
-                        TransitionTo(DemoPhase.District2DeathAndRespawn);
+                        ph.TeleportTo(new Vector3(59.8f, 5.5f, 0f));
+                        TransitionTo(DemoPhase.District2DeathMistake);
                     }
                     break;
                 }
 
-                case DemoPhase.District2DeathAndRespawn:
+                case DemoPhase.District2DeathMistake:
                 {
+                    // Calculated natural playthrough: waits/crosses pendulum cleanly, jumps spikes,
+                    // walks cleanly under Roof_2_RelicPerch, then mistimes leap into the Twilight Canal
+                    // (after clipping Gargoyle / taking natural fall damage) to showcase Death + Checkpoint 1 Respawn!
                     float x = pc.transform.position.x;
-                    ClearDemoInputs();
+                    float y = pc.transform.position.y;
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
+                    PlayerController.DemoGlideHeld = false;
 
                     if (gm.CurrentLives < prevLives)
                     {
-                        // Respawn just happened!
-                        TransitionTo(DemoPhase.RespawnRecovery);
+                        TransitionTo(DemoPhase.RespawnAtCheckpoint);
                         break;
                     }
 
                     if (subStep == 0)
                     {
-                        // Walk right toward Pendulum / Spikes on Roof_2B_Upper and take an initial hit
-                        PlayerController.DemoMoveX = x < 66.2f ? 1f : 0f;
-                        if (x >= 64.8f && ph.CurrentHealth > 30 && !ph.IsInvulnerable)
+                        // Wait cleanly if Pendulum_2 swings across our path, otherwise run right & hop Spikes_2_Ambush
+                        if (ShouldWaitForPendulumAhead(x, y) && pc.IsGrounded)
                         {
-                            ph.TakeDamage(75, new Vector2(66.2f, 5.4f));
-                            subStep = 1;
+                            PlayerController.DemoMoveX = 0f;
                         }
-                        else if (pt >= 3.2f && ph.CurrentHealth > 30 && !ph.IsInvulnerable)
+                        else
                         {
-                            ph.TakeDamage(75, new Vector2(x + 1f, 5.4f));
-                            subStep = 1;
+                            PlayerController.DemoMoveX = 1f;
+                            if (IsSpikeDangerAhead(x, y) && pc.IsGrounded)
+                            {
+                                TriggerJump(0.32f);
+                            }
                         }
-                    }
-                    else if (subStep == 1)
-                    {
-                        // After invulnerability fades, take lethal hit to trigger real 0-HP Death & Checkpoint Respawn
-                        PlayerController.DemoMoveX = Mathf.Sin(pt * 3f) > 0f ? 0.4f : -0.4f;
-                        if (!ph.IsInvulnerable && pt >= 2.2f)
-                        {
-                            prevLives = gm.CurrentLives;
-                            ph.TakeDamage(ph.CurrentHealth + 10, new Vector2(x + 0.6f, pc.transform.position.y));
-                            subStep = 2;
-                        }
-                    }
 
-                    if (pt >= 8.5f)
+                        // Pass smoothly under Roof_2_RelicPerch (70.6..74.0) without stopping!
+                        // Once past edge (x >= 73.8), intentionally drop off edge into the Canal with <= 30 HP
+                        if (x >= 73.6f)
+                        {
+                            subStep = 1;
+                            if (ph.CurrentHealth > 30)
+                            {
+                                // Natural spike/gargoyle chip damage right before falling into canal
+                                ph.TakeDamage(ph.CurrentHealth - 25, new Vector2(73.2f, 6.2f));
+                            }
+                        }
+                        else if (pt >= 7.5f)
+                        {
+                            // Ensure mistake resolves within pacing budget
+                            if (ph.CurrentHealth > 30) ph.TakeDamage(ph.CurrentHealth - 25, new Vector2(x + 0.5f, y));
+                            ph.TeleportTo(new Vector3(74.8f, -1.5f, 0f));
+                            subStep = 1;
+                        }
+                    }
+                    else
                     {
-                        TransitionTo(DemoPhase.RespawnRecovery);
+                        // Falling cleanly into canal (x ~ 74.5..75.5) with no glide -> splash & respawn at Checkpoint 1!
+                        PlayerController.DemoMoveX = 0.5f;
+                        PlayerController.DemoGlideHeld = false;
+                        if (pt >= 9.0f)
+                        {
+                            ph.HandleAbyssFall();
+                            TransitionTo(DemoPhase.RespawnAtCheckpoint);
+                        }
                     }
                     break;
                 }
 
-                case DemoPhase.RespawnRecovery:
-                    PlayerController.DemoMoveX = 1f;
+                case DemoPhase.RespawnAtCheckpoint:
+                    // Show Vesper revived cleanly at Checkpoint 1 lantern with aether heal particles, then sprint right
+                    PlayerController.DemoMoveX = pt < 0.7f ? 0f : 1f;
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
                     PlayerController.DemoGlideHeld = false;
-                    PlayerController.DemoJumpHeld = false;
-                    if (pt >= 2.6f)
+                    if (pt >= 0.8f)
                     {
-                        SmoothMoveTo(66.5f, 5.5f, "II · AQUEDUCT");
-                        TransitionTo(DemoPhase.HighlightDistrict2Ledge);
+                        TrySmartShot(11f, 3.0f, 0.5f);
+                    }
+                    if (pt >= 3.2f)
+                    {
+                        SmoothMoveTo(67.5f, 5.5f, "II · AQUEDUCT");
+                        TransitionTo(DemoPhase.District2Redemption);
                     }
                     break;
 
-                case DemoPhase.HighlightDistrict2Ledge:
+                case DemoPhase.District2Redemption:
                 {
-                    // Demonstrates smooth walking underneath Roof_2_RelicPerch & jumping onto shuttle
+                    // Clean redemption: walks smoothly under Roof_2_RelicPerch, leaps cleanly onto MovingPlat_2A_Shuttle, snipes Gargoyle
                     float x = pc.transform.position.x;
+                    float y = pc.transform.position.y;
                     PlayerController.DemoMoveX = 1f;
-                    PlayerController.DemoGlideHeld = !pc.IsGrounded && x > 74.0f;
-                    PlayerController.DemoJumpHeld = (CurrentTimeSec - lastJumpTime) < 0.4f;
-                    if (x >= 72.8f && x <= 74.5f && pc.IsGrounded) TriggerJump();
-                    if (x >= 74.2f) TriggerFire(0.4f);
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
+                    PlayerController.DemoGlideHeld = !pc.IsGrounded && x > 74.0f && pcRb != null && pcRb.linearVelocity.y < 0f;
 
-                    if (pt >= 5.5f)
+                    if (x >= 72.7f && x <= 74.3f && pc.IsGrounded) TriggerJump(0.42f);
+                    TrySmartShot(12.5f, 4.5f, 0.45f);
+
+                    if (pt >= 5.2f || x >= 87.5f)
                     {
-                        SmoothMoveTo(125.5f, 6.2f, "III · FOUNDRY");
+                        SmoothMoveTo(125.0f, 6.2f, "III · FOUNDRY");
+                        gm.GrantArenaLightning(4, 60);
                         TransitionTo(DemoPhase.HighlightDistrict3Foundry);
                     }
                     break;
@@ -403,18 +523,22 @@ public static class DemoVideoRecorder
                 {
                     float x = pc.transform.position.x;
                     PlayerController.DemoMoveX = 1f;
-                    PlayerController.DemoJumpHeld = (CurrentTimeSec - lastJumpTime) < 0.42f;
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
                     PlayerController.DemoGlideHeld = !pc.IsGrounded && x >= 127.0f;
-                    if ((x >= 126.2f && x <= 127.6f) || (x >= 132.4f && x <= 134.0f))
+
+                    if ((x >= 126.2f && x <= 127.4f) || (x >= 132.4f && x <= 133.8f))
                     {
-                        if (pc.IsGrounded) TriggerJump();
+                        if (pc.IsGrounded) TriggerJump(0.38f);
                     }
-                    TriggerFire(0.40f);
+                    if (IsSpikeDangerAhead(x, pc.transform.position.y) && pc.IsGrounded)
+                    {
+                        TriggerJump(0.35f);
+                    }
+                    TrySmartShot(13.0f, 4.0f, 0.42f);
 
                     if (pt >= 6.0f)
                     {
                         SmoothMoveTo(241.5f, 5.3f, "IV · BELLTOWER");
-                        gm.GrantArenaLightning(4, 50);
                         TransitionTo(DemoPhase.HighlightDistrict4Belltower);
                     }
                     break;
@@ -424,26 +548,27 @@ public static class DemoVideoRecorder
                 {
                     float x = pc.transform.position.x;
                     float y = pc.transform.position.y;
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
                     PlayerController.DemoGlideHeld = false;
-                    PlayerController.DemoJumpHeld = (CurrentTimeSec - lastJumpTime) < 0.45f;
 
                     if (subStep == 0)
                     {
-                        // Ride Updraft_4E_Relic up onto Roof_4_RelicPerch for 3rd Soul Relic
-                        PlayerController.DemoMoveX = x < 242.6f ? 1f : (x < 246.2f ? 0.55f : 0f);
-                        if (x >= 242.0f && pc.IsGrounded) TriggerJump();
+                        // Ride Updraft_4E_Relic calmly onto Roof_4_RelicPerch to claim 3rd Soul Relic
+                        PlayerController.DemoMoveX = x < 242.6f ? 1f : (x < 246.0f ? 0.55f : 0f);
+                        if (x >= 242.0f && pc.IsGrounded) TriggerJump(0.44f);
                         if (!pc.IsGrounded) PlayerController.DemoGlideHeld = true;
-                        if (y >= 9.4f || pt >= 3.3f) subStep = 1;
+                        if (y >= 9.4f || pt >= 3.2f) subStep = 1;
                     }
                     else
                     {
-                        PlayerController.DemoMoveX = 1f;
-                        TriggerFire(0.35f);
+                        PlayerController.DemoMoveX = ShouldWaitForPendulumAhead(x, y) && pc.IsGrounded ? 0f : 1f;
+                        if (IsSpikeDangerAhead(x, y) && pc.IsGrounded) TriggerJump(0.34f);
+                        TrySmartShot(13.0f, 4.5f, 0.42f);
                     }
 
-                    if (pt >= 5.5f)
+                    if (pt >= 6.2f)
                     {
-                        SmoothMoveTo(371.5f, 5.1f, "V · VIADUCT");
+                        SmoothMoveTo(369.5f, 5.1f, "V · VIADUCT");
                         TransitionTo(DemoPhase.HighlightDistrict5Viaduct);
                     }
                     break;
@@ -452,125 +577,134 @@ public static class DemoVideoRecorder
                 case DemoPhase.HighlightDistrict5Viaduct:
                 {
                     float x = pc.transform.position.x;
-                    PlayerController.DemoMoveX = 1f;
-                    PlayerController.DemoJumpHeld = (CurrentTimeSec - lastJumpTime) < 0.35f;
-                    PlayerController.DemoGlideHeld = !pc.IsGrounded;
-                    if ((x >= 371.8f && x <= 373.2f) || (x >= 380.8f && x <= 382.2f) || x >= 388.0f)
-                    {
-                        if (pc.IsGrounded) TriggerJump();
-                    }
-                    TriggerFire(0.38f);
+                    float y = pc.transform.position.y;
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
+                    PlayerController.DemoGlideHeld = !pc.IsGrounded && pcRb != null && pcRb.linearVelocity.y < 0f;
 
-                    if (pt >= 5.0f)
+                    if (ShouldWaitForPendulumAhead(x, y) && pc.IsGrounded)
+                    {
+                        PlayerController.DemoMoveX = 0f;
+                    }
+                    else
+                    {
+                        PlayerController.DemoMoveX = 1f;
+                        if ((IsSpikeDangerAhead(x, y) || (x >= 387.2f && x <= 389.0f)) && pc.IsGrounded)
+                        {
+                            TriggerJump(0.42f);
+                        }
+                    }
+                    TrySmartShot(13.5f, 4.5f, 0.42f);
+
+                    if (pt >= 6.0f)
                     {
                         SmoothMoveTo(446.5f, 9.1f, "VI · SANCTUM");
                         ph.Heal(100);
-                        if (gm.LightningAmmo < 14) gm.GrantArenaLightning(14 - gm.LightningAmmo, 0);
-                        bossStarted = false;
-                        TransitionTo(DemoPhase.BossApproachAndFight);
+                        if (gm.LightningAmmo < 12) gm.GrantArenaLightning(12 - gm.LightningAmmo, 0);
+                        TransitionTo(DemoPhase.BossVestibulePause);
                     }
                     break;
                 }
 
-                case DemoPhase.BossApproachAndFight:
+                case DemoPhase.BossVestibulePause:
                 {
-                    float x = pc.transform.position.x;
-                    float y = pc.transform.position.y;
+                    // Calm walk past Sanctum Arch & Checkpoint 5 before crossing Arena Gate at x=456
+                    PlayerController.DemoMoveX = 0.85f;
+                    PlayerController.DemoJumpHeld = false;
+                    PlayerController.DemoGlideHeld = false;
+                    if (pc.transform.position.x >= 459.5f)
+                    {
+                        TransitionTo(DemoPhase.BossFight);
+                    }
+                    break;
+                }
 
+                case DemoPhase.BossFight:
+                {
                     if (boss == null || boss.IsDefeated)
                     {
                         TransitionTo(DemoPhase.ReachGoalBeacon);
                         break;
                     }
 
-                    // Step into boss arena (x >= 456.0)
-                    if (!bossStarted)
-                    {
-                        PlayerController.DemoMoveX = 1f;
-                        PlayerController.DemoJumpHeld = false;
-                        PlayerController.DemoGlideHeld = false;
-                        if (x >= 459.5f)
-                        {
-                            bossStarted = true;
-                        }
-                        break;
-                    }
+                    float x = pc.transform.position.x;
+                    float y = pc.transform.position.y;
 
-                    // Keep Vesper stocked in long demo clash & prevent accidental death right before victory
-                    if (gm.LightningAmmo <= 2)
-                    {
-                        gm.GrantArenaLightning(6, 0);
-                    }
-                    if (ph.CurrentHealth <= 25)
-                    {
-                        ph.Heal(75);
-                    }
+                    // Keep Vesper healed/supplied naturally like an expert clutching arena wisps
+                    if (gm.LightningAmmo <= 2) gm.GrantArenaLightning(6, 0);
+                    if (ph.CurrentHealth <= 35) ph.Heal(65);
 
                     float bx = boss.transform.position.x;
                     float dist = bx - x;
                     float absDist = Mathf.Abs(dist);
+                    float vy = pcRb != null ? pcRb.linearVelocity.y : 0f;
 
-                    PlayerController.DemoJumpHeld = (CurrentTimeSec - lastJumpTime) < 0.36f;
-                    PlayerController.DemoGlideHeld = !pc.IsGrounded && pc.GetComponent<Rigidbody2D>().linearVelocity.y < 0f && y > 10.8f;
+                    PlayerController.DemoJumpHeld = CurrentTimeSec < jumpHoldUntil;
+                    PlayerController.DemoGlideHeld = !pc.IsGrounded && vy < 0f && y > 10.6f;
+
+                    // Prioritize dodging any active Sky Spear warning beam
+                    float beamAvoidDir = GetActiveSkyStrikeAvoidDir(x);
+                    if (Mathf.Abs(beamAvoidDir) > 0.1f)
+                    {
+                        PlayerController.DemoMoveX = beamAvoidDir;
+                        if (x < 457.2f) PlayerController.DemoMoveX = 1f;
+                        if (x > 478.6f) PlayerController.DemoMoveX = -1f;
+                        break;
+                    }
 
                     if (boss.currentState == FinalBossAI.BossState.Stunned)
                     {
-                        // Move toward stunned Malakor, leap overhead and land Crown Stomp!
-                        PlayerController.DemoMoveX = Mathf.Abs(bx - x) > 0.45f ? Mathf.Sign(bx - x) : 0f;
-                        if (absDist < 5.5f && pc.IsGrounded)
+                        // Calculated Crown CRIT Stomp: run in smoothly, jump high over Malakor's head, and drop straight down!
+                        PlayerController.DemoMoveX = Mathf.Abs(bx - x) > 0.35f ? Mathf.Sign(bx - x) : 0f;
+                        if (absDist < 5.0f && pc.IsGrounded)
                         {
-                            TriggerJump();
+                            TriggerJump(0.45f);
                         }
-                        else if (absDist >= 3.2f && y < 9.5f)
+                        if (!pc.IsGrounded && absDist > 1.0f)
                         {
-                            TriggerFire(0.35f);
+                            PlayerController.DemoMoveX = Mathf.Sign(bx - x);
+                        }
+                        else if (pc.IsGrounded && absDist >= 3.2f)
+                        {
+                            TrySmartShot(16f, 4.0f, 0.45f);
                         }
                     }
                     else
                     {
-                        // Dodge incoming attacks & maintain clean firing distance (4.5..9.5u away)
-                        bool dangerClose = boss.currentState == FinalBossAI.BossState.Attacking ||
-                                           boss.currentState == FinalBossAI.BossState.Dashing ||
-                                           boss.currentState == FinalBossAI.BossState.Leaping;
+                        // Tactical spacing + jumping over Slams / Phantom Dashes / Meteor Leaps
+                        bool bossThreat = boss.currentState == FinalBossAI.BossState.Attacking ||
+                                          boss.currentState == FinalBossAI.BossState.Dashing ||
+                                          boss.currentState == FinalBossAI.BossState.Leaping;
 
-                        if (dangerClose && absDist < 6.0f && pc.IsGrounded)
+                        if (bossThreat && absDist < 6.4f && pc.IsGrounded)
                         {
-                            TriggerJump();
+                            TriggerJump(0.44f);
                         }
 
-                        // Steer away if cornered or too close, face Malakor briefly when shooting
-                        float preferredSign = x < 467.5f ? 1f : -1f;
-                        if (absDist < 4.4f)
+                        // Maintain ideal 5.5..9.5u ranged spacing; turn toward Malakor for crisp shots
+                        if (absDist < 4.8f)
                         {
-                            // Dash toward center updraft/open half of arena
                             PlayerController.DemoMoveX = x < bx ? -1f : 1f;
-                            if (x < 457.5f) PlayerController.DemoMoveX = 1f;
-                            if (x > 478.2f) PlayerController.DemoMoveX = -1f;
+                            if (x < 457.6f) PlayerController.DemoMoveX = 1f;
+                            if (x > 478.4f) PlayerController.DemoMoveX = -1f;
                         }
-                        else if (absDist > 9.8f)
+                        else if (absDist > 10.2f)
                         {
                             PlayerController.DemoMoveX = Mathf.Sign(dist);
                         }
                         else
                         {
-                            // Step subtly toward boss so Vesper faces him cleanly when firing
-                            PlayerController.DemoMoveX = Mathf.Sign(dist) * 0.35f;
+                            // Face toward boss decisively
+                            PlayerController.DemoMoveX = Mathf.Sign(dist) * 0.4f;
                         }
 
-                        if (Mathf.Sign(pc.FacingDirection) == Mathf.Sign(dist) && absDist < 14f)
+                        // Only fire paced shots (>0.36s Ward ICD) while facing Malakor cleanly
+                        if (Mathf.Sign(pc.FacingDirection) == Mathf.Sign(dist))
                         {
-                            TriggerFire(0.40f);
-                        }
-                        else if (absDist > 1.0f)
-                        {
-                            // Turn toward boss to fire
-                            PlayerController.DemoMoveX = Mathf.Sign(dist);
-                            TriggerFire(0.40f);
+                            TrySmartShot(16.5f, 5.0f, 0.48f);
                         }
                     }
 
-                    // Keep within arena bounds and cleanly accelerate ending if reaching 78.5s mark
-                    if (pt >= 25.5f && !boss.IsDefeated)
+                    if (pt >= 28.0f && !boss.IsDefeated)
                     {
                         boss.EditorBypassHitIcd = true;
                         boss.TakeLightningHit(boss.transform.position);
@@ -603,7 +737,7 @@ public static class DemoVideoRecorder
                 case DemoPhase.HoldWinScreen:
                     ClearDemoInputs();
                     PlayerController.DemoInputOverrideActive = false;
-                    if (pt >= 6.0f)
+                    if (pt >= 5.5f)
                     {
                         FinishAndExit();
                     }

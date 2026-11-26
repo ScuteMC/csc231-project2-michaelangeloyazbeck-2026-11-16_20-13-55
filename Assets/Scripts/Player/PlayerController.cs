@@ -43,6 +43,7 @@ namespace VesperTwilightCourier
 
         [Header("Combat")]
         public Sprite lightningBoltSprite;
+        public Material impactParticleMaterial;
         public float lightningCooldown = 0.20f;
 
         public float FacingDirection { get; private set; } = 1f;
@@ -654,7 +655,7 @@ namespace VesperTwilightCourier
             boltRb.useFullKinematicContacts = true;
 
             PlayerLightningBolt bolt = boltGo.AddComponent<PlayerLightningBolt>();
-            bolt.Initialize(FacingDirection, lightningBoltSprite, smartAim);
+            bolt.Initialize(FacingDirection, lightningBoltSprite, smartAim, impactParticleMaterial);
         }
 
         private static Vector2? FindSmartLightningAimDirection(Vector2 origin, float facingDir)

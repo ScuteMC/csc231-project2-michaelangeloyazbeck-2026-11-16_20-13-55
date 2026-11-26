@@ -16,11 +16,14 @@ namespace VesperTwilightCourier
         private Vector2 velocity = new Vector2(24f, 0f);
         private float elapsed;
         private bool consumed;
+        private Material impactMaterial;
+        private static Material cachedFallbackMat;
         private readonly Collider2D[] hitBuffer = new Collider2D[16];
         private readonly Collider2D[] wallBuffer = new Collider2D[8];
 
-        public void Initialize(float dir, Sprite boltSprite, Vector2? customAimDir = null)
+        public void Initialize(float dir, Sprite boltSprite, Vector2? customAimDir = null, Material particleMat = null)
         {
+            impactMaterial = particleMat;
             float sign = dir >= 0f ? 1f : -1f;
             Vector2 moveDir = customAimDir.HasValue && customAimDir.Value.sqrMagnitude > 0.001f
                 ? customAimDir.Value.normalized
@@ -191,7 +194,39 @@ namespace VesperTwilightCourier
             return false;
         }
 
-        private static void SpawnImpactFlash(Vector3 pos, Color color)
+        private static Material GetSafeParticleMaterial()
+        {
+            if (cachedFallbackMat != null)
+            {
+                return cachedFallbackMat;
+            }
+
+            Shader sh = Shader.Find("Sprites/Default");
+            if (sh == null)
+            {
+                sh = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+            }
+
+            Texture2D glowTex = new Texture2D(32, 32, TextureFormat.RGBA32, false);
+            for (int y = 0; y < 32; y++)
+            {
+                for (int x = 0; x < 32; x++)
+                {
+                    float dx = (x + 0.5f - 16f) / 15.5f;
+                    float dy = (y + 0.5f - 16f) / 15.5f;
+                    float r = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+                    float a = Mathf.Pow(1f - r, 2.2f);
+                    glowTex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                }
+            }
+            glowTex.Apply();
+            glowTex.wrapMode = TextureWrapMode.Clamp;
+
+            cachedFallbackMat = new Material(sh) { mainTexture = glowTex };
+            return cachedFallbackMat;
+        }
+
+        private void SpawnImpactFlash(Vector3 pos, Color color)
         {
             GameObject burst = new GameObject("LightningImpactSpark");
             burst.transform.position = pos;
@@ -201,9 +236,18 @@ namespace VesperTwilightCourier
             main.duration = 0.25f;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.14f, 0.28f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 7.2f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.12f, 0.26f);
-            main.startColor = color;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.16f, 0.32f);
+            main.startColor = new ParticleSystem.MinMaxGradient(color, Color.white);
             main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            var colLife = ps.colorOverLifetime;
+            colLife.enabled = true;
+            Gradient g = new Gradient();
+            g.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(color, 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) }
+            );
+            colLife.color = new ParticleSystem.MinMaxGradient(g);
 
             var emission = ps.emission;
             emission.rateOverTime = 0f;
@@ -214,6 +258,7 @@ namespace VesperTwilightCourier
             shape.radius = 0.22f;
 
             var renderer = burst.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = impactMaterial != null ? impactMaterial : GetSafeParticleMaterial();
             renderer.sortingOrder = 12;
             ps.Play();
             Destroy(burst, 0.6f);

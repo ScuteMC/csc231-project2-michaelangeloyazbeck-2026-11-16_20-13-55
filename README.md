@@ -63,7 +63,7 @@ At the summit of District VI, past a **safe Vestibule Checkpoint (`Arch_6_Sanctu
 
 ## Verification Video & Screenshots Gallery
 
-- **Gameplay Demo Video (1:12, 1280×720 30 FPS Stereo Audio)**: [`DemoVideo/VesperTwilightCourier_Demo.mp4`](DemoVideo/VesperTwilightCourier_Demo.mp4) — showcases the **Title Screen**, District I Shadow-Cloak Glide, **Aqueduct Death & Checkpoint Respawn**, Districts II–V hazard gauntlets, the **5-Attack Malakor Boss Fight**, and the **DAWN RESTORED Win Screen**.
+- **Gameplay Demo Video (1:24, 1280×720 30 FPS Stereo Audio)**: [`DemoVideo/VesperTwilightCourier_Demo.mp4`](DemoVideo/VesperTwilightCourier_Demo.mp4) — showcases the **Title Screen**, District I Shadow-Cloak Glide, **Aqueduct Death & Checkpoint Respawn**, Districts II–V hazard gauntlets, the **5-Attack Malakor Boss Fight**, and the **DAWN RESTORED Win Screen**.
 
 | Main Menu | Portrait, HP, Lives & Diegetic HUD |
 | :---: | :---: |
