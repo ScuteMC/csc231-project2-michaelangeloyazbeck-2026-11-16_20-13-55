@@ -1073,8 +1073,8 @@ public static class LevelBuilder
         CreateStreetLamp("Lamp_2B", new Vector2(60.2f, 5.4f), a, levelRoot.transform);
         CreatePendulumScythe("Pendulum_2_Aqueduct", new Vector2(63.2f, 10.6f), 3.65f, 44f, 2.4f, 0f, a, levelRoot.transform);
         CreateGargoyle("Gargoyle_2A_Aqueduct", new Vector2(68.5f, 9.8f), 3.4f, 2.9f, a, levelRoot.transform);
-        CreateElevatedPlatform("Roof_2_RelicPerch", 70.6f, 74.0f, 9.0f, 2.0f, a, levelRoot.transform, footprints);
-        CreateSoulLifeRelic("SoulRelic_1_Aqueduct", new Vector2(72.3f, 9.9f), a, levelRoot.transform);
+        CreateRelicLedge("Roof_2_RelicPerch", 70.6f, 74.0f, 8.6f, a, levelRoot.transform, footprints);
+        CreateSoulLifeRelic("SoulRelic_1_Aqueduct", new Vector2(72.3f, 9.5f), a, levelRoot.transform);
 
         CreateTutorialTrigger("Tut_4_Spikes", new Vector2(61.0f, 7.0f), new Vector2(3.5f, 4f),
             string.Empty,
@@ -1139,7 +1139,7 @@ public static class LevelBuilder
         CreatePendulumScythe("Pendulum_3_Gantry", new Vector2(155.4f, 10.2f), 4.1f, 46f, 2.5f, 0.6f, a, levelRoot.transform);
         CreateMovingPlatform("MovingPlat_3B_Shuttle", new Vector3(157.8f, 4.2f, 0f), new Vector3(161.2f, 4.2f, 0f),
             3.4f, 0.95f, 2.1f, 0.40f, 0.35f, true, GroundBottomY, a, levelRoot.transform, footprints);
-        CreateElevatedPlatform("Roof_3_RelicPerch", 158.0f, 162.0f, 8.6f, 2.0f, a, levelRoot.transform, footprints);
+        CreateRelicLedge("Roof_3_RelicPerch", 158.0f, 162.0f, 8.6f, a, levelRoot.transform, footprints);
         CreateSoulLifeRelic("SoulRelic_2_Foundry", new Vector2(160.0f, 9.5f), a, levelRoot.transform);
 
         // Twin out-of-phase Pop-Up Spike Gauntlet leading to Zone 4 Checkpoint
@@ -1199,8 +1199,8 @@ public static class LevelBuilder
 
         CreateGroundedPlatform("Roof_4E_SpireDeck", 241.0f, 264.0f, 5.2f, GroundBottomY, a, levelRoot.transform, footprints);
         CreateRooftopUpdraft("Updraft_4E_Relic", new Vector2(242.8f, 5.2f), 2.6f, 6.2f, 9.8f, a, levelRoot.transform);
-        CreateElevatedPlatform("Roof_4_RelicPerch", 244.0f, 248.0f, 10.0f, 2.0f, a, levelRoot.transform, footprints);
-        CreateSoulLifeRelic("SoulRelic_3_Belltower", new Vector2(246.0f, 10.9f), a, levelRoot.transform);
+        CreateRelicLedge("Roof_4_RelicPerch", 244.0f, 248.0f, 9.6f, a, levelRoot.transform, footprints);
+        CreateSoulLifeRelic("SoulRelic_3_Belltower", new Vector2(246.0f, 10.5f), a, levelRoot.transform);
         CreateSentinel("Sentinel_4E_Deck", new Vector2(247.5f, 6.15f), -3.0f, 3.0f, 3.4f, a, levelRoot.transform);
         CreatePopUpSpikes("Spikes_4E_Ambush", new Vector2(252.5f, 5.2f), 2.0f, PopUpSpikes.TrapMode.ProximityAmbush, 0f, a, levelRoot.transform);
         CreatePlagueCaster("Caster_4E_Deck", new Vector2(257.0f, 5.2f), a, levelRoot.transform);
@@ -1342,9 +1342,19 @@ public static class LevelBuilder
                         $"[LevelBuilder] Platform overlap detected between '{a.name}' ([{a.minX:F2}..{a.maxX:F2}], [{a.minY:F2}..{a.maxY:F2}]) " +
                         $"and '{b.name}' ([{b.minX:F2}..{b.maxX:F2}], [{b.minY:F2}..{b.maxY:F2}])!");
                 }
+                if (overlapX)
+                {
+                    float clearance = a.minY >= b.maxY ? a.minY - b.maxY : b.minY - a.maxY;
+                    if (clearance < 2.10f)
+                    {
+                        throw new Exception(
+                            $"[LevelBuilder] Insufficient walking headroom ({clearance:F2}u < 2.10u) between '{a.name}' ([{a.minY:F2}..{a.maxY:F2}]) " +
+                            $"and '{b.name}' ([{b.minY:F2}..{b.maxY:F2}])!");
+                    }
+                }
             }
         }
-        Debug.Log($"[LevelBuilder] Platform Overlap Validation PASSED across {footprints.Count} static/moving/crumbling footprints (0 overlaps).");
+        Debug.Log($"[LevelBuilder] Platform Overlap & Headroom Validation PASSED across {footprints.Count} static/moving/crumbling footprints (0 overlaps, min headroom >= 2.10u).");
     }
 
     private static void CreateGroundedPlatform(string name, float startX, float endX, float topY, float bottomY, BuiltAssets a, Transform parent, List<PlatformFootprint> footprints)
@@ -1356,6 +1366,37 @@ public static class LevelBuilder
     private static void CreateElevatedPlatform(string name, float startX, float endX, float topY, float height, BuiltAssets a, Transform parent, List<PlatformFootprint> footprints)
     {
         CreatePlatformInternal(name, startX, endX, topY, Mathf.Max(2.0f, height), a, parent, footprints);
+    }
+
+    private static void CreateRelicLedge(string name, float startX, float endX, float topY, BuiltAssets a, Transform parent, List<PlatformFootprint> footprints)
+    {
+        const float ledgeHeight = 0.85f;
+        float width = endX - startX;
+        float centerX = (startX + endX) * 0.5f;
+        float centerY = topY - ledgeHeight * 0.5f;
+
+        footprints.Add(new PlatformFootprint
+        {
+            name = name,
+            minX = startX,
+            maxX = endX,
+            minY = topY - ledgeHeight,
+            maxY = topY
+        });
+
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(centerX, centerY, 0f);
+
+        BoxCollider2D col = go.AddComponent<BoxCollider2D>();
+        col.size = new Vector2(width, ledgeHeight);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = a.tileMovingPlatform;
+        sr.drawMode = SpriteDrawMode.Tiled;
+        sr.tileMode = SpriteTileMode.Continuous;
+        sr.size = new Vector2(width, 0.95f);
+        sr.sortingOrder = 1;
     }
 
     private static void CreatePlatformInternal(string name, float startX, float endX, float topY, float finalHeight, BuiltAssets a, Transform parent, List<PlatformFootprint> footprints)
